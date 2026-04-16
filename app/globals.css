@@ -24,3 +24,18 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+@font-face {
+  font-family: 'bilkie';
+  src: url('/fonts/bilkie.otf');
+}
+
+@font-face {
+  font-family: 'bilkiealt';
+  src: url('/fonts/bilkiealt.ttf');
+}
+
+@font-face {
+  font-family: 'baslik';
+  src: url('/fonts/baslik.otf');
+}
