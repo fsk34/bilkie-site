@@ -14,8 +14,35 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata = {
-  title: "Bilkie - Oyunlaştırılmış Öğrenme",
-  description: "İlkokul ve ortaokul öğrencileri için oyunlaştırılmış eğitim platformu.",
+  title: "Bilkie | Öğrenciler için oyunlaştırılmış öğrenme",
+  description:
+    "Bilkie, ilkokul ve ortaokul öğrencileri için konu testleri, konu defterleri ve yazılı hazırlık içerikleri sunan oyunlaştırılmış eğitim platformudur.",
+  keywords: [
+    "eğitim uygulaması",
+    "oyunlaştırılmış öğrenme",
+    "ilkokul",
+    "ortaokul",
+    "konu testleri",
+    "yazılı hazırlık",
+    "bilkie"
+  ],
+  authors: [{ name: "Bilkie" }],
+  openGraph: {
+    title: "Bilkie",
+    description:
+      "Oyunlaştırılmış öğrenme ile ders çalışmayı eğlenceli hale getir.",
+    url: "https://bilkie.com",
+    siteName: "Bilkie",
+    images: [
+      {
+        url: "https://bilkie.com/og.png",
+        width: 1200,
+        height: 630,
+      },
+    ],
+    locale: "tr_TR",
+    type: "website",
+  },
 };
 
 export default function RootLayout({
@@ -25,7 +52,7 @@ export default function RootLayout({
 }>) {
   return (
     <html
-      lang="en"
+      lang="tr"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">{children}</body>
