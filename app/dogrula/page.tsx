@@ -19,7 +19,7 @@ const mainFont = localFont({
 });
 
 const firebaseConfig = {
-  apiKey: "AIzaSyCPam-DUCX9dbeXP0WQk6RSjDZxQ1WztuA",
+  apiKey: "AIzaSyCPam-DUCX9dbeXP0WQk6RSjDZxQiWztuA",
   authDomain: "turkce3-sinif.firebaseapp.com",
   projectId: "turkce3-sinif",
   storageBucket: "turkce3-sinif.firebasestorage.app",
@@ -30,7 +30,7 @@ function getFirebaseApp() {
   return getApps().length ? getApp() : initializeApp(firebaseConfig);
 }
 
-type StatusType = "loading" | "success" | "error";
+type StatusType = "loading" | "ready" | "verifying" | "success" | "error";
 
 function DogrulaContent() {
   const searchParams = useSearchParams();
@@ -40,8 +40,11 @@ function DogrulaContent() {
   const mode = useMemo(() => searchParams.get("mode"), [searchParams]);
   const oobCode = useMemo(() => searchParams.get("oobCode"), [searchParams]);
 
+  // Sayfa açılışında sadece checkActionCode çağır (kodu tüketmez).
+  // applyActionCode'u kullanıcı butona basana kadar çağırma — e-posta
+  // istemcilerinin link ön-yüklemesi (prefetch) kodu tüketir.
   useEffect(() => {
-    async function verifyEmail() {
+    async function checkCode() {
       if (!mode || !oobCode) {
         setStatus("error");
         setMessage("Geçersiz doğrulama bağlantısı.");
@@ -57,12 +60,9 @@ function DogrulaContent() {
       try {
         const app = getFirebaseApp();
         const auth = getAuth(app);
-
         await checkActionCode(auth, oobCode);
-        await applyActionCode(auth, oobCode);
-
-        setStatus("success");
-        setMessage("E-posta adresin başarıyla doğrulandı.");
+        setStatus("ready");
+        setMessage("E-posta adresini doğrulamak için aşağıdaki butona bas.");
       } catch (error) {
         console.error(error);
         setStatus("error");
@@ -70,8 +70,25 @@ function DogrulaContent() {
       }
     }
 
-    verifyEmail();
+    checkCode();
   }, [mode, oobCode]);
+
+  async function handleVerify() {
+    if (!oobCode) return;
+    setStatus("verifying");
+    setMessage("Doğrulanıyor...");
+    try {
+      const app = getFirebaseApp();
+      const auth = getAuth(app);
+      await applyActionCode(auth, oobCode);
+      setStatus("success");
+      setMessage("E-posta adresin başarıyla doğrulandı.");
+    } catch (error) {
+      console.error(error);
+      setStatus("error");
+      setMessage("Bağlantı geçersiz, süresi dolmuş ya da daha önce kullanılmış olabilir.");
+    }
+  }
 
   return (
     <main
@@ -114,7 +131,8 @@ function DogrulaContent() {
             marginBottom: "16px",
           }}
         >
-          {status === "loading" && "Doğrulanıyor"}
+          {(status === "loading" || status === "verifying") && "Doğrulanıyor"}
+          {status === "ready" && "E-postanı Doğrula"}
           {status === "success" && "Doğrulama Başarılı"}
           {status === "error" && "Doğrulama Hatası"}
         </h2>
@@ -130,6 +148,25 @@ function DogrulaContent() {
         >
           {message}
         </p>
+
+        {status === "ready" && (
+          <button
+            onClick={handleVerify}
+            style={{
+              display: "inline-block",
+              background: "#F3A24C",
+              color: "#0C1A3F",
+              border: "none",
+              cursor: "pointer",
+              padding: "14px 24px",
+              borderRadius: "999px",
+              fontWeight: 700,
+              fontSize: "16px",
+            }}
+          >
+            E-postamı Doğrula
+          </button>
+        )}
 
         {status === "success" && (
           <a
