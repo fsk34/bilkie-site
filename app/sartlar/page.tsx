@@ -62,7 +62,7 @@ const sections = [
   },
   {
     title: "10. İletişim",
-    content: "Sorularınız için destek@bilkie.app adresine yazabilirsiniz.",
+    content: "Sorularınız için info@bilkie.com adresine yazabilirsiniz.",
   },
 ];
 

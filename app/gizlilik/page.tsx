@@ -73,7 +73,7 @@ const sections = [
   {
     title: "5. Yurt Dışı Veri Aktarımı",
     content:
-      "Google Firebase altyapısı nedeniyle verileriniz yurt dışındaki sunucularda işlenebilir. KVKK Madde 9 kapsamında bu aktarım için kayıt sırasında açık rızanız alınmaktadır. Açık rızanızı geri almak istediğinizde destek@bilkie.app adresi üzerinden hesabınızın silinmesini talep edebilirsiniz.",
+      "Google Firebase altyapısı nedeniyle verileriniz yurt dışındaki sunucularda işlenebilir. KVKK Madde 9 kapsamında bu aktarım için kayıt sırasında açık rızanız alınmaktadır. Açık rızanızı geri almak istediğinizde info@bilkie.com adresi üzerinden hesabınızın silinmesini talep edebilirsiniz.",
   },
   {
     title: "6. Veri Güvenliği",
@@ -101,7 +101,7 @@ const sections = [
       "İşlemeye itiraz etme",
       "Veri aktarımı hakkında bilgi alma",
     ],
-    note: "Bu haklarınızı kullanmak için destek@bilkie.app adresine yazabilir ya da kvkk.gov.tr üzerinden KVK Kurumu'na başvurabilirsiniz.",
+    note: "Bu haklarınızı kullanmak için info@bilkie.com adresine yazabilir ya da kvkk.gov.tr üzerinden KVK Kurumu'na başvurabilirsiniz.",
   },
   {
     title: "10. Politika Değişiklikleri",
@@ -110,7 +110,7 @@ const sections = [
   },
   {
     title: "11. İletişim",
-    content: "Bilkie — destek@bilkie.app",
+    content: "Bilkie — info@bilkie.com",
   },
 ];
 
