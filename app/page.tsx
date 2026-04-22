@@ -35,7 +35,7 @@ export default function Page() {
           justifyContent: "center",
           minHeight: "100vh",
           textAlign: "center",
-          padding: "20px",
+          padding: "24px 16px 40px",
           position: "relative",
           overflow: "hidden",
         }}
@@ -286,7 +286,7 @@ export default function Page() {
         <h1
           className={bilkieFont.className}
           style={{
-            fontSize: "80px",
+            fontSize: "clamp(44px, 14vw, 80px)",
             marginBottom: "10px",
             color: "#8FB3D9",
             position: "relative",
@@ -299,8 +299,8 @@ export default function Page() {
         <p
           className={bilkieAltFont.className}
           style={{
-            fontSize: "22px",
-            marginBottom: "40px",
+            fontSize: "clamp(16px, 4.8vw, 22px)",
+            marginBottom: "28px",
             color: "#AFC6E6",
             position: "relative",
             zIndex: 2,
@@ -315,6 +315,7 @@ export default function Page() {
             gap: "20px",
             flexWrap: "wrap",
             justifyContent: "center",
+            maxWidth: "560px",
             position: "relative",
             zIndex: 2,
           }}
@@ -337,19 +338,19 @@ export default function Page() {
       <section
         style={{
           background: "#86B7DD",
-          padding: "80px 40px",
+          padding: "56px 20px",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
           flexWrap: "wrap",
-          gap: "10px",
+          gap: "28px",
         }}
       >
         <div style={{ maxWidth: "500px", transform: "translateX(-30px)" }}>
           <h2
             className={bilkieFont.className}
             style={{
-              fontSize: "52px",
+              fontSize: "clamp(30px, 9vw, 52px)",
               marginBottom: "20px",
               color: "#0C1A3F",
             }}
@@ -360,7 +361,7 @@ export default function Page() {
           <p
             className={mainFont.className}
             style={{
-              fontSize: "20px",
+              fontSize: "clamp(16px, 4.5vw, 20px)",
               color: "#0C1A3F",
               lineHeight: "1.4",
               fontWeight: 600,
@@ -374,8 +375,8 @@ export default function Page() {
 
         <div
           style={{
-            width: "270px",
-            height: "560px",
+            width: "min(72vw, 270px)",
+            height: "min(150vw, 560px)",
             background: "#111827",
             borderRadius: "36px",
             padding: "14px",
@@ -428,14 +429,14 @@ export default function Page() {
         <div
           style={{
             background: "#86B7DD",
-            padding: "70px 40px 35px 40px",
+            padding: "70px 20px 35px 20px",
             textAlign: "center",
           }}
         >
           <h2
             className={baslikFont.className}
             style={{
-              fontSize: "52px",
+              fontSize: "clamp(30px, 9vw, 52px)",
               marginBottom: "18px",
               color: "#0C1A3F",
             }}
@@ -446,7 +447,7 @@ export default function Page() {
           <p
             className={mainFont.className}
             style={{
-              fontSize: "20px",
+              fontSize: "clamp(16px, 4.5vw, 20px)",
               color: "#0C1A3F",
               lineHeight: "1.4",
               fontWeight: 600,
@@ -461,7 +462,7 @@ export default function Page() {
         <div
           style={{
             background: "#F4E1B9",
-            padding: "70px 40px 80px 40px",
+            padding: "70px 20px 80px 20px",
             display: "flex",
             justifyContent: "center",
             alignItems: "flex-start",
@@ -594,8 +595,8 @@ export default function Page() {
             <div
               key={index}
               style={{
-                width: "210px",
-                height: "430px",
+                width: "min(42vw, 210px)",
+                height: "min(86vw, 430px)",
                 background: "#111827",
                 borderRadius: "30px",
                 padding: "11px",
@@ -648,14 +649,14 @@ export default function Page() {
         <div
           style={{
             background: "#86B7DD",
-            padding: "70px 40px 35px 40px",
+            padding: "70px 20px 35px 20px",
             textAlign: "center",
           }}
         >
           <h2
             className={baslikFont.className}
             style={{
-              fontSize: "52px",
+              fontSize: "clamp(30px, 9vw, 52px)",
               marginBottom: "18px",
               color: "#0C1A3F",
             }}
@@ -666,7 +667,7 @@ export default function Page() {
           <p
             className={mainFont.className}
             style={{
-              fontSize: "20px",
+              fontSize: "clamp(16px, 4.5vw, 20px)",
               color: "#0C1A3F",
               lineHeight: "1.4",
               fontWeight: 600,
@@ -681,7 +682,7 @@ export default function Page() {
         <div
           style={{
             background: "#E6A893",
-            padding: "70px 40px 80px 40px",
+            padding: "70px 20px 80px 20px",
             display: "flex",
             justifyContent: "center",
             alignItems: "flex-start",
@@ -801,8 +802,8 @@ export default function Page() {
             <div
               key={index}
               style={{
-                width: "210px",
-                height: "430px",
+                width: "min(42vw, 210px)",
+                height: "min(86vw, 430px)",
                 background: "#111827",
                 borderRadius: "30px",
                 padding: "11px",
@@ -855,14 +856,14 @@ export default function Page() {
         <div
           style={{
             background: "#86B7DD",
-            padding: "70px 40px 35px 40px",
+            padding: "70px 20px 35px 20px",
             textAlign: "center",
           }}
         >
           <h2
             className={baslikFont.className}
             style={{
-              fontSize: "52px",
+              fontSize: "clamp(30px, 9vw, 52px)",
               marginBottom: "18px",
               color: "#0C1A3F",
             }}
@@ -873,7 +874,7 @@ export default function Page() {
           <p
             className={mainFont.className}
             style={{
-              fontSize: "20px",
+              fontSize: "clamp(16px, 4.5vw, 20px)",
               color: "#0C1A3F",
               lineHeight: "1.4",
               fontWeight: 600,
@@ -888,7 +889,7 @@ export default function Page() {
         <div
           style={{
             background: "#A6A0D6",
-            padding: "70px 40px 80px 40px",
+            padding: "70px 20px 80px 20px",
             display: "flex",
             justifyContent: "center",
             alignItems: "flex-start",
@@ -1011,8 +1012,8 @@ export default function Page() {
             <div
               key={index}
               style={{
-                width: "210px",
-                height: "430px",
+                width: "min(42vw, 210px)",
+                height: "min(86vw, 430px)",
                 background: "#111827",
                 borderRadius: "30px",
                 padding: "11px",
@@ -1071,7 +1072,7 @@ export default function Page() {
         <div
           style={{
             background: "#0C1A3F",
-            padding: "80px 40px 40px 40px",
+            padding: "80px 20px 40px 20px",
             textAlign: "center",
             position: "relative",
             zIndex: 4,
@@ -1080,7 +1081,7 @@ export default function Page() {
           <h2
             className={baslikFont.className}
             style={{
-              fontSize: "52px",
+              fontSize: "clamp(30px, 9vw, 52px)",
               marginBottom: "20px",
               color: "#8FB3D9",
             }}
@@ -1091,7 +1092,7 @@ export default function Page() {
           <p
             className={mainFont.className}
             style={{
-              fontSize: "20px",
+              fontSize: "clamp(16px, 4.5vw, 20px)",
               color: "#AFC6E6",
               lineHeight: "1.4",
               fontWeight: 600,
@@ -1107,7 +1108,7 @@ export default function Page() {
         <div
           style={{
             background: "#0C1A3F",
-            padding: "50px 40px 100px 40px",
+            padding: "50px 20px 100px 20px",
             marginTop: "-20px",
             display: "flex",
             justifyContent: "center",
@@ -1191,8 +1192,12 @@ export default function Page() {
             <div
               key={index}
               style={{
-                width: index === 1 ? "240px" : "200px",
-                height: index === 1 ? "480px" : "420px",
+                width: index === 1
+                  ? "min(46vw, 240px)"
+                  : "min(38vw, 180px)",
+                height: index === 1
+                  ? "min(92vw, 480px)"
+                  : "min(76vw, 360px)",
                 background: "#111827",
                 borderRadius: "30px",
                 padding: "11px",
@@ -1247,14 +1252,14 @@ export default function Page() {
         <div
           style={{
             background: "#0C1A3F",
-            padding: "70px 40px 30px 40px",
+            padding: "70px 20px 30px 20px",
             textAlign: "center",
           }}
         >
           <h2
             className={baslikFont.className}
             style={{
-              fontSize: "52px",
+              fontSize: "clamp(30px, 9vw, 52px)",
               marginBottom: "18px",
               color: "#8FB3D9",
             }}
@@ -1265,7 +1270,7 @@ export default function Page() {
           <p
             className={mainFont.className}
             style={{
-              fontSize: "20px",
+              fontSize: "clamp(16px, 4.5vw, 20px)",
               color: "#AFC6E6",
               lineHeight: "1.4",
               fontWeight: 600,
@@ -1280,13 +1285,13 @@ export default function Page() {
         {/* ALT BİLGİ KARTLARI */}
         <div
           style={{
-            padding: "35px 30px 70px 30px",
+            padding: "35px 20px 70px 20px",
           }}
         >
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "1fr 1fr",
+              gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
               gap: "20px",
               alignItems: "stretch",
             }}
@@ -1446,14 +1451,14 @@ export default function Page() {
         <div
           style={{
             background: "#0C1A3F",
-            padding: "70px 40px 35px 40px",
+            padding: "70px 20px 35px 20px",
             textAlign: "center",
           }}
         >
           <h2
             className={baslikFont.className}
             style={{
-              fontSize: "52px",
+              fontSize: "clamp(30px, 9vw, 52px)",
               marginBottom: "18px",
               color: "#8FB3D9",
             }}
@@ -1464,7 +1469,7 @@ export default function Page() {
           <p
             className={mainFont.className}
             style={{
-              fontSize: "20px",
+              fontSize: "clamp(16px, 4.5vw, 20px)",
               color: "#AFC6E6",
               lineHeight: "1.4",
               fontWeight: 600,
@@ -1492,7 +1497,7 @@ export default function Page() {
             <div
               key={index}
               style={{
-                flex: "1 1 300px",
+                flex: "1 1 260px",
                 background: item.color,
                 padding: "40px 20px 60px 20px",
                 textAlign: "center",
@@ -1511,8 +1516,8 @@ export default function Page() {
 
               <div
                 style={{
-                  width: "180px",
-                  height: "360px",
+                  width: "min(38vw, 180px)",
+                  height: "min(76vw, 360px)",
                   margin: "0 auto",
                   background: "#111827",
                   borderRadius: "26px",
@@ -1565,7 +1570,7 @@ export default function Page() {
         <div
           style={{
             background: "#0C1A3F",
-            padding: "80px 40px",
+            padding: "80px 20px",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -1578,7 +1583,7 @@ export default function Page() {
             <h2
               className={baslikFont.className}
               style={{
-                fontSize: "52px",
+                fontSize: "clamp(30px, 9vw, 52px)",
                 marginBottom: "18px",
                 color: "#8FB3D9",
               }}
@@ -1589,7 +1594,7 @@ export default function Page() {
             <p
               className={mainFont.className}
               style={{
-                fontSize: "20px",
+                fontSize: "clamp(16px, 4.5vw, 20px)",
                 color: "#AFC6E6",
                 lineHeight: "1.4",
                 fontWeight: 600,
@@ -1619,8 +1624,8 @@ export default function Page() {
           {/* SAĞ TELEFON */}
           <div
             style={{
-              width: "250px",
-              height: "500px",
+              width: "min(48vw, 250px)",
+              height: "min(96vw, 500px)",
               background: "#111827",
               borderRadius: "34px",
               padding: "12px",
@@ -1686,7 +1691,7 @@ export default function Page() {
         <div
           style={{
             background: "#0C1A3F",
-            padding: "90px 50px",
+            padding: "90px 20px",
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
@@ -1699,7 +1704,7 @@ export default function Page() {
             <h2
               className={baslikFont.className}
               style={{
-                fontSize: "72px",
+                fontSize: "clamp(34px, 10vw, 72px)",
                 marginBottom: "24px",
                 color: "#8FB3D9",
               }}
@@ -1710,7 +1715,7 @@ export default function Page() {
             <p
               className={mainFont.className}
               style={{
-                fontSize: "34px",
+                fontSize: "clamp(18px, 5.4vw, 34px)",
                 color: "#AFC6E6",
                 lineHeight: "1.35",
                 fontWeight: 600,
@@ -1735,11 +1740,11 @@ export default function Page() {
                 style={{
                   background: "#F3A24C",
                   border: "none",
-                  padding: "28px 90px",
-                  fontSize: "30px",
+                  padding: "20px 32px",
+                  fontSize: "clamp(18px, 5vw, 30px)",
                   cursor: "pointer",
                   color: "#0C1A3F",
-                  minWidth: "360px",
+                  minWidth: "min(100%, 260px)",
                 }}
               >
                 Başarımlar
@@ -1750,11 +1755,11 @@ export default function Page() {
                 style={{
                   background: "#F3A24C",
                   border: "none",
-                  padding: "28px 90px",
-                  fontSize: "30px",
+                  padding: "20px 32px",
+                  fontSize: "clamp(18px, 5vw, 30px)",
                   cursor: "pointer",
                   color: "#0C1A3F",
-                  minWidth: "360px",
+                  minWidth: "min(100%, 260px)",
                 }}
               >
                 Rozetler
@@ -1780,8 +1785,8 @@ export default function Page() {
               <div
                 key={index}
                 style={{
-                  width: "250px",
-                  height: "500px",
+                  width: "min(48vw, 250px)",
+                  height: "min(96vw, 500px)",
                   background: "#111827",
                   borderRadius: "34px",
                   padding: "12px",
@@ -1834,7 +1839,7 @@ export default function Page() {
         <div
           style={{
             background: "#0C1A3F",
-            padding: "70px 40px 60px 40px",
+            padding: "70px 20px 60px 20px",
             textAlign: "center",
             borderTop: "1px solid rgba(143,179,217,0.12)",
           }}
@@ -1842,7 +1847,7 @@ export default function Page() {
           <h2
             className={baslikFont.className}
             style={{
-              fontSize: "52px",
+              fontSize: "clamp(30px, 9vw, 52px)",
               marginBottom: "18px",
               color: "#8FB3D9",
             }}
@@ -1853,7 +1858,7 @@ export default function Page() {
           <p
             className={mainFont.className}
             style={{
-              fontSize: "20px",
+              fontSize: "clamp(16px, 4.5vw, 20px)",
               color: "#AFC6E6",
               lineHeight: "1.4",
               fontWeight: 600,
@@ -1995,6 +2000,7 @@ export default function Page() {
           50% { transform: translateY(-14px); }
           100% { transform: translateY(0px); }
         }
+
         @keyframes confettiFallLeft {
           0% {
             transform: translate(-18px, -26px) rotate(0deg);
@@ -2030,6 +2036,7 @@ export default function Page() {
             opacity: 0;
           }
         }
+
         @keyframes shinePulse {
           0% {
             transform: scale(0.9);
@@ -2042,6 +2049,18 @@ export default function Page() {
           100% {
             transform: scale(0.9);
             opacity: 0.6;
+          }
+        }
+
+        @media (max-width: 900px) {
+          main img {
+            max-width: 100%;
+          }
+        }
+
+        @media (max-width: 768px) {
+          section {
+            overflow: hidden;
           }
         }
       `}</style>
