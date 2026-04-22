@@ -188,13 +188,13 @@ export default function YardimPage() {
               marginBottom: "16px",
             }}
           >
-            Sorununuzu bize e-posta ile iletebilirsiniz. Ekran görüntüsü,
+            Sorununuzu bize geri bildirim formu üzerinden iletebilirsiniz. Ekran görüntüsü,
             sınıf, ders veya yaşadığınız bölüm bilgisini eklerseniz daha hızlı
             yardımcı olabiliriz.
           </p>
 
           <a
-            href="mailto:info@bilkie.com"
+            href="/yardim/geri-bildirim"
             style={{
               display: "inline-flex",
               alignItems: "center",
@@ -207,7 +207,7 @@ export default function YardimPage() {
               fontWeight: 800,
             }}
           >
-            Bize Ulaşın
+            Geri Bildirim Gönder
           </a>
         </div>
       </div>
