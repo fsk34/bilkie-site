@@ -1,158 +1,216 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { helpCenterData } from "@/data/help-center";
 
 export default function YardimPage() {
-  const [aktifKategori, setAktifKategori] = useState(
-    helpCenterData[0].kategori
-  );
   const [acikSoru, setAcikSoru] = useState<string | null>(null);
-  const [arama, setArama] = useState("");
-
-  const aktifKategoriData = useMemo(() => {
-    return (
-      helpCenterData.find((k) => k.kategori === aktifKategori) ??
-      helpCenterData[0]
-    );
-  }, [aktifKategori]);
-
-  const filtreliSorular = useMemo(() => {
-    const q = arama.trim().toLowerCase();
-    if (!q) return aktifKategoriData.sorular;
-
-    return aktifKategoriData.sorular.filter((soru) =>
-      soru.baslik.toLowerCase().includes(q) ||
-      soru.adimlar.some((adim) => adim.toLowerCase().includes(q))
-    );
-  }, [arama, aktifKategoriData]);
 
   return (
-    <main style={{ minHeight: "100vh", background: "#F7F9FC", color: "#0C1A3F" }}>
-      <section
+    <main
+      style={{
+        minHeight: "100vh",
+        background: "#0C1A3F",
+        color: "#EAF2FF",
+        padding: "32px 16px 72px",
+      }}
+    >
+      <div
         style={{
-          background: "linear-gradient(180deg, #EEF4FF 0%, #F7F9FC 100%)",
-          padding: "72px 20px 48px",
-          borderBottom: "1px solid #E4EAF5",
+          width: "100%",
+          maxWidth: "860px",
+          margin: "0 auto",
         }}
       >
-        <div style={{ maxWidth: 1120, margin: "0 auto", textAlign: "center" }}>
-          <div
+        <div
+          style={{
+            textAlign: "center",
+            marginBottom: "28px",
+          }}
+        >
+          <h1
             style={{
-              display: "inline-flex",
-              padding: "8px 14px",
-              borderRadius: 999,
-              background: "#DCE9FF",
-              color: "#4A538E",
-              fontWeight: 700,
-              marginBottom: 16,
+              fontSize: "clamp(32px, 8vw, 52px)",
+              lineHeight: 1.1,
+              fontWeight: 800,
+              marginBottom: "12px",
             }}
           >
-            Bilkie Destek
-          </div>
-
-          <h1 style={{ fontSize: "clamp(36px,6vw,60px)", fontWeight: 800, marginBottom: 10 }}>
-            Sana nasıl yardımcı olabiliriz?
+            Yardım Merkezi
           </h1>
 
-          <p style={{ maxWidth: 700, margin: "0 auto 24px", color: "#5E6C8F" }}>
-            Hesap, XP, seri, testler ve uygulama ile ilgili sorunlara hızlıca çözüm bul.
-          </p>
-
-          <div
+          <p
             style={{
-              maxWidth: 700,
+              maxWidth: "620px",
               margin: "0 auto",
-              background: "white",
-              borderRadius: 16,
-              padding: 8,
-              boxShadow: "0 10px 30px rgba(0,0,0,0.06)",
+              color: "#B9CAE9",
+              fontSize: "16px",
+              lineHeight: 1.7,
             }}
           >
-            <input
-              value={arama}
-              onChange={(e) => setArama(e.target.value)}
-              placeholder="Sorun ara..."
-              style={{ width: "100%", border: "none", outline: "none", padding: 14 }}
-            />
-          </div>
+            Bilkie ile ilgili en sık sorulan konulara ve temel çözüm adımlarına
+            buradan ulaşabilirsiniz.
+          </p>
         </div>
-      </section>
 
-      <section style={{ padding: "32px 20px 80px" }}>
-        <div style={{ maxWidth: 1120, margin: "0 auto" }}>
-          <div
+        {helpCenterData.map((kategori, kategoriIndex) => (
+          <section
+            key={kategori.kategori}
             style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))",
-              gap: 16,
-              marginBottom: 24,
+              marginBottom: kategoriIndex === helpCenterData.length - 1 ? 0 : "30px",
             }}
           >
-            {helpCenterData.map((k) => {
-              const aktif = k.kategori === aktifKategori;
+            <h2
+              style={{
+                fontSize: "24px",
+                lineHeight: 1.2,
+                fontWeight: 800,
+                marginBottom: "14px",
+                color: "#EAF2FF",
+              }}
+            >
+              {kategori.kategori}
+            </h2>
 
-              return (
-                <button
-                  key={k.kategori}
-                  onClick={() => {
-                    setAktifKategori(k.kategori);
-                    setAcikSoru(null);
-                    setArama("");
-                  }}
-                  style={{
-                    padding: 20,
-                    borderRadius: 20,
-                    background: aktif ? "#EEF4FF" : "white",
-                    border: aktif ? "2px solid #4A538E" : "1px solid #E1E7F0",
-                    cursor: "pointer",
-                  }}
-                >
-                  <strong>{k.kategori}</strong>
-                  <div style={{ fontSize: 13, color: "#68779A" }}>
-                    {k.sorular.length} soru
-                  </div>
-                </button>
-              );
-            })}
-          </div>
+            <div
+              style={{
+                background: "#0F203B",
+                border: "1px solid #31496E",
+                borderRadius: "22px",
+                overflow: "hidden",
+              }}
+            >
+              {kategori.sorular.map((soru, soruIndex) => {
+                const acik = acikSoru === soru.id;
 
-          <div style={{ background: "white", borderRadius: 20, padding: 20 }}>
-            {filtreliSorular.map((soru) => {
-              const acik = acikSoru === soru.id;
-
-              return (
-                <div key={soru.id} style={{ borderTop: "1px solid #eee" }}>
-                  <button
-                    onClick={() => setAcikSoru(acik ? null : soru.id)}
+                return (
+                  <div
+                    key={soru.id}
                     style={{
-                      width: "100%",
-                      textAlign: "left",
-                      padding: 16,
-                      display: "flex",
-                      justifyContent: "space-between",
-                      border: "none",
-                      background: "transparent",
-                      cursor: "pointer",
+                      borderTop:
+                        soruIndex === 0 ? "none" : "1px solid #31496E",
                     }}
                   >
-                    {soru.baslik}
-                    <span>{acik ? "−" : "+"}</span>
-                  </button>
+                    <button
+                      onClick={() => setAcikSoru(acik ? null : soru.id)}
+                      style={{
+                        width: "100%",
+                        background: "transparent",
+                        border: "none",
+                        color: "#EAF2FF",
+                        textAlign: "left",
+                        padding: "20px 18px",
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        gap: "16px",
+                      }}
+                    >
+                      <span
+                        style={{
+                          fontSize: "18px",
+                          lineHeight: 1.5,
+                          fontWeight: 500,
+                        }}
+                      >
+                        {soru.baslik}
+                      </span>
 
-                  {acik && (
-                    <ol style={{ padding: "0 20px 16px" }}>
-                      {soru.adimlar.map((a, i) => (
-                        <li key={i}>{a}</li>
-                      ))}
-                    </ol>
-                  )}
-                </div>
-              );
-            })}
-          </div>
+                      <span
+                        style={{
+                          flexShrink: 0,
+                          color: "#8FB3D9",
+                          fontSize: "24px",
+                          lineHeight: 1,
+                        }}
+                      >
+                        {acik ? "−" : "⌄"}
+                      </span>
+                    </button>
+
+                    {acik && (
+                      <div
+                        style={{
+                          padding: "0 18px 20px 18px",
+                          color: "#C9D9F2",
+                        }}
+                      >
+                        <ol
+                          style={{
+                            margin: 0,
+                            paddingLeft: "20px",
+                            lineHeight: 1.8,
+                            fontSize: "15px",
+                          }}
+                        >
+                          {soru.adimlar.map((adim, index) => (
+                            <li key={index} style={{ marginBottom: "6px" }}>
+                              {adim}
+                            </li>
+                          ))}
+                        </ol>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        ))}
+
+        <div
+          style={{
+            marginTop: "34px",
+            background: "#12264A",
+            border: "1px solid #31496E",
+            borderRadius: "22px",
+            padding: "22px 18px",
+          }}
+        >
+          <h3
+            style={{
+              fontSize: "22px",
+              lineHeight: 1.2,
+              fontWeight: 800,
+              marginBottom: "10px",
+              color: "#EAF2FF",
+            }}
+          >
+            Aradığınız cevabı bulamadınız mı?
+          </h3>
+
+          <p
+            style={{
+              color: "#C9D9F2",
+              lineHeight: 1.8,
+              fontSize: "15px",
+              marginBottom: "16px",
+            }}
+          >
+            Sorununuzu bize e-posta ile iletebilirsiniz. Ekran görüntüsü,
+            sınıf, ders veya yaşadığınız bölüm bilgisini eklerseniz daha hızlı
+            yardımcı olabiliriz.
+          </p>
+
+          <a
+            href="mailto:info@bilkie.com"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              background: "#F3A24C",
+              color: "#0C1A3F",
+              textDecoration: "none",
+              padding: "14px 20px",
+              borderRadius: "999px",
+              fontWeight: 800,
+            }}
+          >
+            Bize Ulaşın
+          </a>
         </div>
-      </section>
+      </div>
     </main>
   );
 }
