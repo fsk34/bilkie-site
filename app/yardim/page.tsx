@@ -194,7 +194,7 @@ export default function YardimPage() {
           </p>
 
           <a
-            href="/yardim/geri-bildirim"
+            href="/yardim/geribildirim"
             style={{
               display: "inline-flex",
               alignItems: "center",
