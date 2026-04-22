@@ -9,7 +9,7 @@ const sections = [
   {
     title: "1. Kabul",
     content:
-      "Bilkie uygulamasını ("Uygulama") kullanarak aşağıdaki şartları kabul etmiş sayılırsınız. 13 yaşından küçük kullanıcıların Uygulamayı yalnızca ebeveyn veya veli gözetiminde kullanması gerekmektedir.",
+      "Bilkie uygulamasını (“Uygulama”) kullanarak aşağıdaki şartları kabul etmiş sayılırsınız. 13 yaşından küçük kullanıcıların Uygulamayı yalnızca ebeveyn veya veli gözetiminde kullanması gerekmektedir.",
   },
   {
     title: "2. Hizmetin Kapsamı",
