@@ -356,12 +356,15 @@ export default function DefterlerPage() {
 
         {/* NAV TABS */}
         <div style={{ display: "flex", gap: 8, marginBottom: 24 }}>
-          <button style={{ ...btn("#3A4480"), background: "#3A4480" }} onClick={() => router.push("/admin/testler")}>
-            Testler
-          </button>
-          <button style={{ ...btn("#F3A24C") }}>
-            Defterler
-          </button>
+          {[
+            { label: "Testler", path: "/admin/testler" },
+            { label: "Defterler", path: "/admin/defterler" },
+            { label: "Yazılılar", path: "/admin/yazililar" },
+          ].map(({ label, path }) => (
+            <button key={path} style={btn(path === "/admin/defterler" ? "#F3A24C" : "#3A4480")} onClick={() => router.push(path)}>
+              {label}
+            </button>
+          ))}
         </div>
 
         {/* NAVİGASYON */}

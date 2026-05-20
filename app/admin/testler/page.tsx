@@ -217,12 +217,15 @@ export default function TestlerPage() {
 
         {/* NAV TABS */}
         <div style={{ display: "flex", gap: 8, marginBottom: 24 }}>
-          <button style={btn()} onClick={() => router.push("/admin/testler")}>
-            Testler
-          </button>
-          <button style={{ ...btn("#3A4480"), background: "#3A4480" }} onClick={() => router.push("/admin/defterler")}>
-            Defterler
-          </button>
+          {[
+            { label: "Testler", path: "/admin/testler" },
+            { label: "Defterler", path: "/admin/defterler" },
+            { label: "Yazılılar", path: "/admin/yazililar" },
+          ].map(({ label, path }) => (
+            <button key={path} style={btn(path === "/admin/testler" ? "#F3A24C" : "#3A4480")} onClick={() => router.push(path)}>
+              {label}
+            </button>
+          ))}
         </div>
 
         {/* NAVİGASYON */}

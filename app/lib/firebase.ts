@@ -1,6 +1,7 @@
 import { getApp, getApps, initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getDatabase } from "firebase/database";
+import { getStorage } from "firebase/storage";
 
 const firebaseConfig = {
   apiKey: "AIzaSyCPam-DUCX9dbeXP0WQk6RSjDZxQiWztuA",
@@ -16,3 +17,5 @@ const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getDatabase(app, "https://konutestleri.europe-west1.firebasedatabase.app");
 export const defterleriDb = getDatabase(app, "https://konudefterleri.europe-west1.firebasedatabase.app");
+export const yazillarDb = getDatabase(app, "https://yazililar.europe-west1.firebasedatabase.app");
+export const storage = getStorage(app);
