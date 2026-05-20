@@ -18,4 +18,5 @@ export const auth = getAuth(app);
 export const db = getDatabase(app, "https://konutestleri.europe-west1.firebasedatabase.app");
 export const defterleriDb = getDatabase(app, "https://konudefterleri.europe-west1.firebasedatabase.app");
 export const yazillarDb = getDatabase(app, "https://yazililar.europe-west1.firebasedatabase.app");
+export const kelimeGezmeceDb = getDatabase(app, "https://kelimezgezmece.europe-west1.firebasedatabase.app");
 export const storage = getStorage(app);
