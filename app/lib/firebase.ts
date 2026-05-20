@@ -15,3 +15,4 @@ const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 
 export const auth = getAuth(app);
 export const db = getDatabase(app, "https://konutestleri.europe-west1.firebasedatabase.app");
+export const defterleriDb = getDatabase(app, "https://konudefterleri.europe-west1.firebasedatabase.app");

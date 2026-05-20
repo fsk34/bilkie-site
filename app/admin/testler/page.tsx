@@ -164,6 +164,19 @@ export default function TestlerPage() {
     setSaving(false);
   }
 
+  async function reorderQuestion(fromIdx: number, toIdx: number) {
+    if (toIdx < 0 || toIdx >= sortedKeys.length) return;
+    setSaving(true);
+    const keyA = sortedKeys[fromIdx];
+    const keyB = sortedKeys[toIdx];
+    const qA = questions![keyA];
+    const qB = questions![keyB];
+    await set(ref(db, `tests/${grade}/${subject}/${test}/${section}/${keyA}`), qB);
+    await set(ref(db, `tests/${grade}/${subject}/${test}/${section}/${keyB}`), qA);
+    await loadQuestions();
+    setSaving(false);
+  }
+
   async function addQuestion() {
     const existing = Object.keys(questions || {});
     const maxNum = existing.reduce((max, k) => {
@@ -199,6 +212,16 @@ export default function TestlerPage() {
             onClick={async () => { await signOut(auth); router.replace("/admin/login"); }}
           >
             Çıkış Yap
+          </button>
+        </div>
+
+        {/* NAV TABS */}
+        <div style={{ display: "flex", gap: 8, marginBottom: 24 }}>
+          <button style={btn()} onClick={() => router.push("/admin/testler")}>
+            Testler
+          </button>
+          <button style={{ ...btn("#3A4480"), background: "#3A4480" }} onClick={() => router.push("/admin/defterler")}>
+            Defterler
           </button>
         </div>
 
@@ -271,7 +294,7 @@ export default function TestlerPage() {
           )}
 
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            {sortedKeys.map((id) => {
+            {sortedKeys.map((id, idx) => {
               const q = questions![id];
               const isEditing = editingId === id;
               return (
@@ -282,8 +305,26 @@ export default function TestlerPage() {
                     border: `1px solid ${isEditing ? "#F3A24C" : "#3A4480"}`,
                     borderRadius: 12,
                     padding: 16,
+                    display: "flex",
+                    gap: 10,
                   }}
                 >
+                  {/* Sıralama okları */}
+                  {!isEditing && (
+                    <div style={{ display: "flex", flexDirection: "column", gap: 4, flexShrink: 0 }}>
+                      <button
+                        onClick={() => reorderQuestion(idx, idx - 1)}
+                        disabled={idx === 0 || saving}
+                        style={{ background: "none", border: "1px solid #4A538E", borderRadius: 6, color: idx === 0 ? "#2C335E" : "#8FB3D9", cursor: idx === 0 ? "default" : "pointer", width: 28, height: 28, fontSize: 14, lineHeight: 1 }}
+                      >↑</button>
+                      <button
+                        onClick={() => reorderQuestion(idx, idx + 1)}
+                        disabled={idx === sortedKeys.length - 1 || saving}
+                        style={{ background: "none", border: "1px solid #4A538E", borderRadius: 6, color: idx === sortedKeys.length - 1 ? "#2C335E" : "#8FB3D9", cursor: idx === sortedKeys.length - 1 ? "default" : "pointer", width: 28, height: 28, fontSize: 14, lineHeight: 1 }}
+                      >↓</button>
+                    </div>
+                  )}
+                  <div style={{ flex: 1 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
                     <div style={{ flex: 1 }}>
                       <span style={{ fontSize: 11, color: "#4A538E", fontWeight: 700, textTransform: "uppercase", marginRight: 8 }}>
@@ -338,6 +379,7 @@ export default function TestlerPage() {
                       saveLabel="Kaydet"
                     />
                   )}
+                  </div>
                 </div>
               );
             })}
