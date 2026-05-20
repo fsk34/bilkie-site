@@ -2,9 +2,9 @@
 
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { getApp, getApps, initializeApp } from "firebase/app";
-import { applyActionCode, checkActionCode, getAuth } from "firebase/auth";
+import { applyActionCode, checkActionCode } from "firebase/auth";
 import localFont from "next/font/local";
+import { auth } from "../lib/firebase";
 
 const bilkieFont = localFont({
   src: "../fonts/bilkie.otf",
@@ -18,17 +18,6 @@ const mainFont = localFont({
   src: "../fonts/main.ttf",
 });
 
-const firebaseConfig = {
-  apiKey: "AIzaSyCPam-DUCX9dbeXP0WQk6RSjDZxQiWztuA",
-  authDomain: "turkce3-sinif.firebaseapp.com",
-  projectId: "turkce3-sinif",
-  storageBucket: "turkce3-sinif.firebasestorage.app",
-  appId: "1:899362595925:web:d288264eabeb402cf6a0dc",
-};
-
-function getFirebaseApp() {
-  return getApps().length ? getApp() : initializeApp(firebaseConfig);
-}
 
 type StatusType = "loading" | "ready" | "verifying" | "success" | "error";
 
@@ -58,8 +47,6 @@ function DogrulaContent() {
       }
 
       try {
-        const app = getFirebaseApp();
-        const auth = getAuth(app);
         await checkActionCode(auth, oobCode);
         setStatus("ready");
         setMessage("E-posta adresini doğrulamak için aşağıdaki butona bas.");
@@ -78,8 +65,6 @@ function DogrulaContent() {
     setStatus("verifying");
     setMessage("Doğrulanıyor...");
     try {
-      const app = getFirebaseApp();
-      const auth = getAuth(app);
       await applyActionCode(auth, oobCode);
       setStatus("success");
       setMessage("E-posta adresin başarıyla doğrulandı.");
