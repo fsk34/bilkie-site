@@ -21,6 +21,104 @@ const NAV = [
   { label: "Kelime Gezmece", path: "/admin/kelimegezmece" },
 ];
 
+const WORD_COLORS = [
+  "#F3A24C","#4FC3F7","#81C784","#F06292","#CE93D8",
+  "#FFD54F","#4DB6AC","#FF8A65","#90CAF9","#A5D6A7",
+];
+
+function GridPreview({
+  words, activeWord, onWordClick,
+}: {
+  words: Record<string, WordInfo>;
+  activeWord: string | null;
+  onWordClick: (w: string) => void;
+}) {
+  if (!Object.keys(words).length) return null;
+
+  // Hücre haritası: "r,c" → [kelime]
+  const cellMap = new Map<string, string[]>();
+  const wordList = Object.keys(words);
+  const colorMap: Record<string, string> = {};
+  wordList.forEach((w, i) => { colorMap[w] = WORD_COLORS[i % WORD_COLORS.length]; });
+
+  for (const [word, info] of Object.entries(words)) {
+    for (let i = 0; i < word.length; i++) {
+      const r = info.row + (info.dir === "down" ? i : 0);
+      const c = info.col + (info.dir === "right" ? i : 0);
+      const key = `${r},${c}`;
+      if (!cellMap.has(key)) cellMap.set(key, []);
+      cellMap.get(key)!.push(word);
+    }
+  }
+
+  // Sınır
+  const rows = [...cellMap.keys()].map(k => parseInt(k.split(",")[0]));
+  const cols = [...cellMap.keys()].map(k => parseInt(k.split(",")[1]));
+  const minR = Math.min(...rows) - 1, maxR = Math.max(...rows) + 1;
+  const minC = Math.min(...cols) - 1, maxC = Math.max(...cols) + 1;
+
+  const CELL = 36;
+
+  return (
+    <div style={{ overflowX: "auto", paddingBottom: 8 }}>
+      <div style={{ display: "inline-block", background: "#0C1A3F", borderRadius: 12, padding: 12 }}>
+        {Array.from({ length: maxR - minR + 1 }, (_, ri) => {
+          const r = minR + ri;
+          return (
+            <div key={r} style={{ display: "flex" }}>
+              {Array.from({ length: maxC - minC + 1 }, (_, ci) => {
+                const c = minC + ci;
+                const key = `${r},${c}`;
+                const cellWords = cellMap.get(key) ?? [];
+                const isEmpty = cellWords.length === 0;
+                const isActive = activeWord ? cellWords.includes(activeWord) : false;
+                const isIntersect = cellWords.length > 1;
+                // Baskın renk
+                const baseColor = cellWords[0] ? colorMap[cellWords[0]] : "transparent";
+                const letter = (() => {
+                  if (!cellWords[0]) return "";
+                  const w = cellWords[0];
+                  const info = words[w];
+                  const idx = info.dir === "right" ? c - info.col : r - info.row;
+                  return w[idx]?.toUpperCase() ?? "";
+                })();
+
+                return (
+                  <div
+                    key={c}
+                    onClick={() => cellWords[0] && onWordClick(cellWords[0])}
+                    style={{
+                      width: CELL, height: CELL,
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      margin: 2, borderRadius: 8,
+                      cursor: cellWords[0] ? "pointer" : "default",
+                      background: isEmpty ? "#1A2550" : isActive ? baseColor : `${baseColor}55`,
+                      border: isIntersect
+                        ? "2px solid #FFFFFF88"
+                        : isActive
+                        ? `2px solid ${baseColor}`
+                        : isEmpty
+                        ? "1px solid #2C335E"
+                        : `1px solid ${baseColor}88`,
+                      transition: "all 0.15s",
+                      fontSize: 15, fontWeight: 800,
+                      color: isEmpty ? "#2C335E" : isActive ? "#0C1A3F" : "#EAF2FF",
+                      boxSizing: "border-box",
+                    }}
+                    title={cellWords.join(" + ")}
+                  >
+                    {isEmpty ? "·" : letter}
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 const sel: React.CSSProperties = {
   background: "#1A2550", color: "#EAF2FF", border: "1px solid #4A538E",
   borderRadius: 10, padding: "8px 12px", fontSize: 14, cursor: "pointer", outline: "none",
@@ -140,6 +238,9 @@ export default function KelimeGezmeceAdminPage() {
   const [showAdd, setShowAdd] = useState(false);
   const [newKey, setNewKey] = useState("");
   const [newInfo, setNewInfo] = useState<WordInfo>(EMPTY_INFO);
+
+  // Grid
+  const [activeWord, setActiveWord] = useState<string | null>(null);
 
   // Add level
   const [showAddLevel, setShowAddLevel] = useState(false);
@@ -277,6 +378,10 @@ export default function KelimeGezmeceAdminPage() {
       )
     : [];
 
+  const wordColorMap = Object.fromEntries(
+    sortedWords.map(([w], i) => [w, WORD_COLORS[i % WORD_COLORS.length]])
+  );
+
   return (
     <main style={{ minHeight: "100vh", background: "#0C1A3F", color: "#EAF2FF", padding: "24px 16px" }}>
       <div style={{ maxWidth: 760, margin: "0 auto" }}>
@@ -385,6 +490,35 @@ export default function KelimeGezmeceAdminPage() {
               )}
             </div>
 
+            {/* Grid Önizleme */}
+            {level && Object.keys(level.words).length > 0 && (
+              <div style={{ background: "#2C335E", border: "1px solid #4A538E", borderRadius: 16, padding: 20, marginBottom: 16 }}>
+                <h2 style={{ fontSize: 15, fontWeight: 700, color: "#C9D9F2", marginBottom: 14 }}>
+                  Grid Önizleme
+                  {activeWord && (
+                    <span style={{ fontSize: 12, color: "#F3A24C", marginLeft: 10, fontWeight: 400 }}>
+                      seçili: {activeWord}
+                      <button onClick={() => setActiveWord(null)} style={{ marginLeft: 8, background: "none", border: "none", color: "#8FB3D9", cursor: "pointer", fontSize: 12 }}>✕</button>
+                    </span>
+                  )}
+                </h2>
+                <GridPreview
+                  words={level.words}
+                  activeWord={activeWord}
+                  onWordClick={(w) => {
+                    setActiveWord(w);
+                    setEditingWord(w);
+                    setEditKey(w);
+                    setEditInfo({ ...level.words[w] });
+                    setShowAdd(false);
+                  }}
+                />
+                <p style={{ fontSize: 11, color: "#4A538E", marginTop: 10 }}>
+                  Hücreye tıklayarak kelimeyi seçin ve aşağıdan düzenleyin. Beyaz kenarlık = iki kelimenin kesişimi.
+                </p>
+              </div>
+            )}
+
             {/* Kelimeler */}
             <div style={{ background: "#2C335E", border: "1px solid #4A538E", borderRadius: 16, padding: 20 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
@@ -420,7 +554,8 @@ export default function KelimeGezmeceAdminPage() {
                   return (
                     <div
                       key={word}
-                      style={{ background: "#1A2550", border: `1px solid ${isEditing ? "#F3A24C" : "#3A4480"}`, borderRadius: 12, padding: 14 }}
+                      onClick={() => !isEditing && setActiveWord(word === activeWord ? null : word)}
+                      style={{ background: "#1A2550", border: `1px solid ${isEditing ? "#F3A24C" : word === activeWord ? wordColorMap[word] : "#3A4480"}`, borderRadius: 12, padding: 14, cursor: isEditing ? "default" : "pointer" }}
                     >
                       {isEditing ? (
                         <>
@@ -436,6 +571,7 @@ export default function KelimeGezmeceAdminPage() {
                       ) : (
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
                           <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
+                            <span style={{ display: "inline-block", width: 10, height: 10, borderRadius: "50%", background: wordColorMap[word], flexShrink: 0 }} />
                             <span style={{ fontSize: 17, fontWeight: 800, color: "#EAF2FF", minWidth: 90 }}>
                               {word}
                             </span>
