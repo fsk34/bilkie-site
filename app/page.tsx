@@ -463,6 +463,7 @@ export default function Page() {
         </div>
 
         <div
+          className="phones-section"
           style={{
             background: "#F4E1B9",
             padding: "70px 20px 80px 20px",
@@ -477,6 +478,7 @@ export default function Page() {
         >
           {/* İLERLEME YOLU */}
           <div
+            className="phones-road"
             style={{
               position: "absolute",
               left: "50%",
@@ -684,6 +686,7 @@ export default function Page() {
         </div>
 
         <div
+          className="phones-section"
           style={{
             background: "#E6A893",
             padding: "70px 20px 80px 20px",
@@ -698,6 +701,7 @@ export default function Page() {
         >
           {/* DEFTER YOLU */}
           <div
+            className="phones-road"
             style={{
               position: "absolute",
               left: "50%",
@@ -892,6 +896,7 @@ export default function Page() {
         </div>
 
         <div
+          className="phones-section"
           style={{
             background: "#A6A0D6",
             padding: "70px 20px 80px 20px",
@@ -906,6 +911,7 @@ export default function Page() {
         >
           {/* YAZILI YOLU */}
           <div
+            className="phones-road"
             style={{
               position: "absolute",
               left: "50%",
@@ -1112,6 +1118,7 @@ export default function Page() {
 
         {/* ALT TELEFON ALANI */}
         <div
+          className="phones-section"
           style={{
             background: "#0C1A3F",
             padding: "50px 20px 100px 20px",
@@ -1128,6 +1135,7 @@ export default function Page() {
         >
           {/* KONFETİLER */}
           <div
+            className="phones-road"
             style={{
               position: "absolute",
               left: "50%",
@@ -2071,6 +2079,34 @@ export default function Page() {
           }
         }
 
+        @media (max-width: 768px) {
+          .phones-section {
+            overflow-x: auto !important;
+            overflow-y: visible !important;
+            flex-wrap: nowrap !important;
+            justify-content: flex-start !important;
+            align-items: flex-start !important;
+            gap: 16px !important;
+            padding: 30px 20px 50px !important;
+            scroll-snap-type: x mandatory;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+          }
+          .phones-section::-webkit-scrollbar {
+            display: none;
+          }
+          .phones-road {
+            display: none;
+          }
+          .phone-card {
+            margin-top: 0 !important;
+            width: 70vw !important;
+            height: 140vw !important;
+            flex-shrink: 0 !important;
+            scroll-snap-align: start;
+          }
+        }
+
         @media (max-width: 640px) {
           .hero-right-motif,
           .hero-left-motif {
@@ -2086,10 +2122,6 @@ export default function Page() {
             transform: none !important;
             width: min(80vw, 270px) !important;
             height: min(160vw, 560px) !important;
-          }
-
-          .phone-card {
-            margin-top: 0 !important;
           }
         }
       `}</style>
