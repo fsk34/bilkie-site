@@ -43,6 +43,7 @@ export default function Page() {
 
         {/* SAĞ ÜST MOTİF */}
         <div
+          className="hero-right-motif"
           style={{
             position: "absolute",
             right: "110px",
@@ -222,6 +223,7 @@ export default function Page() {
 
         {/* SOL ALT MOTİF */}
         <div
+          className="hero-left-motif"
           style={{
             position: "absolute",
             left: "60px",
@@ -346,7 +348,7 @@ export default function Page() {
           gap: "28px",
         }}
       >
-        <div style={{ maxWidth: "500px", transform: "translateX(-30px)" }}>
+        <div className="neden-text" style={{ maxWidth: "500px", transform: "translateX(-30px)" }}>
           <h2
             className={bilkieFont.className}
             style={{
@@ -374,6 +376,7 @@ export default function Page() {
         </div>
 
         <div
+          className="neden-phone"
           style={{
             width: "min(72vw, 270px)",
             height: "min(150vw, 560px)",
@@ -594,6 +597,7 @@ export default function Page() {
           ].map((src, index) => (
             <div
               key={index}
+              className="phone-card"
               style={{
                 width: "min(42vw, 210px)",
                 height: "min(86vw, 430px)",
@@ -801,6 +805,7 @@ export default function Page() {
           ].map((src, index) => (
             <div
               key={index}
+              className="phone-card"
               style={{
                 width: "min(42vw, 210px)",
                 height: "min(86vw, 430px)",
@@ -1011,6 +1016,7 @@ export default function Page() {
           ].map((src, index) => (
             <div
               key={index}
+              className="phone-card"
               style={{
                 width: "min(42vw, 210px)",
                 height: "min(86vw, 430px)",
@@ -1191,6 +1197,7 @@ export default function Page() {
           ].map((src, index) => (
             <div
               key={index}
+              className="phone-card"
               style={{
                 width: index === 1
                   ? "min(46vw, 240px)"
@@ -2061,6 +2068,28 @@ export default function Page() {
         @media (max-width: 768px) {
           section {
             overflow: hidden;
+          }
+        }
+
+        @media (max-width: 640px) {
+          .hero-right-motif,
+          .hero-left-motif {
+            display: none;
+          }
+
+          .neden-text {
+            transform: none !important;
+            max-width: 100% !important;
+          }
+
+          .neden-phone {
+            transform: none !important;
+            width: min(80vw, 270px) !important;
+            height: min(160vw, 560px) !important;
+          }
+
+          .phone-card {
+            margin-top: 0 !important;
           }
         }
       `}</style>
