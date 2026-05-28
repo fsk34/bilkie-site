@@ -2092,8 +2092,9 @@ export default function Page() {
             justify-content: flex-start !important;
             align-items: flex-start !important;
             gap: 16px !important;
-            padding: 30px 20px 50px !important;
+            padding: 30px 20px 50px 36px !important;
             scroll-snap-type: x mandatory;
+            scroll-padding-left: 36px;
             -webkit-overflow-scrolling: touch;
             scrollbar-width: none;
           }
@@ -2115,9 +2116,11 @@ export default function Page() {
             flex-wrap: nowrap !important;
             overflow-x: auto !important;
             scroll-snap-type: x mandatory;
+            scroll-padding-left: 28px;
             -webkit-overflow-scrolling: touch;
             scrollbar-width: none;
             gap: 0 !important;
+            padding-left: 28px !important;
           }
           .stats-section::-webkit-scrollbar {
             display: none;
