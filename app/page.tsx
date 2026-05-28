@@ -1498,6 +1498,7 @@ export default function Page() {
 
         {/* ALT GÖRSELLER */}
         <div
+          className="stats-section"
           style={{
             display: "flex",
             width: "100%",
@@ -1511,6 +1512,7 @@ export default function Page() {
           ].map((item, index) => (
             <div
               key={index}
+              className="stat-card"
               style={{
                 flex: "1 1 260px",
                 background: item.color,
@@ -1650,6 +1652,7 @@ export default function Page() {
           >
             {/* SHINE EFEKTİ */}
             <div
+              className="ligler-shine"
               style={{
                 position: "absolute",
                 top: "-40px",
@@ -1784,6 +1787,7 @@ export default function Page() {
 
           {/* SAĞ TELEFONLAR */}
           <div
+            className="phones-section"
             style={{
               display: "flex",
               alignItems: "center",
@@ -1799,6 +1803,7 @@ export default function Page() {
             ].map((src, index) => (
               <div
                 key={index}
+                className="phone-card"
                 style={{
                   width: "min(48vw, 250px)",
                   height: "min(96vw, 500px)",
@@ -2104,6 +2109,27 @@ export default function Page() {
             height: 140vw !important;
             flex-shrink: 0 !important;
             scroll-snap-align: start;
+          }
+
+          .stats-section {
+            flex-wrap: nowrap !important;
+            overflow-x: auto !important;
+            scroll-snap-type: x mandatory;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+            gap: 0 !important;
+          }
+          .stats-section::-webkit-scrollbar {
+            display: none;
+          }
+          .stat-card {
+            flex: 0 0 82vw !important;
+            scroll-snap-align: start;
+          }
+
+          .ligler-shine {
+            left: 50% !important;
+            transform: translateX(-50%) !important;
           }
         }
 
