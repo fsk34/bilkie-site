@@ -375,56 +375,17 @@ export default function Page() {
           </p>
         </div>
 
-        <div
+        <img
           className="neden-phone"
+          src="/bilkie.png"
+          alt="bilkie app"
           style={{
             width: "min(72vw, 270px)",
-            height: "min(150vw, 560px)",
-            background: "#111827",
-            borderRadius: "36px",
-            padding: "14px",
-            boxShadow: "0 20px 50px rgba(0,0,0,0.25)",
-            position: "relative",
+            height: "auto",
+            display: "block",
             transform: "translateX(30px)",
           }}
-        >
-          <div
-            style={{
-              width: "120px",
-              height: "26px",
-              background: "#0b1220",
-              borderRadius: "0 0 18px 18px",
-              position: "absolute",
-              top: "0",
-              left: "50%",
-              transform: "translateX(-50%)",
-              zIndex: 3,
-            }}
-          />
-
-          <div
-            style={{
-              width: "100%",
-              height: "100%",
-              borderRadius: "24px",
-              overflow: "hidden",
-              position: "relative",
-              display: "flex",
-              flexDirection: "column",
-              background: "#ffffff",
-            }}
-          >
-            <img
-              src="/bilkie.png"
-              alt="bilkie app"
-              style={{
-                width: "100%",
-                height: "100%",
-                objectFit: "cover",
-              }}
-            />
-          </div>
-        </div>
+        />
       </section>
 
       {/* KONU TESTLERİ */}
@@ -602,49 +563,17 @@ export default function Page() {
               className="phone-card"
               style={{
                 width: "min(42vw, 210px)",
-                height: "min(86vw, 430px)",
-                background: "#111827",
-                borderRadius: "30px",
-                padding: "11px",
-                boxShadow: "0 18px 40px rgba(0,0,0,0.22)",
                 position: "relative",
                 marginTop: "-50px",
                 zIndex: 2,
               }}
             >
-              <div
-                style={{
-                  width: "96px",
-                  height: "20px",
-                  background: "#0b1220",
-                  borderRadius: "0 0 14px 14px",
-                  position: "absolute",
-                  top: "0",
-                  left: "50%",
-                  transform: "translateX(-50%)",
-                  zIndex: 3,
-                }}
-              />
 
-              <div
-                style={{
-                  width: "100%",
-                  height: "100%",
-                  borderRadius: "20px",
-                  overflow: "hidden",
-                  background: "#ffffff",
-                }}
-              >
-                <img
-                  src={src}
-                  alt={`bilkie konu testi ${index + 1}`}
-                  style={{
-                    width: "100%",
-                    height: "100%",
-                    objectFit: "cover",
-                  }}
-                />
-              </div>
+              <img
+                src={src}
+                alt={`bilkie konu testi ${index + 1}`}
+                style={{ width: "100%", height: "auto", display: "block" }}
+              />
             </div>
           ))}
         </div>
@@ -812,49 +741,17 @@ export default function Page() {
               className="phone-card"
               style={{
                 width: "min(42vw, 210px)",
-                height: "min(86vw, 430px)",
-                background: "#111827",
-                borderRadius: "30px",
-                padding: "11px",
-                boxShadow: "0 18px 40px rgba(0,0,0,0.22)",
                 position: "relative",
                 marginTop: "-50px",
                 zIndex: 2,
               }}
             >
-              <div
-                style={{
-                  width: "96px",
-                  height: "20px",
-                  background: "#0b1220",
-                  borderRadius: "0 0 14px 14px",
-                  position: "absolute",
-                  top: "0",
-                  left: "50%",
-                  transform: "translateX(-50%)",
-                  zIndex: 3,
-                }}
-              />
 
-              <div
-                style={{
-                  width: "100%",
-                  height: "100%",
-                  borderRadius: "20px",
-                  overflow: "hidden",
-                  background: "#ffffff",
-                }}
-              >
-                <img
-                  src={src}
-                  alt={`bilkie konu defteri ${index + 1}`}
-                  style={{
-                    width: "100%",
-                    height: "100%",
-                    objectFit: "cover",
-                  }}
-                />
-              </div>
+              <img
+                src={src}
+                alt={`bilkie konu defteri ${index + 1}`}
+                style={{ width: "100%", height: "auto", display: "block" }}
+              />
             </div>
           ))}
         </div>
@@ -1025,49 +922,17 @@ export default function Page() {
               className="phone-card"
               style={{
                 width: "min(42vw, 210px)",
-                height: "min(86vw, 430px)",
-                background: "#111827",
-                borderRadius: "30px",
-                padding: "11px",
-                boxShadow: "0 18px 40px rgba(0,0,0,0.22)",
                 position: "relative",
                 marginTop: "-50px",
                 zIndex: 2,
               }}
             >
-              <div
-                style={{
-                  width: "96px",
-                  height: "20px",
-                  background: "#0b1220",
-                  borderRadius: "0 0 14px 14px",
-                  position: "absolute",
-                  top: "0",
-                  left: "50%",
-                  transform: "translateX(-50%)",
-                  zIndex: 3,
-                }}
-              />
 
-              <div
-                style={{
-                  width: "100%",
-                  height: "100%",
-                  borderRadius: "20px",
-                  overflow: "hidden",
-                  background: "#ffffff",
-                }}
-              >
-                <img
-                  src={src}
-                  alt={`bilkie yazili ${index + 1}`}
-                  style={{
-                    width: "100%",
-                    height: "100%",
-                    objectFit: "cover",
-                  }}
-                />
-              </div>
+              <img
+                src={src}
+                alt={`bilkie yazili ${index + 1}`}
+                style={{ width: "100%", height: "auto", display: "block" }}
+              />
             </div>
           ))}
         </div>
@@ -1210,52 +1075,16 @@ export default function Page() {
                 width: index === 1
                   ? "min(46vw, 240px)"
                   : "min(38vw, 180px)",
-                height: index === 1
-                  ? "min(92vw, 480px)"
-                  : "min(76vw, 360px)",
-                background: "#111827",
-                borderRadius: "30px",
-                padding: "11px",
-                boxShadow: "0 18px 40px rgba(0,0,0,0.22)",
                 position: "relative",
                 marginTop: index === 1 ? "-25px" : "-20px",
                 zIndex: 2,
               }}
             >
-              <div
-                style={{
-                  width: "90px",
-                  height: "20px",
-                  background: "#0b1220",
-                  borderRadius: "0 0 14px 14px",
-                  position: "absolute",
-                  top: "0",
-                  left: "50%",
-                  transform: "translateX(-50%)",
-                  zIndex: 3,
-                }}
+              <img
+                src={src}
+                alt={`bilkie oyun ${index + 1}`}
+                style={{ width: "100%", height: "auto", display: "block" }}
               />
-
-              <div
-                style={{
-                  width: "100%",
-                  height: "100%",
-                  borderRadius: "20px",
-                  overflow: "hidden",
-                  background: "#ffffff",
-                }}
-              >
-                <img
-                  src={src}
-                  alt={`bilkie oyun ${index + 1}`}
-                  style={{
-                    width: "100%",
-                    height: "100%",
-                    objectFit: index === 1 ? "contain" : "cover",
-                    background: "#0C1A3F",
-                  }}
-                />
-              </div>
             </div>
           ))}
         </div>
@@ -1531,52 +1360,11 @@ export default function Page() {
                 {item.title}
               </h3>
 
-              <div
-                style={{
-                  width: "min(38vw, 180px)",
-                  height: "min(76vw, 360px)",
-                  margin: "0 auto",
-                  background: "#111827",
-                  borderRadius: "26px",
-                  padding: "10px",
-                  position: "relative",
-                }}
-              >
-                <div
-                  style={{
-                    width: "80px",
-                    height: "16px",
-                    background: "#0b1220",
-                    borderRadius: "0 0 12px 12px",
-                    position: "absolute",
-                    top: "0",
-                    left: "50%",
-                    transform: "translateX(-50%)",
-                    zIndex: 3,
-                  }}
-                />
-
-                <div
-                  style={{
-                    width: "100%",
-                    height: "100%",
-                    borderRadius: "18px",
-                    overflow: "hidden",
-                    background: "#ffffff",
-                  }}
-                >
-                  <img
-                    src={item.img}
-                    alt={item.title}
-                    style={{
-                      width: "100%",
-                      height: "100%",
-                      objectFit: "contain",
-                      background: "#0C1A3F",
-                    }}
-                  />
-                </div>
-              </div>
+              <img
+                src={item.img}
+                alt={item.title}
+                style={{ width: "min(38vw, 180px)", height: "auto", display: "block", margin: "0 auto" }}
+              />
             </div>
           ))}
         </div>
@@ -1642,11 +1430,6 @@ export default function Page() {
           <div
             style={{
               width: "min(48vw, 250px)",
-              height: "min(96vw, 500px)",
-              background: "#111827",
-              borderRadius: "34px",
-              padding: "12px",
-              boxShadow: "0 18px 40px rgba(0,0,0,0.22)",
               position: "relative",
             }}
           >
@@ -1666,40 +1449,11 @@ export default function Page() {
                 animation: "shinePulse 3.5s ease-in-out infinite",
               }}
             />
-            <div
-              style={{
-                width: "104px",
-                height: "22px",
-                background: "#0b1220",
-                borderRadius: "0 0 16px 16px",
-                position: "absolute",
-                top: "0",
-                left: "50%",
-                transform: "translateX(-50%)",
-                zIndex: 3,
-              }}
+            <img
+              src="/ligler.png"
+              alt="Ligler"
+              style={{ width: "100%", height: "auto", display: "block" }}
             />
-
-            <div
-              style={{
-                width: "100%",
-                height: "100%",
-                borderRadius: "22px",
-                overflow: "hidden",
-                background: "#ffffff",
-              }}
-            >
-              <img
-                src="/ligler.png"
-                alt="Ligler"
-                style={{
-                  width: "100%",
-                  height: "100%",
-                  objectFit: "contain",
-                  background: "#0C1A3F",
-                }}
-              />
-            </div>
           </div>
         </div>
       </section>
@@ -1801,54 +1555,13 @@ export default function Page() {
               "/profil1.png",
               "/profil2.png",
             ].map((src, index) => (
-              <div
+              <img
                 key={index}
                 className="phone-card"
-                style={{
-                  width: "min(48vw, 250px)",
-                  height: "min(96vw, 500px)",
-                  background: "#111827",
-                  borderRadius: "34px",
-                  padding: "12px",
-                  boxShadow: "0 18px 40px rgba(0,0,0,0.22)",
-                  position: "relative",
-                }}
-              >
-                <div
-                  style={{
-                    width: "104px",
-                    height: "22px",
-                    background: "#0b1220",
-                    borderRadius: "0 0 16px 16px",
-                    position: "absolute",
-                    top: "0",
-                    left: "50%",
-                    transform: "translateX(-50%)",
-                    zIndex: 3,
-                  }}
-                />
-
-                <div
-                  style={{
-                    width: "100%",
-                    height: "100%",
-                    borderRadius: "22px",
-                    overflow: "hidden",
-                    background: "#ffffff",
-                  }}
-                >
-                  <img
-                    src={src}
-                    alt={`Profil ${index + 1}`}
-                    style={{
-                      width: "100%",
-                      height: "100%",
-                      objectFit: "contain",
-                      background: "#0C1A3F",
-                    }}
-                  />
-                </div>
-              </div>
+                src={src}
+                alt={`Profil ${index + 1}`}
+                style={{ width: "min(48vw, 250px)", height: "auto", display: "block" }}
+              />
             ))}
           </div>
         </div>
@@ -2107,7 +1820,7 @@ export default function Page() {
           .phone-card {
             margin-top: 0 !important;
             width: 70vw !important;
-            height: 140vw !important;
+            height: auto !important;
             flex-shrink: 0 !important;
             scroll-snap-align: start;
           }
@@ -2150,7 +1863,7 @@ export default function Page() {
           .neden-phone {
             transform: none !important;
             width: min(80vw, 270px) !important;
-            height: min(160vw, 560px) !important;
+            height: auto !important;
           }
         }
       `}</style>
