@@ -1,0 +1,108 @@
+<!doctype html><meta charset="utf-8">
+<style>
+body{margin:0;background:#0C1A3F;display:flex;gap:10px;align-items:center;justify-content:center;
+     min-height:100vh;font:13px system-ui;color:#8FB3D9;flex-wrap:wrap;padding:30px}
+.kutu{text-align:center}
+.kutu b{display:block;margin-top:14px;font-weight:600;opacity:.7}
+
+/* ══ KATMANLI 3B CİHAZ ══════════════════════════════════════════════
+   Tek düz görsel değil: ön yüz, arka yüz ve dört yan ray ayrı katmanlar
+   olarak preserve-3d uzayında duruyor. Bu yüzden döndüğünde gerçek
+   kalınlığı görünüyor — düz kart gibi davranmıyor.
+   Bütün ölçüler --gen'den türüyor; tek değişkenle büyüyüp küçülüyor. */
+.d3{ --gen:220px; --yuk:calc(var(--gen)*2.04); --kal:calc(var(--gen)*0.105);
+     --r:calc(var(--gen)*0.115);
+     width:var(--gen); height:var(--yuk); perspective:calc(var(--gen)*6); }
+.cisim{ position:relative; width:100%; height:100%; transform-style:preserve-3d;
+        will-change:transform; /* katmanı GPU'ya sabitle — yoksa her karede
+        yeniden rasterize ediliyor ve dönüş 2-3 kareye düşüyor */
+        transform:rotateY(var(--a,0deg)) rotateX(var(--b,0deg)); }
+.yuz{ position:absolute; inset:0; border-radius:var(--r); backface-visibility:hidden; }
+
+/* —— ön yüz: çerçeve + şeffaf ekran yuvası —— */
+.on{ transform:translateZ(calc(var(--kal)/2));
+     background:linear-gradient(150deg,#333944,#14171d);
+     padding:calc(var(--gen)*0.022); }
+.ekranYuva{ position:relative; width:100%; height:100%; overflow:hidden;
+            border-radius:calc(var(--r)*0.86); background:#0C1A3F; }
+.ekranYuva img{ width:100%; height:100%; object-fit:cover; display:block;
+                 transform:translateZ(0); /* görseli ayrı katmana al */ }
+.kamera{ position:absolute; top:1.4%; left:50%; transform:translateX(-50%);
+         width:3.4%; aspect-ratio:1; border-radius:50%;
+         background:radial-gradient(circle at 32% 28%,#2b3550,#05070c 62%);
+         box-shadow:0 0 0 1px rgba(255,255,255,.10); }
+.cam{ position:absolute; inset:0; pointer-events:none; border-radius:calc(var(--r)*0.86);
+      background:linear-gradient(108deg,rgba(255,255,255,.18),rgba(255,255,255,.05) 16%,transparent 40%); }
+
+/* —— arka yüz —— */
+.arka{ transform:rotateY(180deg) translateZ(calc(var(--kal)/2));
+       background:linear-gradient(200deg,#282d35,#12151a); }
+/* Pixel'in yatay kamera bandı — arka yüzü boş dikdörtgen olmaktan çıkarıyor */
+.visor{ position:absolute; left:6%; right:6%; top:7%; height:9%;
+        border-radius:calc(var(--gen)*0.06);
+        background:linear-gradient(180deg,#0b0d11,#05070a);
+        box-shadow:0 1px 0 rgba(255,255,255,.13) inset; }
+.lens{ position:absolute; top:50%; transform:translateY(-50%); width:19%; aspect-ratio:1;
+       border-radius:50%; background:radial-gradient(circle at 34% 30%,#39445c,#05070c 68%);
+       box-shadow:0 0 0 2px #22262e; }
+.lens.a{ left:11% } .lens.b{ left:34% }
+.flas{ position:absolute; right:11%; top:50%; transform:translateY(-50%);
+       width:9%; aspect-ratio:1; border-radius:50%; background:#c9c2a8; opacity:.5 }
+
+/* —— yan raylar: gövdeye kalınlık veren şey —— */
+.ray{ position:absolute; backface-visibility:visible; background:linear-gradient(90deg,#454b57,#15181d); }
+/* Ray ÖNCE merkeze konur, SONRA döndürülüp gövde yarıçapı kadar ilerletilir.
+   Önceki hâlde right:0 + translateZ(kalınlık/2) kullanılmıştı; bu rayı gövdenin
+   yanına değil dışına atıyordu, 0 derecede bile ince bir şerit görünüyordu. */
+.sag{ width:var(--kal); height:calc(100% - var(--r)); left:50%; top:calc(var(--r)/2);
+      margin-left:calc(var(--kal) / -2);
+      transform:rotateY(90deg) translateZ(calc(var(--gen)/2)); }
+.sol{ width:var(--kal); height:calc(100% - var(--r)); left:50%; top:calc(var(--r)/2);
+      margin-left:calc(var(--kal) / -2);
+      transform:rotateY(-90deg) translateZ(calc(var(--gen)/2)); }
+/* ÜST/ALT RAYLAR KALDIRILDI: ±25 derecelik dönüşte hiç görünmüyorlar ama
+   preserve-3d yüzünden her karede ayrı birleştiriliyorlardı. 6 yüzey → 4.
+   Tam 90 dereceye çıkan bir açı gerekirse geri eklenir. */
+/* fiziksel tuşlar */
+.tus{ position:absolute; right:calc(var(--kal)*-0.15); width:calc(var(--kal)*0.9); border-radius:2px;
+      background:linear-gradient(180deg,#565d6b,#1a1d23); transform:translateZ(calc(var(--gen)*0.5)); }
+</style>
+
+<style>
+ body{flex-direction:column;gap:26px}
+ .panel{display:flex;gap:22px;align-items:center;background:#132352;padding:16px 22px;border-radius:14px;flex-wrap:wrap;justify-content:center}
+ .panel label{display:flex;gap:9px;align-items:center;font-weight:600}
+ input[type=range]{width:190px}
+ button{background:#8FB3D9;color:#0C1A3F;border:0;padding:11px 20px;border-radius:99px;font:700 14px system-ui;cursor:pointer}
+ .d3{transition:none}
+ #canli.oynat .cisim{animation:gel 1.5s cubic-bezier(.16,.84,.34,1) both}
+ @keyframes gel{
+   from{transform:translateX(190px) rotateY(-205deg) rotateX(6deg) scale(.9);opacity:0}
+   to  {transform:translateX(0)     rotateY(-18deg)  rotateX(3deg) scale(1);opacity:1}
+ }
+</style>
+<div class="panel">
+  <label>FPS <b id="fps" style="min-width:52px;display:inline-block">—</b></label>
+  <label>Y ekseni <input type="range" id="ry" min="-200" max="200" value="-18"><b id="vy">-18°</b></label>
+  <label>X ekseni <input type="range" id="rx" min="-30" max="30" value="3"><b id="vx">3°</b></label>
+  <label>Boyut <input type="range" id="rg" min="140" max="420" value="240"><b id="vg">240px</b></label>
+  <button id="oyna">▶ Animasyonu oynat</button>
+</div>
+<div class="d3" id="canli" style="--a:-18deg;--b:3deg"><div class="cisim">
+  <div class="yuz arka"><div class="visor"><span class="lens a"></span><span class="lens b"></span><span class="flas"></span></div></div>
+  <div class="ray sag"></div><div class="ray sol"></div>
+  <div class="yuz on"><div class="ekranYuva"><img src="ekran-hafif.png"><span class="kamera"></span><span class="cam"></span></div></div>
+</div></div>
+<script>
+ const d=document.getElementById('canli');
+ const uy=(id,birim,ozellik)=>{const i=document.getElementById(id),g=document.getElementById(id.replace('r','v'));
+   i.oninput=()=>{d.style.setProperty(ozellik,i.value+birim);g.textContent=i.value+birim;};};
+ uy('ry','deg','--a'); uy('rx','deg','--b'); uy('rg','px','--gen');
+ d.style.setProperty('--gen','240px');
+ document.getElementById('oyna').onclick=()=>{d.classList.remove('oynat');void d.offsetWidth;d.classList.add('oynat');};
+
+ let k=0,son=performance.now();
+ (function say(){k++;const s=performance.now();
+   if(s-son>=500){document.getElementById('fps').textContent=Math.round(k*1000/(s-son));k=0;son=s;}
+   requestAnimationFrame(say);})();
+</script>
