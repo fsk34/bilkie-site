@@ -69,9 +69,9 @@ export const metadata: Metadata = {
     follow: true,
   },
 
-  icons: {
-    icon: "/favicon.ico",
-  },
+  // İkon dosyaları app/ altındaki dosya kuralıyla veriliyor (favicon.ico + icon.png +
+  // apple-icon.png), Next hepsinin <link>ini kendisi basıyor. Elle "icons" yazılırsa
+  // yalnız .ico ilan ediliyor, PNG'ler devre dışı kalıyordu.
 
   // AdSense site doğrulaması — yayıncı kimliği AdMob ile aynı hesaptan
   // (`public/ads.txt` de bu numarayı ilan ediyor). Next.js bunu <head>e

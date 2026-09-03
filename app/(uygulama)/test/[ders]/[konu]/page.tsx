@@ -210,9 +210,12 @@ export default function TestSayfasi() {
     <div className="bk">
       <div className="bk-test">
         <div className="bk-test-ust">
-          <Link href={`/ders/${dersKey}`} className="bk-cikis" aria-label="Çık">✕</Link>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <Link href={`/ders/${dersKey}`} className="bk-cikis" aria-label="Çık"><img src="/uygulama/cikis.png" alt="" /></Link>
           <div className="bk-cubuk" style={{ flex: 1 }}><i style={{ width: `${oran}%` }} /></div>
-          <div style={{ fontFamily: "bk-baslik, system-ui" }}>❤️ {can}</div>
+          {/* Can ikonu uygulamanınki (Android TestScreens.kt: R.drawable.hakicon); önce ❤️ emojisiydi. */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <div className="bk-test-can"><img src="/uygulama/hakicon.svg" alt="" />{can}</div>
         </div>
 
         <p className="bk-soluk" style={{ fontSize: 13, marginBottom: 6 }}>

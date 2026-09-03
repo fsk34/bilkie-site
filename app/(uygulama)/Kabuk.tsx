@@ -11,15 +11,25 @@ import { useOturum } from "../lib/oturum";
 import { useGunlukGorevler, useUstBilgi } from "../lib/canliVeri";
 import { ligBul, type Gorev, type UstBilgi } from "../lib/veri";
 
+// İkonlar UYGULAMANIN KENDİ ikonları (Android: BilkieTab.iconRes → res/drawable,
+// iOS'ta aynı çizimlerin SVG'si). Önce emoji kullanılıyordu; emoji her işletim
+// sisteminde başka çiziliyor ve telefondaki uygulamaya hiç benzemiyordu.
+// "Daha Fazla" uygulamada yok (alt barda 6 sekme var), onun ikonu da yok → ⋯ kalıyor.
 const MENU = [
-  { yol: "/", ad: "Öğren", ikon: "🏠" },
-  { yol: "/ligler", ad: "Ligler", ikon: "🏆" },
-  { yol: "/gorevler", ad: "Görevler", ikon: "📋" },
-  { yol: "/istatistik", ad: "İstatistik", ikon: "📊" },
-  { yol: "/oyunlar", ad: "Oyunlar", ikon: "🎮" },
-  { yol: "/profil", ad: "Profil", ikon: "🐱" },
-  { yol: "/ayarlar", ad: "Daha Fazla", ikon: "⋯" },
+  { yol: "/", ad: "Öğren", ikon: "/uygulama/anaekran.svg" },
+  { yol: "/ligler", ad: "Ligler", ikon: "/uygulama/lig.svg" },
+  { yol: "/gorevler", ad: "Görevler", ikon: "/uygulama/gorevler.svg" },
+  { yol: "/istatistik", ad: "İstatistik", ikon: "/uygulama/istatistik.svg" },
+  { yol: "/oyunlar", ad: "Oyunlar", ikon: "/uygulama/oyunlar.svg" },
+  { yol: "/profil", ad: "Profil", ikon: "/uygulama/profil.svg" },
+  { yol: "/ayarlar", ad: "Daha Fazla", ikon: null },
 ];
+
+/** Menü ikonu: uygulamanın SVG'si, yoksa metin işareti. */
+function Ikon({ src }: { src: string | null }) {
+  // eslint-disable-next-line @next/next/no-img-element
+  return src ? <img src={src} alt="" /> : <>⋯</>;
+}
 
 export default function Kabuk({ children }: { children: React.ReactNode }) {
   const { yukleniyor, kullanici, profil, sinif, cikisYap } = useOturum();
@@ -53,14 +63,14 @@ export default function Kabuk({ children }: { children: React.ReactNode }) {
           <Link href="/" className="bk-logo">bilkie</Link>
           {MENU.map((m) => (
             <Link key={m.yol} href={m.yol} className="bk-nav" data-aktif={aktifMi(m.yol)}>
-              <span className="bk-nav-ikon">{m.ikon}</span>
+              <span className="bk-nav-ikon"><Ikon src={m.ikon} /></span>
               {m.ad}
             </Link>
           ))}
           <div style={{ flex: 1 }} />
           {/* Misafir yok: /'ya yalnızca girişli kullanıcı gelebiliyor (bkz. Kapi.tsx) */}
           <button className="bk-nav" onClick={() => cikisYap()}>
-            <span className="bk-nav-ikon">↩︎</span> Çıkış yap
+            <span className="bk-nav-ikon"><Ikon src="/uygulama/cikis.png" /></span> Çıkış yap
           </button>
         </aside>
 
@@ -80,7 +90,7 @@ export default function Kabuk({ children }: { children: React.ReactNode }) {
       <nav className="bk-mobil-alt">
         {MENU.map((m) => (
           <Link key={m.yol} href={m.yol} data-aktif={aktifMi(m.yol)}>
-            <span>{m.ikon}</span>
+            <span><Ikon src={m.ikon} /></span>
             {m.ad}
           </Link>
         ))}
@@ -97,7 +107,13 @@ function Sayaclar({ ust, kisa = false }: { ust: UstBilgi | null; kisa?: boolean 
 
   const satir = (
     <>
-      <Link href="/seri" className={`bk-sayac seri ${sonuk ? "sonuk" : ""}`} title="Seri">
+      {/* Uygulamada seri bugün işlenmemişse sayaç sönükleşir (Android: streakActiveToday). */}
+      <Link
+        href="/seri"
+        className={`bk-sayac seri ${sonuk ? "sonuk" : ""}`}
+        data-aktif={ust ? String(ust.bugunAktif) : "true"}
+        title="Seri"
+      >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/uygulama/seriicon.svg" alt="" />
         <b>{deger(ust?.seri)}</b>

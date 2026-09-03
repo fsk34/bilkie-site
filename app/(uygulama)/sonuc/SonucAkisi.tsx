@@ -142,12 +142,16 @@ function SonucKarti({
 
   return (
     <>
-      <div className="bk-sonuc-lottie">
-        {!sessiz && <Lottie ad="resultscreen" dongu style={{ height: 400 }} />}
-      </div>
-
       <div className="bk-sonuc-ic">
         <div className="bk-halka-kap">
+          {/* Patlama animasyonu HALKANIN merkezine kilitli durmalı. Eskiden ekranın
+              tepesine (top:16px) sabitlenmişti; halka ise dikeyde ortalanan kutunun
+              içinde olduğu için ikisi ancak belli bir ekran yüksekliğinde çakışıyordu
+              (masaüstünde ışık halkanın epey yukarısında kalıyordu). */}
+          <div className="bk-sonuc-lottie">
+            {!sessiz && <Lottie ad="resultscreen" dongu style={{ height: 400 }} />}
+          </div>
+
           {/* Yay: alt tarafta 70° açıklık (iOS gapDeg = 70), dolgu 0.30/0.60/1.00 */}
           <svg className="bk-halka-svg" viewBox="0 0 350 350" aria-hidden>
             <g transform="rotate(125 175 175)">

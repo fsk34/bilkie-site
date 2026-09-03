@@ -1,6 +1,6 @@
 "use client";
 
-// Tek başarım satırı: solda renkli simge + düzey, sağda başlık/sayaç,
+// Tek başarım satırı: solda renkli simge + kademe sayacı, sağda başlık/sayaç,
 // altında sarı ilerleme çubuğu ve hedef cümlesi.
 
 import { basarimDuzeyi, hedefCumlesi, sonrakiEsik, type Basarim } from "./basarimlar";
@@ -23,7 +23,11 @@ export default function BasarimSatiri({ b, deger }: { b: Basarim; deger: number 
       <div className="bk-basarim-simge" style={{ background: b.zemin }}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={`/uygulama/rozet/${b.gorsel}.png`} alt="" />
-        <span>{b.yil ?? (duzey > 0 ? `${duzey}. DÜZEY` : "BAŞLANGIÇ")}</span>
+        {/* Uygulamada bu alanda "$level/$maxLevel" yazıyor (MainActivity.kt:4772) ve
+            eşiksiz başarımlarda HİÇBİR ŞEY yazmıyor. Web'de bir süre "2. DÜZEY" /
+            "BAŞLANGIÇ" yazıyordu — Duolingo'dan esinlenilmiş, uygulamada karşılığı
+            olmayan bir ifadeydi. */}
+        {(b.yil || esikli) && <span>{b.yil ?? `${duzey}/${b.esikler.length}`}</span>}
       </div>
 
       <div className="bk-basarim-govde">

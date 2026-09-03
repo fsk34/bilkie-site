@@ -8,7 +8,13 @@
      Kart zemini       #1A2A5E                        (KonuTestleriScreen)
    Fontlar uygulamayla aynı dosyalar: main.ttf (metin), baslik.otf (başlık), bilkie.otf (logo). */
 
-@font-face { font-family: "bk-baslik"; src: url("/fonts/baslik.otf"); font-display: swap; }
+/* ⚠️ baslik: web eskiden BAŞKA bir dosya kullanıyordu (baslik.otf, 53 KB). Uygulamanın
+   başlık fontu baslik.ttf (132 KB) — Android ve iOS ikisi de bunu kullanıyor. Sitedeki
+   tüm başlık/menü/buton yazıları buna bağlı olduğu için fark en görünür yerdeydi. */
+@font-face { font-family: "bk-baslik"; src: url("/fonts/baslik.ttf"); font-display: swap; }
+/* takvim: CSS'te kullanılıyordu ama @font-face'i hiç yazılmamıştı, sessizce sistem
+   fontuna düşüyordu (seri takviminin gün sayıları). */
+@font-face { font-family: "bk-takvim"; src: url("/fonts/takvim.ttf"); font-display: swap; }
 @font-face { font-family: "bk-main";   src: url("/fonts/main.ttf");   font-display: swap; }
 @font-face { font-family: "bk-logo";   src: url("/fonts/bilkie.otf"); font-display: swap; }
 @font-face { font-family: "bk-konu";   src: url("/fonts/konu.ttf");   font-display: swap; }
@@ -52,7 +58,13 @@
 
 /* ---------------------------------------------------------------- kabuk */
 
-.bk-kabuk { display: flex; min-height: 100vh; }
+/* Kabuk TEK BLOK olarak ekranda ortalanır. Sol menü ekranın sol kenarına yapışık
+   dururken gövde kendi içinde ortalanınca, geniş ekranda menü ile içerik arasında
+   kocaman bir boşluk açılıyor ve içerik sağa kaymış gibi görünüyordu.
+   Genişlik = 288 menü + gövde(24 + 720 içerik + 28 boşluk + 340 ray + 24) = 1424.
+   (Tailwind preflight her yere border-box verdiği için menünün iç boşluğu/çerçevesi
+   288'in içinde.) Dar ekranda max-width bağlamaz, davranış değişmez. */
+.bk-kabuk { display: flex; min-height: 100vh; max-width: 1424px; margin-inline: auto; }
 
 .bk-kenar {
   position: sticky; top: 0; align-self: flex-start;
@@ -86,7 +98,13 @@
   border-color: var(--dugme-dis);
   color: var(--acik-mavi);
 }
-.bk-nav-ikon { font-size: 26px; line-height: 1; width: 30px; text-align: center; }
+.bk-nav-ikon {
+  font-size: 26px; line-height: 1; width: 30px; flex: 0 0 30px;
+  display: flex; align-items: center; justify-content: center;
+}
+/* Uygulamada alt bar ikonu 32dp (MainActivity NavigationBarItem). Sol menü satırı
+   daha dar olduğu için 28px; tint YOK, ikonlar zaten renkli. */
+.bk-nav-ikon img { width: 28px; height: 28px; object-fit: contain; }
 
 .bk-govde { flex: 1; min-width: 0; display: flex; justify-content: center; gap: 28px; padding: 28px 24px 96px; }
 .bk-icerik { flex: 1; max-width: 720px; min-width: 0; }
@@ -179,6 +197,13 @@
 .bk-test { max-width: 720px; margin: 0 auto; padding: 20px 16px 190px; }
 .bk-test-ust { display: flex; align-items: center; gap: 14px; margin-bottom: 24px; }
 .bk-cikis { font-size: 24px; color: rgba(255,255,255,.5); text-decoration: none; line-height: 1; }
+.bk-cikis img { width: 22px; height: 22px; object-fit: contain; display: block; }
+/* Can sayacı: uygulamadaki hakicon + sayı (bk-baslik). */
+.bk-test-can {
+  display: flex; align-items: center; gap: 6px;
+  font-family: "bk-baslik", system-ui, sans-serif; font-size: 18px;
+}
+.bk-test-can img { width: 24px; height: 24px; object-fit: contain; }
 
 .bk-secenek {
   display: block; width: 100%; text-align: left; font-size: 16px;
@@ -258,6 +283,7 @@
   }
   .bk-mobil-alt a[data-aktif="true"] { color: #fff; background: var(--kart); }
   .bk-mobil-alt span { display: block; font-size: 20px; line-height: 1.2; }
+  .bk-mobil-alt span img { width: 24px; height: 24px; object-fit: contain; margin: 0 auto; }
 }
 
 /* ------------------------------------------------------------- ana ekran */
@@ -302,12 +328,22 @@
   display: flex; align-items: center; justify-content: space-between;
   gap: 8px; padding: 2px 8px 18px;
 }
-.bk-sayac { display: flex; align-items: center; gap: 7px; text-decoration: none; }
-.bk-sayac img { width: 32px; height: 32px; object-fit: contain; }
-.bk-sayac b { font-family: "bk-baslik", system-ui, sans-serif; font-size: 20px; font-weight: 400; }
+/* Sayaç şeridi uygulamayla BİREBİR (Android MainActivity.kt:955-1020, iOS
+   HomeComponents.swift HomeTopStatusBar — ikisi aynı):
+     font  main (BAŞLIK DEĞİL — web'de yanlışlıkla bk-baslik kullanılıyordu)
+     ikon  28  ·  aralık seri/puan 8, can 6
+     seri  #FFC93C, bugün çözülmediyse yazı #9E9E9E + ikon %40 (Android alpha)
+     puan  beyaz (web'de #86B7DD idi)
+     can   #9AD7FF (web'de KIRMIZI #FF5C5C idi) */
+.bk-sayac { display: flex; align-items: center; gap: 8px; text-decoration: none; }
+.bk-sayac.can { gap: 6px; }
+.bk-sayac img { width: 28px; height: 28px; object-fit: contain; }
+.bk-sayac b { font-family: "bk-main", system-ui, sans-serif; font-size: 16px; font-weight: 400; }
 .bk-sayac.seri b { color: #ffc93c; }
-.bk-sayac.puan b { color: #86b7dd; }
-.bk-sayac.can  b { color: #ff5c5c; }
+.bk-sayac.seri[data-aktif="false"] b { color: #9e9e9e; }
+.bk-sayac.seri[data-aktif="false"] img { opacity: .4; }
+.bk-sayac.puan b { color: #ffffff; }
+.bk-sayac.can  b { color: #9ad7ff; }
 .bk-sayac.sonuk b { color: rgba(255,255,255,.35); }
 
 .bk-kart + .bk-kart { margin-top: 14px; }
@@ -1570,12 +1606,16 @@
   width: 46px; height: 46px; border-radius: 14px; background: var(--dugme-dis);
   display: grid; place-items: center; font-size: 22px;
 }
+/* Lig rozeti uygulamanın kendi kupası: mavi kutu değil, görselin kendisi. */
+.bk-profil-lig .simge.gorsel { background: none; border-radius: 0; }
+.bk-profil-lig .simge img { width: 46px; height: 46px; object-fit: contain; }
 .bk-profil-lig .ad { font-family: "bk-baslik", system-ui, sans-serif; font-size: 18px; }
 .bk-profil-lig .alt { font-size: 12px; color: rgba(255,255,255,.75); margin-top: 2px; }
 .bk-profil-ayrac { height: 1px; background: var(--dugme-dis); }
 .bk-profil-hucreler { display: flex; padding: 12px 14px; }
 .bk-profil-hucre { flex: 1; display: flex; align-items: center; justify-content: center; gap: 10px; }
-.bk-profil-hucre .simge { font-size: 22px; }
+.bk-profil-hucre .simge { font-size: 22px; display: grid; place-items: center; }
+.bk-profil-hucre .simge img { width: 26px; height: 26px; object-fit: contain; }
 .bk-profil-hucre .deger { font-family: "bk-baslik", system-ui, sans-serif; font-size: 20px; }
 .bk-profil-hucre .etiket { font-size: 12px; color: rgba(255,255,255,.75); }
 .bk-profil-dikey { width: 1px; height: 52px; background: var(--dugme-dis); }
@@ -1714,8 +1754,10 @@
 
 /* --- sonuç kartı ------------------------------------------------------- */
 .bk-sonuc { align-items: center; padding: 0 0 24px; text-align: center; }
+/* Halkanın içinde, tam merkezinde (bkz. SonucAkisi.tsx'teki not). */
 .bk-sonuc-lottie {
-  position: absolute; top: 16px; left: 0; right: 0; height: 400px;
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  width: min(100%, 560px); height: 400px;
   pointer-events: none;
 }
 .bk-sonuc-ic {

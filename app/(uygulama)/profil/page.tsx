@@ -97,7 +97,8 @@ function Icerik() {
 
       <div className="bk-profil-panel">
         <div className="bk-profil-lig">
-          <span className="simge">🏆</span>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <span className="simge gorsel"><img src={`/uygulama/lig/${lig.key}.png`} alt="" /></span>
           <div>
             <div className="ad">{LIG_ADI[lig.key] ?? "BAŞLANGIÇ"}</div>
             <div className="alt">Mevcut Lig</div>
@@ -108,7 +109,8 @@ function Icerik() {
 
         <div className="bk-profil-hucreler">
           <div className="bk-profil-hucre">
-            <span className="simge">🏅</span>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <span className="simge"><img src="/uygulama/seriicon.svg" alt="" /></span>
             <div>
               <div className="deger">{ust ? ust.seri : "—"}</div>
               <div className="etiket">Günlük Seri</div>
@@ -116,7 +118,8 @@ function Icerik() {
           </div>
           <div className="bk-profil-dikey" />
           <div className="bk-profil-hucre">
-            <span className="simge">🎖</span>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <span className="simge"><img src="/uygulama/puanicon.svg" alt="" /></span>
             <div>
               <div className="deger">{ust ? ust.xp : "—"}</div>
               <div className="etiket">Toplam Puan</div>

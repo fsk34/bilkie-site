@@ -1,6 +1,6 @@
 // Başarım kataloğu — uygulamadaki AchievementsScreen.makeItems ile birebir
-// (başlık, görsel, açıklama, hedef, eşikler, renkler). Düzey ve hedef cümlesi
-// eşiklerden türetilir (Duolingo'daki "5. DÜZEY / 50 günlük bir seriye ulaş" karşılığı).
+// (başlık, görsel, açıklama, hedef, eşikler, renkler). Kademe ve hedef cümlesi
+// eşiklerden türetilir; kademe gösterimi uygulamadaki "level/maxLevel" ile aynı.
 
 export type Basarim = {
   id: string; ad: string; gorsel: string; aciklama: string;
@@ -43,7 +43,7 @@ export const BASARIMLAR: Basarim[] = [
     hedefSablonu: "Yaz kampının beş dersini bitir" },
 ];
 
-/** Kaç eşiği geçtiyse o kadar düzey ("5. DÜZEY"). */
+/** Kaç eşiği geçtiyse o kadar kademe (uygulamada: thresholds.count { current >= it }). */
 export function basarimDuzeyi(b: Basarim, deger: number): number {
   if (b.esikler.length === 0) return deger > 0 ? 1 : 0;
   return b.esikler.filter((e) => deger >= e).length;

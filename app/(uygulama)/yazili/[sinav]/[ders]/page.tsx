@@ -327,7 +327,8 @@ export default function YaziliCalismaSayfasi() {
     <div className="bk">
       <div className="bk-test">
         <div className="bk-test-ust">
-          <Link href={`/yazili/${sinavKey}`} className="bk-cikis" aria-label="Çık">✕</Link>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <Link href={`/yazili/${sinavKey}`} className="bk-cikis" aria-label="Çık"><img src="/uygulama/cikis.png" alt="" /></Link>
           <div className="bk-cubuk" style={{ flex: 1 }}><i style={{ width: `${oran}%` }} /></div>
           <div style={{ fontFamily: "bk-baslik, system-ui" }}>❤️ {can}</div>
         </div>

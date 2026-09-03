@@ -35,7 +35,5 @@ body {
   src: url('/fonts/bilkiealt.ttf');
 }
 
-@font-face {
-  font-family: 'baslik';
-  src: url('/fonts/baslik.otf');
-}
+/* 'baslik' ailesi silinen tanıtım sayfasından kalmıştı, kullanan kalmadı.
+   Uygulamanın başlık fontu uygulama.css'teki "bk-baslik" (baslik.ttf). */
