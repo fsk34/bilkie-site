@@ -12,7 +12,7 @@ import { get, ref as dbRef, runTransaction, set } from "firebase/database";
 import { kullaniciDb } from "./firebase";
 import { gunAnahtari } from "./tarih";
 import { sinifSinirla } from "./veri";
-import { gorevOlayiUygula, testIdUret } from "./gorevYaz";
+import { gorevOlayiUygula, testIdUret, type GorevDegisimi } from "./gorevYaz";
 import { istatistikOlayiUygula } from "./istatistikYaz";
 import { sessizHata } from "./hata";
 
@@ -111,7 +111,7 @@ export type TestBitisArgs = {
  * XP, seri ve adım ilerlemesi çağıran ekranda yazılıyor (Android'de de öyle).
  * Dönüş: görevlerde ilerleme oldu mu (sonuç ekranı bunu gösterir).
  */
-export async function testBittiIsle(a: TestBitisArgs): Promise<boolean> {
+export async function testBittiIsle(a: TestBitisArgs): Promise<GorevDegisimi[]> {
   const hatasiz = a.toplam > 0 && a.dogru === a.toplam;
 
   // 1) Başarımlar — Android onTestFinished
@@ -132,7 +132,7 @@ export async function testBittiIsle(a: TestBitisArgs): Promise<boolean> {
   }
 
   // 2) Görevler — testId ile dedüplikasyon (aynı konu, farklı adım → tek sayım)
-  let gorevIlerledi = false;
+  let gorevIlerledi: GorevDegisimi[] = [];
   try {
     gorevIlerledi = await gorevOlayiUygula(a.uid, {
       tip: "test_bitti",
@@ -173,7 +173,7 @@ export async function testBittiIsle(a: TestBitisArgs): Promise<boolean> {
  */
 export async function defterBittiIsle(
   uid: string, sinif: number, dersKey: string, uniteKey: string
-): Promise<boolean> {
+): Promise<GorevDegisimi[]> {
   await basarimArtir(uid, "defteradet", 1);
   await basarimArtir(uid, "unitesenfoni", 1);
   await gunlukBayrakVeKontrol(uid, "defterDone", "testDone", "kusursuzsanatAwarded", "kusursuzsanat");
@@ -185,7 +185,7 @@ export async function defterBittiIsle(
       defterId: `${dersKey}/${uniteKey}`,   // Android: "$subjectKey/$topicKey"
     });
   } catch {
-    return false;
+    return [];
   }
 }
 
@@ -205,7 +205,7 @@ export type YaziliBitisArgs = {
 };
 
 /** Android `onYaziliCompleted` + `onYaziliAchievements` + StatsManager.YAZILI_FINISHED. */
-export async function yaziliBittiIsle(a: YaziliBitisArgs): Promise<boolean> {
+export async function yaziliBittiIsle(a: YaziliBitisArgs): Promise<GorevDegisimi[]> {
   const hatasiz = a.toplam > 0 && a.dogru === a.toplam;
 
   await basarimArtir(a.uid, "yaziliadet", 1);
@@ -216,7 +216,7 @@ export async function yaziliBittiIsle(a: YaziliBitisArgs): Promise<boolean> {
     );
   }
 
-  let gorevIlerledi = false;
+  let gorevIlerledi: GorevDegisimi[] = [];
   try {
     gorevIlerledi = await gorevOlayiUygula(a.uid, { tip: "yazili_bitti", sinif: a.sinif });
   } catch (e) {

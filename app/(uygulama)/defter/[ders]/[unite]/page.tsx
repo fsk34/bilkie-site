@@ -6,6 +6,7 @@
 
 import Link from "next/link";
 import SonucAkisi, { type SeriArgs } from "../../../sonuc/SonucAkisi";
+import type { GorevDegisimi } from "../../../../lib/gorevYaz";
 import { useParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { dersBul } from "../../../dersler";
@@ -39,6 +40,9 @@ export default function DefterOkuyucuSayfasi() {
   // Seri bugün ilk kez işaretlendiyse uygulamadaki seri özeti gösterilir.
   const [seriAkisi, setSeriAkisi] = useState<SeriArgs | null>(null);
   const seriSozu = useMemo(() => (seriAkisi ? Promise.resolve(seriAkisi) : null), [seriAkisi]);
+  // Defterde sonuç kartı yok; görev özeti varsa akış onunla açılır.
+  const [gorevDegisimleri, setGorevDegisimleri] = useState<GorevDegisimi[]>([]);
+  const gorevSozu = useMemo(() => Promise.resolve(gorevDegisimleri), [gorevDegisimleri]);
 
   const ders = dersBul(dersKey);
   const renk = ders?.ana ?? "#72CEFD";
@@ -89,7 +93,7 @@ export default function DefterOkuyucuSayfasi() {
       }
       // Başarımlar + görevler YALNIZCA ilk tamamlamada (Android: firstTimeDone bloğu)
       if (sonuc.ilkKez) {
-        await defterBittiIsle(kullanici.uid, sinif, dersKey, uniteKey);
+        setGorevDegisimleri(await defterBittiIsle(kullanici.uid, sinif, dersKey, uniteKey));
       }
     } catch {
       /* yazma hatası okumayı bozmasın */
@@ -113,13 +117,14 @@ export default function DefterOkuyucuSayfasi() {
     );
   }
 
-  if (seriAkisi) {
+  if (seriAkisi || gorevDegisimleri.length > 0) {
     return (
       <SonucAkisi
         sonuc={null}
         seriSozu={seriSozu}
+        gorevSozu={gorevSozu}
         uid={kullanici?.uid ?? null}
-        onBitti={() => setSeriAkisi(null)}
+        onBitti={() => { setSeriAkisi(null); setGorevDegisimleri([]); }}
       />
     );
   }

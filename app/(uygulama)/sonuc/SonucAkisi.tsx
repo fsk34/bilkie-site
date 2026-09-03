@@ -3,14 +3,16 @@
 // Aktivite sonrası akış — iOS: PostActivityFlow (Result → özetler).
 // Sıra uygulamadakiyle aynı: [Sonuç kartı] → (Seri özeti) → bitir.
 //
-// ⚠️ Uygulamada araya "Görev özeti" de giriyor. Web görev ilerlemesini YAZMADIĞI için
-// (bkz. veri.ts başlığı) burada gösterilmiyor: değişmemiş sayıları "kazandın" gibi
-// göstermek yanıltıcı olurdu. Görev yazımı web'e taşındığında bu adım eklenecek.
+// Sıra uygulamadakiyle aynı: Sonuç kartı → (Görev özeti) → (Seri özeti) → bitir.
+// Ara adımlar yalnız gösterecek bir şey varsa açılır: görevde ilerleme yoksa görev
+// özeti, seri işlenmediyse seri özeti atlanır.
 
 import { useEffect, useRef, useState } from "react";
 import Lottie from "../Lottie";
 import { sesCal } from "../ses";
 import { ACT_DEFTER, ACT_YAZILI, haftaninAktifGunleri } from "../../lib/veri";
+import type { GorevDegisimi } from "../../lib/gorevYaz";
+import GorevOzeti from "./GorevOzeti";
 
 export type SonucArgs = {
   dogru: number;
@@ -29,17 +31,22 @@ export type SeriArgs = {
     (iOS: PostActivityFlow.whenReady). null = seri özeti gösterilmeyecek. */
 export type SeriSozu = Promise<SeriArgs | null>;
 
-type Adim = "sonuc" | "seri";
+/** Görev yazımı bitince hangi görevlerin ilerlediği belli olur. */
+export type GorevSozu = Promise<GorevDegisimi[]> | null;
+
+type Adim = "sonuc" | "gorev" | "seri";
 
 export default function SonucAkisi({
   sonuc,
   seriSozu,
+  gorevSozu = null,
   uid,
   misafir = false,
   onBitti,
 }: {
   sonuc: SonucArgs | null;
   seriSozu: SeriSozu | null;
+  gorevSozu?: GorevSozu;
   uid: string | null;
   misafir?: boolean;
   onBitti: () => void;
@@ -47,34 +54,70 @@ export default function SonucAkisi({
   const [adim, setAdim] = useState<Adim>(sonuc ? "sonuc" : "seri");
   const [cikan, setCikan] = useState<Adim | null>(null);
   const [seri, setSeri] = useState<SeriArgs | null>(null);
+  const [gorevler, setGorevler] = useState<GorevDegisimi[]>([]);
   const bekleyen = useRef(true);
 
-  // Ödül yazımı bitince seri özetinin gerekip gerekmediği belli olur.
+  // Ödül yazımı bitince hangi ara adımların gerektiği belli olur.
   useEffect(() => {
     let iptal = false;
-    if (!seriSozu) { bekleyen.current = false; return; }
-    seriSozu.then((s) => {
+    (async () => {
+      // Sonuç kartı YOKSA (defter akışı) ilk gösterilecek adım burada seçilir:
+      // görevde ilerleme varsa görev özeti, yoksa seri özeti.
+      let gorevVar = false;
+      if (!sonuc) {
+        const d = gorevSozu ? await gorevSozu.catch(() => []) : [];
+        if (iptal) return;
+        gorevVar = d.length > 0;
+        if (gorevVar) {
+          setGorevler(d);
+          setAdim("gorev");
+        }
+      }
+
+      if (!seriSozu) {
+        bekleyen.current = false;
+        if (!sonuc && !gorevVar) onBitti();   // gösterecek hiçbir şey yok
+        return;
+      }
+
+      const s = await seriSozu;
       if (iptal) return;
       bekleyen.current = false;
       setSeri(s);
-      // Sonuç kartı yoksa (defter akışı) doğrudan seri adımına düşülür.
-      if (!sonuc && !s) onBitti();
-    });
+      if (!sonuc && !gorevVar && !s) onBitti();
+    })();
     return () => { iptal = true; };
-  }, [seriSozu, sonuc, onBitti]);
+  }, [seriSozu, gorevSozu, sonuc, onBitti]);
 
-  async function sonucDevam() {
+  /** Bir adımdan diğerine yatay geçiş (yeni sağdan girer, eski sola çıkar). */
+  function gec(eskiAdim: Adim, yeniAdim: Adim) {
+    setCikan(eskiAdim);
+    setAdim(yeniAdim);
+    window.setTimeout(() => setCikan(null), 340);
+  }
+
+  /** Seri özeti gerekiyorsa ona geç, gerekmiyorsa akışı bitir. */
+  async function seriyeGecYaDaBitir(eskiAdim: Adim) {
     // iOS: whenReady — ödül hesabı bitene kadar bekle, sonra adıma geç.
     let s = seri;
     if (bekleyen.current && seriSozu) s = await seriSozu;
     if (s) {
       setSeri(s);
-      setCikan("sonuc");
-      setAdim("seri");
-      window.setTimeout(() => setCikan(null), 340);
+      gec(eskiAdim, "seri");
     } else {
       onBitti();
     }
+  }
+
+  async function sonucDevam() {
+    // Görev yazımı sonuç kartı ekrandayken sürüyor olabilir; sonucunu bekle.
+    const d = gorevSozu ? await gorevSozu.catch(() => []) : [];
+    if (d.length > 0) {
+      setGorevler(d);
+      gec("sonuc", "gorev");
+      return;
+    }
+    await seriyeGecYaDaBitir("sonuc");
   }
 
   return (
@@ -88,6 +131,18 @@ export default function SonucAkisi({
       {adim === "sonuc" && sonuc && (
         <div className="bk-akis-adim bk-sonuc">
           <SonucKarti args={sonuc} onDevam={sonucDevam} misafir={misafir} />
+        </div>
+      )}
+
+      {cikan === "gorev" && (
+        <div className="bk-akis-adim bk-gorev-adim" data-yon="cikan">
+          <GorevOzeti degisenler={gorevler} onDevam={() => {}} />
+        </div>
+      )}
+
+      {adim === "gorev" && (
+        <div className="bk-akis-adim bk-gorev-adim" data-yon={cikan ? "giren" : undefined}>
+          <GorevOzeti degisenler={gorevler} onDevam={() => seriyeGecYaDaBitir("gorev")} />
         </div>
       )}
 

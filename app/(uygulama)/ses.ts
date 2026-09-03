@@ -11,6 +11,7 @@ export type SesAdi =
   | "bb_combo1" | "bb_combo2" | "bb_combo3" | "bb_combo4"
   | "wordle_harf" | "wordle_dogruharf" | "wordle_levelcompleted"
   | "levelcompleted"
+  | "task" | "gorevtamamlandi"
   | "note_do" | "note_re" | "note_mi" | "note_fa" | "note_sol"
   | "note_la" | "note_si" | "note_do2" | "note_re2" | "note_mi3";
 

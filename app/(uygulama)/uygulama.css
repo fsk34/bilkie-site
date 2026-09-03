@@ -1810,6 +1810,19 @@
   font-family: "bk-sayilar", system-ui, sans-serif; font-size: 18px; color: #fff; white-space: nowrap;
 }
 
+/* --- görev özeti (Android: ResultScreens.kt TaskSummaryScreen) ---------- */
+.bk-gorev-adim { align-items: center; padding: 24px 0 30px; }
+.bk-gorev-ozet {
+  width: 100%; max-width: 560px; padding: 0 16px; box-sizing: border-box;
+}
+.bk-gorev-ozet > h2 {
+  font-size: 26px; text-align: center; margin: 0 0 4px;
+}
+/* Görev satırı/çubuğu Görevler ekranıyla ORTAK (.bk-gorev-satir, .bk-gorev-cubuk):
+   aynı görev iki yerde farklı görünmesin. Buradaki tek fark bölüm başlığının
+   üstteki boşluğu — akış ekranı daha dar. */
+.bk-gorev-ozet .bk-gorev-bolum { font-size: 18px; margin: 18px 0 8px; }
+
 /* --- seri özeti (iOS: StreakSummaryScreen) ----------------------------- */
 .bk-seri-ozet { align-items: center; padding: 10px 0 34px; text-align: center; }
 .bk-seri-ozet h2 { font-size: 28px; margin: 0; }

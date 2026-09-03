@@ -17,6 +17,7 @@ import { dersBul } from "../../../dersler";
 import Lottie from "../../../Lottie";
 import { sesCal } from "../../../ses";
 import SonucAkisi, { type SeriArgs, type SonucArgs } from "../../../sonuc/SonucAkisi";
+import type { GorevDegisimi } from "../../../../lib/gorevYaz";
 import { enUzunSeriGuncelle, testBittiIsle } from "../../../../lib/ilerleme";
 import { useOturum } from "../../../../lib/oturum";
 import { konuAyristir, uniteler } from "../../../../lib/katalog";
@@ -54,7 +55,11 @@ export default function TestSayfasi() {
   const [dogruSayisi, setDogruSayisi] = useState(0);
   const [can, setCan] = useState(CAN_LIMITI);
   const [kombo, setKombo] = useState(false);
-  const [akis, setAkis] = useState<{ sonuc: SonucArgs; seriSozu: Promise<SeriArgs | null> } | null>(null);
+  const [akis, setAkis] = useState<{
+    sonuc: SonucArgs;
+    seriSozu: Promise<SeriArgs | null>;
+    gorevSozu: Promise<GorevDegisimi[]>;
+  } | null>(null);
 
   const ustUsteDogru = useRef(0);
   const adimBaslangici = useRef(Date.now());
@@ -103,8 +108,13 @@ export default function TestSayfasi() {
       const xp = sonDogru * XP_DOGRU_TEST;
 
       // Ödül yazımı Sonuç kartı ekrandayken arka planda sürer (iOS: whenReady).
+      // Görev özeti de aynı zincirin çıktısı: hangi görevin kaçtan kaça çıktığı
+      // ancak yazma bitince belli olur, o yüzden ayrı bir sözle dışarı veriliyor.
+      let gorevCoz: (d: GorevDegisimi[]) => void = () => {};
+      const gorevSozu = new Promise<GorevDegisimi[]>((c) => { gorevCoz = c; });
+
       const seriSozu: Promise<SeriArgs | null> = (async () => {
-        if (!kullanici) return null;
+        if (!kullanici) { gorevCoz([]); return null; }
         try {
           await adimSonucuYaz({
             uid: kullanici.uid, sinif, dersKey, konuKey, adim,
@@ -116,10 +126,10 @@ export default function TestSayfasi() {
           // Başarımlar + kişisel rekor + görevler + istatistik kovaları.
           // Telefondaki onTestFinished / StatsManager zincirinin karşılığı; web'den
           // çözülen test de aynı izi bıraksın diye. Hataları kendi içinde yutuyor.
-          await testBittiIsle({
+          gorevCoz(await testBittiIsle({
             uid: kullanici.uid, sinif, dersKey, konuKey,
             dogru: sonDogru, toplam, sureSn, puan: sonDogru * XP_DOGRU_TEST,
-          });
+          }));
           if (seri.basarili && seri.sayi > 0) {
             await enUzunSeriGuncelle(kullanici.uid, sinif, seri.sayi);
           }
@@ -127,6 +137,7 @@ export default function TestSayfasi() {
           if (!seri.basarili || !seri.ilkAktiviteBugun) return null;
           return { sayi: seri.sayi, maske: seri.maske, tetik: ACT_TEST };
         } catch {
+          gorevCoz([]);  // görev özeti de atlanır
           return null;   // yazma hatası akışı durdurmasın
         }
       })();
@@ -135,6 +146,7 @@ export default function TestSayfasi() {
       setAkis({
         sonuc: { dogru: sonDogru, toplam, sureSn, puan: sonDogru * XP_DOGRU_TEST },
         seriSozu,
+        gorevSozu,
       });
     },
     [kullanici, sinif, dersKey, konuKey, adim, sorular.length, oncekiTamamlanan]
@@ -195,6 +207,7 @@ export default function TestSayfasi() {
       <SonucAkisi
         sonuc={akis.sonuc}
         seriSozu={akis.seriSozu}
+        gorevSozu={akis.gorevSozu}
         uid={kullanici?.uid ?? null}
         misafir={!kullanici}
         onBitti={() => router.push(`/ders/${dersKey}`)}

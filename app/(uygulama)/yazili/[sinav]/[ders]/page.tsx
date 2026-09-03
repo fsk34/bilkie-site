@@ -7,6 +7,7 @@
 
 import Link from "next/link";
 import SonucAkisi, { type SeriArgs } from "../../../sonuc/SonucAkisi";
+import type { GorevDegisimi } from "../../../../lib/gorevYaz";
 import { useParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useOturum } from "../../../../lib/oturum";
@@ -82,6 +83,9 @@ export default function YaziliCalismaSayfasi() {
   // Seri bugün ilk kez işaretlendiyse uygulamadaki seri özeti gösterilir.
   const [seriAkisi, setSeriAkisi] = useState<SeriArgs | null>(null);
   const seriSozu = useMemo(() => (seriAkisi ? Promise.resolve(seriAkisi) : null), [seriAkisi]);
+  // Yazılıda da sonuç kartı yok; görev özeti varsa akış onunla açılır.
+  const [gorevDegisimleri, setGorevDegisimleri] = useState<GorevDegisimi[]>([]);
+  const gorevSozu = useMemo(() => Promise.resolve(gorevDegisimleri), [gorevDegisimleri]);
 
   const bolum = bolumler[bolumIndeks];
 
@@ -178,12 +182,12 @@ export default function YaziliCalismaSayfasi() {
       }
       // Başarımlar + görevler + istatistik — Android onYaziliCompleted zinciri.
       // Doğru/toplam yalnız SON halkadan (doğru-yanlış) geliyor; XP de öyle veriliyor.
-      await yaziliBittiIsle({
+      setGorevDegisimleri(await yaziliBittiIsle({
         uid: kullanici.uid, sinif, dersKey, sinavKey,
         dogru: dyDogru, toplam: dy.length,
         sureSn: Math.max(1, Math.round((Date.now() - baslangicRef.current) / 1000)),
         puan: Math.max(0, dyDogru) * XP_DOGRU_YAZILI,
-      });
+      }));
     } catch {
       /* yazma hatası akışı durdurmasın */
     }
@@ -263,13 +267,14 @@ export default function YaziliCalismaSayfasi() {
     );
   }
 
-  if (seriAkisi) {
+  if (seriAkisi || gorevDegisimleri.length > 0) {
     return (
       <SonucAkisi
         sonuc={null}
         seriSozu={seriSozu}
+        gorevSozu={gorevSozu}
         uid={kullanici?.uid ?? null}
-        onBitti={() => setSeriAkisi(null)}
+        onBitti={() => { setSeriAkisi(null); setGorevDegisimleri([]); }}
       />
     );
   }

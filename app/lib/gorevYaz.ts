@@ -82,7 +82,23 @@ async function aylikRozetVer(uid: string): Promise<void> {
   }
 }
 
-type BolumSonucu = { ilerledi: boolean; yeniBitenler: GorevTanim[] };
+/** Sonuç akışındaki "Görev özeti" ekranının çizdiği tek satır. */
+export type GorevDegisimi = {
+  id: string;
+  baslik: string;
+  xp: number;
+  /** Aktivite ÖNCESİ ilerleme — çubuk buradan yeniye doğru canlanıyor. */
+  onceki: number;
+  yeni: number;
+  hedef: number;
+  /** Bu aktiviteyle YENİ tamamlandı mı (ödül burada veriliyor). */
+  yeniBitti: boolean;
+  donem: GorevDonemi;
+};
+
+export type GorevDonemi = "gunluk" | "haftalik" | "aylik";
+
+type BolumSonucu = { degisenler: GorevDegisimi[]; yeniBitenler: GorevTanim[] };
 
 /**
  * Bir dönemin (günlük/haftalık/aylık) görevlerini olaya göre ilerletir.
@@ -92,25 +108,28 @@ async function bolumeUygula(
   tanimlar: GorevTanim[],
   temelYol: string,
   donemAnahtari: string,
-  o: GorevOlayi
+  o: GorevOlayi,
+  donem: GorevDonemi
 ): Promise<BolumSonucu> {
   const yeniBitenler: GorevTanim[] = [];
-  let ilerledi = false;
+  const degisenler: GorevDegisimi[] = [];
   const bugun = gunAnahtari();
 
   for (const def of tanimlar) {
     const kind = (def.kind || "").toLowerCase();
     const hedef = Math.max(1, gorevHedefi(def));
-    let buGorevIlerledi = false;
     let oncedenBitmisti = false;
+    // Transaction birden fazla kez çalışabilir; bu değerler her denemede yeniden
+    // yazılır, sonuncusu commit edilen tabana ait olur.
+    let oncekiKayit = 0;
 
     try {
-      await runTransaction(dbRef(kullaniciDb, `${temelYol}/${def.id}`), (mevcut) => {
+      const islem = await runTransaction(dbRef(kullaniciDb, `${temelYol}/${def.id}`), (mevcut) => {
         const d = { ...((mevcut ?? {}) as Record<string, unknown>) };
-        buGorevIlerledi = false;
         oncedenBitmisti = d.completed === true;
 
         const oncekiIlerleme = sayi(d.progress);
+        oncekiKayit = oncekiIlerleme;
         if (oncedenBitmisti) {
           d.target = hedef;
           return d;
@@ -138,7 +157,6 @@ async function bolumeUygula(
         // streak_any: herhangi bir etkinlik görevi tamamlar
         if (kind === "streak_any") {
           bitir();
-          buGorevIlerledi = true;
           return d;
         }
 
@@ -205,7 +223,6 @@ async function bolumeUygula(
 
         yeni = Math.min(hedef, Math.max(0, yeni));
         const bitti = yeni >= hedef;
-        if (yeni > oncekiIlerleme || bitti) buGorevIlerledi = true;
 
         d.progress = yeni;
         d.target = hedef;
@@ -213,36 +230,59 @@ async function bolumeUygula(
         if (bitti) d.completedAt = serverTimestamp();
         return d;
       });
+      if (!islem.committed) continue;
+
+      const kayit = (islem.snapshot.val() ?? {}) as Record<string, unknown>;
+      const yeniIlerleme = sayi(kayit.progress);
+      const yeniBitti = kayit.completed === true && !oncedenBitmisti;
+
+      if (yeniIlerleme > oncekiKayit || yeniBitti) {
+        degisenler.push({
+          id: def.id,
+          baslik: def.baslik,
+          xp: def.xp,
+          onceki: oncekiKayit,
+          yeni: yeniIlerleme,
+          hedef,
+          yeniBitti,
+          donem,
+        });
+      }
+
+      // ⚠️ Ödül YALNIZ görev yeni tamamlandığında verilir (Android TaskManager:858
+      // `newlyCompleted = completed && !wasCompletedBefore`). Eskiden burada
+      // "ilerledi mi" bakılıyordu: xpEkle tekrarı engellemediği için 3 adımlı bir
+      // görev ödülünü ÜÇ KEZ veriyordu ve şişen puan lig tablosuna da yansıyordu.
+      if (yeniBitti) yeniBitenler.push(def);
     } catch {
       continue; // bir görev yazılamazsa diğerleri denensin
     }
-
-    if (buGorevIlerledi) {
-      ilerledi = true;
-      if (!oncedenBitmisti) yeniBitenler.push(def);
-    }
   }
 
-  return { ilerledi, yeniBitenler };
+  return { degisenler, yeniBitenler };
 }
 
 /**
  * Tek giriş noktası — Android `TaskManager.applyEvent`.
  * Günlük + haftalık + aylık görevleri sırayla ilerletir, yeni tamamlananların XP'sini yazar.
- * Dönüş: en az bir görevde ilerleme oldu mu (sonuç ekranı bunu gösteriyor).
+ * Dönüş: ilerleyen görevlerin önceki/yeni değerleri — sonuç akışındaki
+ * "Görev özeti" ekranı çubukları bu verilerle canlandırıyor.
  */
-export async function gorevOlayiUygula(uid: string, o: GorevOlayi): Promise<boolean> {
-  if (!uid) return false;
+export async function gorevOlayiUygula(uid: string, o: GorevOlayi): Promise<GorevDegisimi[]> {
+  if (!uid) return [];
   const g = sinifSinirla(o.sinif);
-  let ilerledi = false;
+  const degisenler: GorevDegisimi[] = [];
 
-  const bolumler: { tanimlar: GorevTanim[]; yol: string; donem: string; aylik: boolean }[] = [];
+  const bolumler: {
+    tanimlar: GorevTanim[]; yol: string; donem: string; aylik: boolean; etiket: GorevDonemi;
+  }[] = [];
   try {
     bolumler.push({
       tanimlar: await gunlukGorevTanimlari(),
       yol: gunlukGorevDurumYolu(uid),
       donem: gunAnahtari(),
       aylik: false,
+      etiket: "gunluk",
     });
   } catch { /* katalog okunamadı */ }
   try {
@@ -251,6 +291,7 @@ export async function gorevOlayiUygula(uid: string, o: GorevOlayi): Promise<bool
       yol: haftalikGorevDurumYolu(uid),
       donem: haftaAnahtari(),
       aylik: false,
+      etiket: "haftalik",
     });
   } catch { /* katalog okunamadı */ }
   try {
@@ -259,17 +300,19 @@ export async function gorevOlayiUygula(uid: string, o: GorevOlayi): Promise<bool
       yol: aylikGorevDurumYolu(uid),
       donem: ayAnahtari(),
       aylik: true,
+      etiket: "aylik",
     });
   } catch { /* katalog okunamadı */ }
 
   for (const b of bolumler) {
     if (b.tanimlar.length === 0) continue;
-    const sonuc = await bolumeUygula(b.tanimlar, b.yol, b.donem, o);
-    if (sonuc.ilerledi) ilerledi = true;
+    const sonuc = await bolumeUygula(b.tanimlar, b.yol, b.donem, o, b.etiket);
+    degisenler.push(...sonuc.degisenler);
 
+    // `yeniBitenler` artık gerçekten YENİ TAMAMLANANLAR (bkz. bolumeUygula sonu).
     for (const def of sonuc.yeniBitenler) {
+      // Aylık rozet de yalnız tamamlanınca veriliyor (Android: `completed && isMonthly`).
       if (b.aylik) await aylikRozetVer(uid);
-      // Görev yeni tamamlandıysa ödülü yazılır (Android: onComplete içinde addXp)
       if (def.xp > 0) {
         try {
           await xpEkle(uid, g, def.xp, `task_${def.id}`);
@@ -278,5 +321,5 @@ export async function gorevOlayiUygula(uid: string, o: GorevOlayi): Promise<bool
     }
   }
 
-  return ilerledi;
+  return degisenler;
 }
