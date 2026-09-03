@@ -1296,8 +1296,32 @@
   55%  { opacity: 0; }
   100% { transform: translate(var(--x1), var(--y1)); opacity: 0; }
 }
+/* Lig ATLAYINCA kupa terfi animasyonu — Android LeagueScreen promotionTrigger.
+   Süreler birebir: eski kupa 300ms büyür (1→1.28), 220ms söner; yeni kupa 240ms
+   belirir, ardından 160/140/220ms'lik pop (1.10 → 0.98 → 1). Lig DÜŞERSE animasyon
+   yok, uygulamada da yalnız yükselişte oynuyor. */
+.bk-kupa-kutu .kupa.cikan {
+  position: absolute; animation: bk-kupa-cikan .52s linear forwards;
+}
+.bk-kupa-kutu .kupa.giren {
+  animation: bk-kupa-giren .76s linear both;
+}
+@keyframes bk-kupa-cikan {
+  0%     { transform: scale(1);    opacity: 1; }
+  57.7%  { transform: scale(1.28); opacity: 1; }   /* 300/520 */
+  100%   { transform: scale(1.28); opacity: 0; }
+}
+@keyframes bk-kupa-giren {
+  0%     { opacity: 0; transform: scale(1); }
+  31.6%  { opacity: 1; transform: scale(1); }      /* 240/760 */
+  52.6%  { transform: scale(1.10); }               /* +160 */
+  71.1%  { transform: scale(0.98); }               /* +140 */
+  100%   { transform: scale(1); }                  /* +220 */
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .bk-lig-ust .kupa, .bk-kupa-kutu i { animation: none; }
+  .bk-lig-ust .kupa, .bk-kupa-kutu i,
+  .bk-kupa-kutu .kupa.cikan, .bk-kupa-kutu .kupa.giren { animation: none; }
 }
 .bk-lig-ust .ad {
   font-family: "bk-konu", "bk-baslik", system-ui, sans-serif; font-size: 18px;

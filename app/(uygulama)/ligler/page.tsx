@@ -4,7 +4,7 @@
 // Aynı veri: leaderboards/leagues/grade{N}/{sezon}; aynı sıralama kuralı ve görseller.
 
 import Link from "next/link";
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import Kabuk from "../Kabuk";
 import { useOturum } from "../../lib/oturum";
 import { useLigTablosu } from "../../lib/canliVeri";
@@ -83,6 +83,95 @@ function Icerik() {
   const indeks = Math.max(0, LIGLER.findIndex((l) => l.key === lig.key));
   const benimSiram = benimSatirim?.sira;
 
+  /* ---- kupa terfi animasyonu (Android: trophyPromotionTrigger) ---- */
+  const [gosterilen, setGosterilen] = useState(indeks);
+  const [cikan, setCikan] = useState<number | null>(null);
+  const [giris, setGiris] = useState(0);
+  const ilkKupaRef = useRef(true);
+  const oncekiIndeksRef = useRef(indeks);
+
+  useEffect(() => {
+    // İlk veri gelişinde animasyon yok — uygulamada da lastSeenLeagueIndex -1 iken atlanıyor.
+    if (ilkKupaRef.current) {
+      ilkKupaRef.current = false;
+      oncekiIndeksRef.current = indeks;
+      setGosterilen(indeks);
+      return;
+    }
+    const onceki = oncekiIndeksRef.current;
+    oncekiIndeksRef.current = indeks;
+    if (indeks === onceki) return;
+    if (indeks < onceki) { setGosterilen(indeks); return; }   // düşüşte animasyon yok
+
+    setCikan(onceki);
+    const z = window.setTimeout(() => {
+      setGosterilen(indeks);
+      setCikan(null);
+      setGiris((n) => n + 1);
+    }, 520);   // eski kupa: 300ms büyüme + 220ms sönme
+    return () => window.clearTimeout(z);
+  }, [indeks]);
+
+  useEffect(() => {
+    if (giris === 0) return;
+    // Giriş animasyonu bitince sınıf kalksın ki boştaki nabız animasyonu geri gelsin.
+    const z = window.setTimeout(() => setGiris(0), 780);
+    return () => window.clearTimeout(z);
+  }, [giris]);
+
+  /* ---- kendi satırın: pop + kaydırma (Android: yourPopTrigger, didAutoScroll) ---- */
+  const benimRef = useRef<HTMLDivElement | null>(null);
+  const oncekiPuanRef = useRef<number | null>(null);
+  const oncekiSiraRef = useRef<number | null>(null);
+  const kaydirildiRef = useRef(false);
+
+  useEffect(() => {
+    if (!benimSatirim) return;
+    const el = benimRef.current;
+    const oncekiPuan = oncekiPuanRef.current;
+    const oncekiSira = oncekiSiraRef.current;
+    const puanArtti = oncekiPuan != null && benimSatirim.puan > oncekiPuan;
+    const siraIyilesti = oncekiSira != null && benimSatirim.sira < oncekiSira;
+    oncekiPuanRef.current = benimSatirim.puan;
+    oncekiSiraRef.current = benimSatirim.sira;
+
+    const azHareket =
+      typeof window !== "undefined" &&
+      window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+
+    // Satır parıltısı: puan artınca ya da sıra yükselince (Android'de aynı iki koşul).
+    // CSS animasyonu yeniden tetiklemek sınıf ekle-çıkar hilesi gerektirdiği için
+    // doğrudan Web Animations API kullanılıyor.
+    if (el && (puanArtti || siraIyilesti) && !azHareket) {
+      el.animate(
+        [
+          { transform: "scale(1)",    backgroundColor: "rgba(255,213,79,.08)" },
+          { transform: "scale(1.05)", backgroundColor: "rgba(255,213,79,.26)", offset: 0.25 },
+          { transform: "scale(1)",                                             offset: 0.64 },
+          { transform: "scale(1)",    backgroundColor: "rgba(255,213,79,.08)" },
+        ],
+        { duration: 560, easing: "ease-out" }
+      );
+    }
+
+    // ⚠️ Uygulamada liste kendi içinde kayan bir bileşen; web'de kaydırılan şey
+    // SAYFANIN TAMAMI. Satır zaten ekrandaysa sayfayı zıplatmamak için önce
+    // görünürlük kontrol ediliyor — yoksa 1. sıradaki kullanıcıda bile sayfa oynardı.
+    const gorunurMu = () => {
+      if (!el) return true;
+      const r = el.getBoundingClientRect();
+      return r.top >= 0 && r.bottom <= window.innerHeight;
+    };
+
+    if (siraIyilesti && el && !gorunurMu()) {
+      el.scrollIntoView({ behavior: azHareket ? "auto" : "smooth", block: "center" });
+    }
+    if (!kaydirildiRef.current && el) {
+      kaydirildiRef.current = true;
+      if (!gorunurMu()) el.scrollIntoView({ block: "center" });
+    }
+  }, [benimSatirim]);
+
   return (
     <>
       <div style={{ marginBottom: 4 }}>
@@ -92,8 +181,18 @@ function Icerik() {
 
       <div className="bk-lig-ust">
         <div className="bk-kupa-kutu">
+          {cikan != null && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img className="kupa cikan" src={`/uygulama/lig/${LIGLER[cikan].key}.png`} alt="" />
+          )}
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img className="kupa" src={`/uygulama/lig/${LIGLER[indeks].key}.png`} alt="" />
+          <img
+            key={giris}
+            className={`kupa${giris > 0 ? " giren" : ""}`}
+            style={cikan != null ? { visibility: "hidden" } : undefined}
+            src={`/uygulama/lig/${LIGLER[gosterilen].key}.png`}
+            alt=""
+          />
           {ISILTILAR.map((p, i) => (
             <i
               key={i}
@@ -107,11 +206,11 @@ function Icerik() {
             />
           ))}
         </div>
-        <div className="ad">{LIGLER[indeks].ad}</div>
+        <div className="ad">{LIGLER[gosterilen].ad}</div>
 
         <div className="bk-lig-gosterge">
           {LIGLER.map((l, i) => (
-            <span key={l.key} data-aktif={i === indeks}>
+            <span key={l.key} data-aktif={i === gosterilen}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={`/uygulama/lig/${l.key}.png`} alt="" />
             </span>
@@ -133,7 +232,12 @@ function Icerik() {
         )}
 
         {satirlar?.map((s) => (
-          <div className="bk-lig-satir" data-sensin={s.sensin} key={s.uid}>
+          <div
+            className="bk-lig-satir"
+            data-sensin={s.sensin}
+            key={s.uid}
+            ref={s.sensin ? benimRef : undefined}
+          >
             <span className="bk-lig-sira">
               {s.sira <= 3 ? (
                 // eslint-disable-next-line @next/next/no-img-element
