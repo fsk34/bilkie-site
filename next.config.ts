@@ -42,6 +42,31 @@ const nextConfig: NextConfig = {
   async headers() {
     return [{ source: "/:path*", headers: guvenlikBasliklari }];
   },
+
+  // Uygulama /uygulama altından KÖKE taşındı (3 Eyl 2026). Eski adresler bugün kısa süre
+  // yayında kaldı; kalıcı yönlendirme hem kullanıcıyı hem arama motorunu doğru yere taşır.
+  //
+  // ⚠️ Yönlendirme YALNIZ rota adlarıyla sınırlı. `/uygulama/:path*` gibi geniş bir kural
+  // görselleri de yakalıyor: statik varlıklar `public/uygulama/` altında duruyor ve
+  // `/uygulama/seriicon.svg` adresinden sunuluyor; geniş kural onu `/seriicon.svg`ye
+  // yönlendirip 404 yapıyordu (avatarlar, ders ikonları, lig kupaları hep kırılmıştı).
+  async redirects() {
+    const rotalar = [
+      "atasozleri", "ayarlar", "basarimlar", "defter", "defterler", "ders", "giris",
+      "gorevler", "harikalar", "istatistik", "kayit", "ligler", "meslekler", "oyun",
+      "oyunlar", "profil", "quiz", "rozetler", "seri", "test", "testler", "turkiye",
+      "yazili",
+    ].join("|");
+
+    return [
+      { source: "/uygulama", destination: "/", permanent: true },
+      {
+        source: `/uygulama/:rota(${rotalar})/:kalan*`,
+        destination: "/:rota/:kalan*",
+        permanent: true,
+      },
+    ];
+  },
 };
 
 export default nextConfig;

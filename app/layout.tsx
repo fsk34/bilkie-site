@@ -95,7 +95,7 @@ export default function RootLayout({
         {children}
         {/* AdSense yükleyicisi — site doğrulaması ve Otomatik Reklamlar için HER sayfada
             bulunmalı. Reklam birimlerinin kendisi yalnız oyun ekranlarında (bkz.
-            app/uygulama/oyun/Reklam.tsx); burası sadece betiği yüklüyor.
+            app/(uygulama)/oyun/Reklam.tsx); burası sadece betiği yüklüyor.
             ⚠️ Otomatik Reklamlar AdSense panelinden açılırsa Google bu betik sayesinde
             İSTEDİĞİ sayfaya reklam koyabilir — öğrenme ekranlarına reklam istemiyorsak
             panelden o sayfaları hariç tutmak gerekir. */}
