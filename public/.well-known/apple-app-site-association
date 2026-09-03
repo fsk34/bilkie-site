@@ -1,0 +1,21 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": ["7PQC2AW5ST.com.bilkie.app"],
+        "components": [
+          { "/": "/gizlilik*", "exclude": true, "comment": "Magaza incelemesi ve uygulama ici baglantilar tarayicida acilmali" },
+          { "/": "/sartlar*", "exclude": true },
+          { "/": "/yardim*", "exclude": true },
+          { "/": "/hesap-silme*", "exclude": true, "comment": "Hesap silme sayfasi tarayicida erisilebilir olmak ZORUNDA" },
+          { "/": "/tesekkurler*", "exclude": true },
+          { "/": "/dogrula*", "exclude": true, "comment": "E-posta dogrulama ve parola sifirlama akislari" },
+          { "/": "/sifre-sifirla*", "exclude": true },
+          { "/": "/admin*", "exclude": true },
+          { "/": "/.well-known/*", "exclude": true },
+          { "/": "*" }
+        ]
+      }
+    ]
+  }
+}

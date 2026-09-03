@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.bilkie.app",
+      "sha256_cert_fingerprints": [
+        "28:A9:02:38:29:DC:25:40:BB:C1:9C:ED:47:09:8F:01:C8:43:48:F2:FF:CD:DF:29:FA:34:44:5C:0B:52:34:D1"
+      ]
+    }
+  }
+]

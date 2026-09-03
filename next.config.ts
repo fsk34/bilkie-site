@@ -40,7 +40,18 @@ const guvenlikBasliklari = [
 
 const nextConfig: NextConfig = {
   async headers() {
-    return [{ source: "/:path*", headers: guvenlikBasliklari }];
+    return [
+      { source: "/:path*", headers: guvenlikBasliklari },
+
+      // Universal Links dosyasının UZANTISI YOK (Apple öyle istiyor) ve uzantısız
+      // dosyalar application/octet-stream olarak sunuluyor. iOS bu dosyayı
+      // application/json görmezse doğrulamayı sessizce reddeder — derin bağlantı
+      // hiç çalışmaz ve hata da vermez.
+      {
+        source: "/.well-known/apple-app-site-association",
+        headers: [{ key: "Content-Type", value: "application/json" }],
+      },
+    ];
   },
 
   // Uygulama /uygulama altından KÖKE taşındı (3 Eyl 2026). Eski adresler bugün kısa süre
