@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { REKLAM_ISTEMCI } from "./lib/reklam";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -70,6 +72,13 @@ export const metadata: Metadata = {
   icons: {
     icon: "/favicon.ico",
   },
+
+  // AdSense site doğrulaması — yayıncı kimliği AdMob ile aynı hesaptan
+  // (`public/ads.txt` de bu numarayı ilan ediyor). Next.js bunu <head>e
+  // <meta name="google-adsense-account" content="…"> olarak basar.
+  other: {
+    "google-adsense-account": "ca-pub-8784812800014128",
+  },
 };
 
 export default function RootLayout({
@@ -82,7 +91,22 @@ export default function RootLayout({
       lang="tr"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        {children}
+        {/* AdSense yükleyicisi — site doğrulaması ve Otomatik Reklamlar için HER sayfada
+            bulunmalı. Reklam birimlerinin kendisi yalnız oyun ekranlarında (bkz.
+            app/uygulama/oyun/Reklam.tsx); burası sadece betiği yüklüyor.
+            ⚠️ Otomatik Reklamlar AdSense panelinden açılırsa Google bu betik sayesinde
+            İSTEDİĞİ sayfaya reklam koyabilir — öğrenme ekranlarına reklam istemiyorsak
+            panelden o sayfaları hariç tutmak gerekir. */}
+        <Script
+          id="adsense-yukleyici"
+          async
+          strategy="afterInteractive"
+          src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${REKLAM_ISTEMCI}`}
+          crossOrigin="anonymous"
+        />
+      </body>
     </html>
   );
 }
