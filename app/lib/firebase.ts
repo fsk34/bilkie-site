@@ -2,6 +2,7 @@ import { getApp, getApps, initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getDatabase, type Database } from "firebase/database";
 import { getStorage } from "firebase/storage";
+import { appCheckBaslat } from "./appcheck";
 
 const firebaseConfig = {
   apiKey: "AIzaSyCPam-DUCX9dbeXP0WQk6RSjDZxQiWztuA",
@@ -13,6 +14,10 @@ const firebaseConfig = {
 };
 
 const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+
+// App Check kurulumu (yalnız tarayıcıda, anahtar tanımlıysa) — ayrıntı appcheck.ts'te.
+// Diğer Firebase çağrılarından ÖNCE başlaması için burada, uygulama oluşturulur oluşturulmaz.
+appCheckBaslat();
 
 export const auth = getAuth(app);
 export const db = getDatabase(app, "https://konutestleri.europe-west1.firebasedatabase.app");
