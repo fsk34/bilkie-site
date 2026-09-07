@@ -62,6 +62,27 @@ const nextConfig: NextConfig = {
   // `/uygulama/seriicon.svg` adresinden sunuluyor; geniş kural onu `/seriicon.svg`ye
   // yönlendirip 404 yapıyordu (avatarlar, ders ikonları, lig kupaları hep kırılmıştı).
   async redirects() {
+    // Apeks (bilkie.com) → www yönlendirmesi UYGULAMA KATMANINDA yapılır.
+    //
+    // Neden Vercel'in alan adı ayarındaki 308 yetmiyor: o yönlendirme uçta, uygulamadan
+    // ÖNCE çalışır ve İSTİSNASIZDIR — `/.well-known/` dosyalarını da yönlendirir.
+    // Google ve Apple ise ilişkilendirme dosyasında yönlendirme KABUL ETMEZ (sahiplik
+    // kanıtı tek adımda gelmeli; yoksa açık yönlendirmesi olan biri alan adını
+    // sahiplenebilirdi). Ölçüldü: www ✅ doğrulandı, apeks ⛔ reddedildi → apeks host'lu
+    // derin bağlantılar hiç çalışmıyordu.
+    //
+    // Çözüm: Vercel'de `bilkie.com` "No Redirect"e alınır, aynı yönlendirme burada
+    // `/.well-known/` HARİÇ yeniden yazılır. Böylece iki dosya iki adreste de DOĞRUDAN
+    // (200) sunulur, tarayıcı trafiği yine tek kökende toplanır.
+    //
+    // ⚠️ Yönlendirmeyi tamamen kaldırmak YANLIŞ olurdu: bilkie.com ve www.bilkie.com
+    // ayrı köken sayılır → Firebase oturumu bölünür, kullanıcı "hesabım kayboldu" sanır.
+    //
+    // ⚠️ SIRA: önce bu kod yayına çıkar (Vercel'in 308'i sürerken zararsızdır, hiç
+    // tetiklenmez), SONRA Vercel'de "No Redirect" işaretlenir. Tersi sırada apeks bir
+    // süre yönlendirmesiz kalır.
+    const apeks = [{ type: "host" as const, value: "bilkie.com" }];
+
     const rotalar = [
       "atasozleri", "ayarlar", "basarimlar", "defter", "defterler", "ders", "giris",
       "gorevler", "harikalar", "istatistik", "kayit", "ligler", "meslekler", "oyun",
@@ -70,6 +91,17 @@ const nextConfig: NextConfig = {
     ].join("|");
 
     return [
+      // Apeks kuralları ÖNCE: köken düzeltmesi tek sıçramada bitsin.
+      { source: "/", has: apeks, destination: "https://www.bilkie.com/", permanent: true },
+      {
+        // `.well-known` ile başlayan yollar bilerek DIŞARIDA — doğrulama dosyaları
+        // apeks adresinde de 200 dönmeli.
+        source: "/:yol((?!\\.well-known/).*)",
+        has: apeks,
+        destination: "https://www.bilkie.com/:yol",
+        permanent: true,
+      },
+
       { source: "/uygulama", destination: "/", permanent: true },
       {
         source: `/uygulama/:rota(${rotalar})/:kalan*`,
