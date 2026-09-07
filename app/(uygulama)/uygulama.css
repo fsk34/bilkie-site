@@ -1554,14 +1554,21 @@
 }
 /* ---------------------------------------------------------------- görevler */
 
+/* Kutu, görsellerin ÇİZİM ORANIYLA aynı: 3:1.
+   ⚠️ Eskiden `height: 150px` sabitti. Kolon 720px olduğu için kutu 4,8:1 oluyor ve
+   `object-fit: fill` 3:1 görseli yatayda %60 GERİYORDU — karakter yayvan çıkıyordu.
+   Eski `ocakbanner.jpg` 6000x1250 (tam 4,8:1) olduğu ve bütün aylar ona düştüğü için
+   bu hata görünmüyordu; aylara özel 3:1 görseller gelince ortaya çıktı.
+   `aspect-ratio` ile yükseklik genişlikten türüyor: 720px kolonda 240px, dar ekranda
+   kendiliğinden küçülüyor. Oran artık her yerde sabit, bozulma imkânsız. */
 .bk-gorev-banner {
   position: relative; border-radius: 18px; overflow: hidden; margin-bottom: 20px;
-  height: 150px; display: flex; align-items: center; padding: 18px;
+  aspect-ratio: 3 / 1; display: flex; align-items: flex-start; padding: 18px;
 }
-/* Uygulamada ContentScale.FillBounds → kutuya gerilir. Yükseklik burada sınırlı,
-   böylece 1440px'lik görsel ne olursa olsun bandı şişirmiyor. */
+/* `cover`, `fill` değil: kutu oranı görselle aynı olduğu için ikisi de aynı sonucu
+   verir, ama ileride farklı oranda bir görsel gelirse `cover` gerdirmez, kırpar. */
 .bk-gorev-banner img {
-  position: absolute; inset: 0; width: 100%; height: 100%; object-fit: fill;
+  position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
 }
 /* ⚠️ Koyu perde (::after gradient) KALDIRILDI. Banner'larda sol tarafta yazı için
    bilerek bırakılmış düz renk alanı var; perde tam o alanı kirletiyordu.
