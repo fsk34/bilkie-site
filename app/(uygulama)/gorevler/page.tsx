@@ -9,13 +9,11 @@ import Kabuk from "../Kabuk";
 import { useOturum } from "../../lib/oturum";
 import { useGorevler } from "../../lib/canliVeri";
 import { ayaKalanGun, type Gorev } from "../../lib/veri";
+import { ayAdi, ayBanner, ayVurgu, ayYaziRengi } from "../../lib/ayGorsel";
 
-const AYLAR = ["Ocak","Şubat","Mart","Nisan","Mayıs","Haziran",
-               "Temmuz","Ağustos","Eylül","Ekim","Kasım","Aralık"];
-// Uygulamada yalnız Ocak-Haziran banner'ı var; diğer aylar Ocak'a düşer.
-const BANNERLAR = ["ocakbanner","subatbanner","martbanner","nisanbanner","mayisbanner","haziranbanner"];
-// Aylık dolgu renkleri (uygulamadaki monthFill)
-const AY_RENK = ["#F8B9C3","#F8B9C3","#FFB63B","#A7F432","#FAD785","#D3211B"];
+// Ay adı/banner/renk artık `lib/ayGorsel` içinde, 12 ay için — Android `AyGorsel.kt` ile
+// aynı kaynak. Buradaki altı elemanlı diziler Temmuz–Aralık'ı sessizce Ocak'a düşürüyordu
+// (ve Ocak'ın rengi de yanlıştı, Şubat'ın pembesiydi).
 
 export default function GorevlerSayfasi() {
   return (
@@ -34,8 +32,9 @@ function Icerik() {
   const aylik = useGorevler("aylik");
 
   const ayIndeks = new Date().getMonth();
-  const banner = BANNERLAR[ayIndeks] ?? BANNERLAR[0];
-  const renk = AY_RENK[ayIndeks] ?? AY_RENK[0];
+  const banner = ayBanner(ayIndeks);          // Temmuz/Ağustos'ta null — görsel yok
+  const renk = ayVurgu(ayIndeks);
+  const yaziRengi = ayYaziRengi(ayIndeks);
 
   if (!kullanici) {
     return (
@@ -53,12 +52,16 @@ function Icerik() {
 
   return (
     <>
-      <div className="bk-gorev-banner">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={`/uygulama/${banner}.jpg`} alt="" />
+      {/* Görseli olmayan ayda (Temmuz/Ağustos) hiç <img> çizilmez; ekranın kendi
+          koyu zemini kalır. Eskiden bu durumda Ocak banner'ı basılıyordu. */}
+      <div className="bk-gorev-banner" style={{ color: yaziRengi }}>
+        {banner && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={banner} alt="" />
+        )}
         {/* Uygulamadaki sıra: ay adı → "Aylık görevler" → "N GÜN", üçü de sola hizalı alt alta */}
         <div className="yazi">
-          <div className="ay">{AYLAR[ayIndeks]}</div>
+          <div className="ay">{ayAdi(ayIndeks)}</div>
           <div className="alt">Aylık görevler</div>
           <div className="kalan">{ayaKalanGun()} GÜN</div>
         </div>

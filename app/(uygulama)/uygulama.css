@@ -1563,23 +1563,19 @@
 .bk-gorev-banner img {
   position: absolute; inset: 0; width: 100%; height: 100%; object-fit: fill;
 }
-/* Yazının olduğu sol tarafta ince koyu geçiş: beyaz metin (uygulamadaki renk)
-   açık zeminli görsellerde de okunsun; kutu değil, görselin üstüne yumuşak perde. */
-.bk-gorev-banner::after {
-  content: ""; position: absolute; inset: 0; pointer-events: none;
-  background: linear-gradient(90deg, rgba(6,14,36,.62) 0%, rgba(6,14,36,.28) 42%, rgba(6,14,36,0) 68%);
-}
+/* ⚠️ Koyu perde (::after gradient) KALDIRILDI. Banner'larda sol tarafta yazı için
+   bilerek bırakılmış düz renk alanı var; perde tam o alanı kirletiyordu.
+   Yerine yazı rengi AYA GÖRE seçiliyor (lib/ayGorsel → satır içi `color`), zemin
+   ölçülerek: açık aylarda siyah, koyu aylarda (Kasım, Aralık, Temmuz, Ağustos) beyaz.
+   Android `AyGorsel.yaziRengi` ile aynı liste. */
 .bk-gorev-banner .yazi { z-index: 1; }
-/* Metin uygulamadaki gibi beyaz (banner görselinin üstünde); okunurluk için
-   arkasında kutu değil, hafif bir alt gölge var. */
-.bk-gorev-banner .yazi {
-  position: relative; color: #fff; text-shadow: 0 2px 6px rgba(0,0,0,.55);
-}
+/* Renk üstteki .bk-gorev-banner'dan MİRAS alınır — burada sabitlenmez. */
+.bk-gorev-banner .yazi { position: relative; color: inherit; }
 .bk-gorev-banner .ay { font-family: "bk-baslik", system-ui, sans-serif; font-size: 22px; }
 .bk-gorev-banner .alt { font-family: "bk-baslik", system-ui, sans-serif; font-size: 17px; margin-top: 2px; opacity: .92; }
 /* Uygulamada "N GÜN" sağda değil, "Aylık görevler"in ALTINDA (10px boşlukla). */
 .bk-gorev-banner .kalan {
-  color: #fff; font-family: "bk-baslik", system-ui, sans-serif; font-size: 17px;
+  color: inherit; font-family: "bk-baslik", system-ui, sans-serif; font-size: 17px;
   margin-top: 10px;
 }
 

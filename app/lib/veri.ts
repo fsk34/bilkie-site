@@ -1612,6 +1612,13 @@ async function gorevleriOkuVeBirlestir(tanimlar: GorevTanim[], yol: string): Pro
 
 /** Haftalık görev TANIMLARI — uygulamadaki gibi hafta numarası % 21, boşsa 0'a düşer. */
 export async function haftalikGorevTanimlari(): Promise<GorevTanim[]> {
+  // Yaz tatili (Temmuz, Ağustos): haftalık görev YOK — Android `loadWeeklyDefsFromCatalog`
+  // ve iOS'taki karşılığı bu kapıyı uyguluyor, web'de eksikti. Haftalık görevler aya
+  // bakmadan `weekOfYear % 21` ile döndüğü için web yaz boyunca görev göstermeye devam
+  // ediyordu; mobilde boş, web'de dolu — aynı hesapta iki farklı görev listesi demekti.
+  const ay0 = new Date().getMonth();
+  if (ay0 === 6 || ay0 === 7) return [];
+
   const hedefHafta = haftaNo() % 21;
   const tanimlar = await katalogTanimlari("weekly", (c) => sayi(c.week) === hedefHafta);
   if (tanimlar.length > 0) return tanimlar;
