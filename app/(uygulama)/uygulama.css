@@ -264,6 +264,17 @@
 
 @media (max-width: 1260px) { .bk-ray { display: none; } }
 
+/* Sağ ray gizli ama sol menü hâlâ açıkken (901–1260px) sayaçlar hiçbir yerde
+   görünmüyordu — mobil üst bar ≤900'de açılıyor, ray >1260'ta. Tabletin tam
+   ortasına denk gelen bu bantta seri/puan/can içerik kolonunun tepesinde durur. */
+.bk-tablet-ust { display: none; }
+@media (min-width: 901px) and (max-width: 1260px) {
+  .bk-tablet-ust {
+    display: flex; justify-content: flex-end; align-items: center;
+    padding-bottom: 18px;
+  }
+}
+
 @media (max-width: 900px) {
   .bk-kenar { display: none; }
   .bk-govde { padding: 12px 14px 88px; }

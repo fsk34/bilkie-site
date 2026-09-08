@@ -75,7 +75,16 @@ export default function Kabuk({ children }: { children: React.ReactNode }) {
         </aside>
 
         <div className="bk-govde">
-          <main className="bk-icerik">{children}</main>
+          <main className="bk-icerik">
+            {/* Sayaçlar 901–1260px arasında hiçbir yerde çıkmıyordu: mobil üst bar
+                ≤900'de, sağ ray >1260'ta görünüyor, arada kalan bant (iPad Pro dikey
+                1024, iPad Air yatay 1180) ikisinin de dışında kalıyordu. Bu şerit
+                yalnız o bantta açılır. */}
+            <div className="bk-tablet-ust">
+              <Sayaclar ust={ust} kisa />
+            </div>
+            {children}
+          </main>
 
           <aside className="bk-ray">
             <Sayaclar ust={ust} />
