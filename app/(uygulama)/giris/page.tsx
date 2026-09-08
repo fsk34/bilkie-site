@@ -9,6 +9,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
   GoogleAuthProvider,
+  sendPasswordResetEmail,
   signInWithEmailAndPassword,
   signInWithPopup,
   signOut,
@@ -24,6 +25,36 @@ export default function GirisSayfasi() {
   const [parola, setParola] = useState("");
   const [bekliyor, setBekliyor] = useState(false);
   const [hata, setHata] = useState<string | null>(null);
+
+  // Şifremi unuttum — uygulamadaki akışın aynısı (Android AuthScreen.kt:
+  // ForgotPasswordDialog). Sıfırlama bağlantısının indiği sayfa zaten var:
+  // /sifre-sifirla (oobCode ile yeni parola belirletir). Eksik olan İSTEME
+  // tarafıydı; web'den giren kullanıcı parolasını hiç sıfırlayamıyordu.
+  const [sifreAcik, setSifreAcik] = useState(false);
+  const [sifreEposta, setSifreEposta] = useState("");
+  const [sifreGonderiliyor, setSifreGonderiliyor] = useState(false);
+  const [sifreSonuc, setSifreSonuc] = useState<string | null>(null);
+
+  async function sifirlamaGonder(e: React.FormEvent) {
+    e.preventDefault();
+    setSifreGonderiliyor(true);
+    try {
+      await sendPasswordResetEmail(auth, sifreEposta.trim());
+    } catch (err) {
+      // Ağ/biçim hatası dışındakileri YUTUYORUZ: "böyle bir kullanıcı yok" demek,
+      // hangi e-postanın kayıtlı olduğunu isteyen herkese söylemek olur (hesap
+      // sayımı). Uygulama bunu sızdırıyor; web'de sızdırmıyoruz.
+      const kod = (err as { code?: string })?.code ?? "";
+      if (kod === "auth/invalid-email" || kod === "auth/network-request-failed" ||
+          kod === "auth/too-many-requests") {
+        setSifreSonuc(hataMetni(err));
+        setSifreGonderiliyor(false);
+        return;
+      }
+    }
+    setSifreSonuc("Bu adrese ait bir hesap varsa sıfırlama bağlantısı gönderildi. Gelen kutunu kontrol et.");
+    setSifreGonderiliyor(false);
+  }
 
   useEffect(() => {
     if (!yukleniyor && kullanici) router.replace("/");
@@ -107,6 +138,23 @@ export default function GirisSayfasi() {
           </button>
         </form>
 
+        {/* Uygulamada da giriş düğmesinin hemen altında (Android AuthScreen.kt:217) */}
+        <button
+          type="button"
+          onClick={() => {
+            setSifreEposta(eposta.trim());
+            setSifreSonuc(null);
+            setSifreAcik(true);
+          }}
+          style={{
+            display: "block", margin: "12px auto 0", background: "none", border: 0,
+            padding: 0, cursor: "pointer", color: "var(--acik-mavi)",
+            fontFamily: "inherit", fontSize: 13,
+          }}
+        >
+          Şifremi unuttum
+        </button>
+
         <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "18px 0" }}>
           <i style={{ flex: 1, height: 1, background: "rgba(255,255,255,.15)" }} />
           <span className="bk-soluk" style={{ fontSize: 13 }}>veya</span>
@@ -130,6 +178,49 @@ export default function GirisSayfasi() {
         </p>
       </div>
 
+      {sifreAcik && (
+        <div className="bk-ortu" onClick={() => !sifreGonderiliyor && setSifreAcik(false)}>
+          <div className="bk-kart bk-soru-kutu" onClick={(e) => e.stopPropagation()}>
+            <h3>Şifremi unuttum</h3>
+            <p className="bk-soluk" style={{ marginBottom: 12 }}>
+              E-posta adresini gir, şifre sıfırlama bağlantısı gönderelim.
+            </p>
+            <form onSubmit={sifirlamaGonder} style={{ display: "grid", gap: 12 }}>
+              <input
+                className="bk-alan"
+                type="email"
+                placeholder="E-posta"
+                value={sifreEposta}
+                onChange={(e) => { setSifreEposta(e.target.value); setSifreSonuc(null); }}
+                autoComplete="email"
+                required
+                autoFocus
+              />
+              {sifreSonuc && (
+                <p style={{ fontSize: 13, lineHeight: 1.5, margin: 0 }}>{sifreSonuc}</p>
+              )}
+              <button
+                className="bk-dugme tam"
+                type="submit"
+                disabled={sifreGonderiliyor || !sifreEposta.trim()}
+              >
+                {sifreGonderiliyor ? "Gönderiliyor…" : "Bağlantı gönder"}
+              </button>
+            </form>
+            <button
+              type="button"
+              onClick={() => setSifreAcik(false)}
+              style={{
+                display: "block", margin: "14px auto 0", background: "none", border: 0,
+                padding: 0, cursor: "pointer", color: "var(--acik-mavi)",
+                fontFamily: "inherit", fontSize: 14,
+              }}
+            >
+              Kapat
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
