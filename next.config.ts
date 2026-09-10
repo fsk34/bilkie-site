@@ -39,6 +39,11 @@ const guvenlikBasliklari = [
 ];
 
 const nextConfig: NextConfig = {
+  // Next'in sol alt köşedeki geliştirme göstergesi kapalı: alt bandın logosunun tam
+  // üstüne oturuyor ve sayfayı yerelde denerken markayı görünmez kılıyordu.
+  // Yalnız `next dev` içindir, yayına çıkan çıktıyı etkilemez.
+  devIndicators: false,
+
   async headers() {
     return [
       { source: "/:path*", headers: guvenlikBasliklari },

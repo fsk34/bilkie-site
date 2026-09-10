@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import AltBant from "../AltBant";
 
 // Sayfanın kendisi "use client" olduğu için metadata buradan verilir.
 //
@@ -10,5 +11,10 @@ export const metadata: Metadata = {
 };
 
 export default function GirisLayout({ children }: { children: React.ReactNode }) {
-  return <>{children}</>;
+  return (
+    <div className="bk bk-sayfa-alt-kabuk">
+      {children}
+      <AltBant />
+    </div>
+  );
 }

@@ -13,6 +13,9 @@ import { useEffect } from "react";
 import { useOturum } from "../lib/oturum";
 
 /** Giriş gerektirmeyen yollar — kapının kendisi bunları kilitlemez. */
+//
+// Kök (/) de açık: giriş yapmamış ziyaretçi oradan /giris'e ATILMAZ, tanıtımı görür.
+// Kararı KokKapi verir (bkz. page.tsx); kapı yalnız yolu serbest bırakır.
 const ACIK_YOLLAR = ["/giris", "/kayit"];
 
 export default function Kapi({ children }: { children: React.ReactNode }) {
@@ -20,7 +23,7 @@ export default function Kapi({ children }: { children: React.ReactNode }) {
   const yol = usePathname() ?? "";
   const router = useRouter();
 
-  const acik = ACIK_YOLLAR.some((p) => yol === p || yol.startsWith(`${p}/`));
+  const acik = yol === "/" || ACIK_YOLLAR.some((p) => yol === p || yol.startsWith(`${p}/`));
 
   useEffect(() => {
     if (!acik && !yukleniyor && !kullanici) router.replace("/giris");

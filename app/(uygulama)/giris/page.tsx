@@ -17,6 +17,7 @@ import {
 import { auth } from "../../lib/firebase";
 import { useOturum } from "../../lib/oturum";
 import { profilOku } from "../../lib/veri";
+import GoogleDugme from "../GoogleDugme";
 
 export default function GirisSayfasi() {
   const router = useRouter();
@@ -161,9 +162,7 @@ export default function GirisSayfasi() {
           <i style={{ flex: 1, height: 1, background: "rgba(255,255,255,.15)" }} />
         </div>
 
-        <button className="bk-dugme acik tam" onClick={googleIleGir} disabled={bekliyor}>
-          Google ile giriş yap
-        </button>
+        <GoogleDugme yazi="Google ile giriş yap" onClick={googleIleGir} disabled={bekliyor} />
 
         {hata && (
           <p style={{ color: "#FF8A80", fontSize: 14, marginTop: 16, textAlign: "center" }}>

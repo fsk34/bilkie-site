@@ -47,6 +47,16 @@ export function OturumSaglayici({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     return onAuthStateChanged(auth, async (u) => {
+      // Bayrak SADECE "bu tarayıcıda oturum açılmıştı" bilgisidir; kimlik taşımaz.
+      // Kökteki tanıtımın giriş yapmış kullanıcıya bir an görünmesini engelliyor
+      // (bkz. app/layout.tsx'teki boyama öncesi betik ve KokKapi.tsx).
+      try {
+        if (u) localStorage.setItem("bk-oturum", "1");
+        else localStorage.removeItem("bk-oturum");
+      } catch {
+        // Gizli sekmede/depolama kapalıysa bayrak yok: tanıtım kısa bir an görünür,
+        // kırılan bir şey olmaz.
+      }
       setKullanici(u);
       await profiliYukle(u);
       setYukleniyor(false);

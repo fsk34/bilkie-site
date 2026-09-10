@@ -2194,12 +2194,18 @@
 .bk-onay a { color: #55c7ff; }
 
 /* Google düğmesi uygulamadaki gibi beyaz zeminli, çerçevesi #3A4A7A */
+/* Google ile oturum açma — geometri BilkieShadowShape (3px çerçeve, 9px alt dudak,
+   köşe 12), zemin ve işaret Google'ın marka kuralı.
+   Ölçüler bk-dugme ile eş: yan yana/alt alta durduklarında aynı yüksekliği tutsun. */
 .bk-google-dugme {
-  width: 100%; min-height: 56px; border: 3px solid #3a4a7a; border-bottom-width: 9px;
-  border-radius: 12px; background: #fff; color: #1a1a2e; cursor: pointer;
-  font-family: "bk-main", system-ui, sans-serif; font-size: 14px; font-weight: 600;
+  display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+  width: 100%; min-height: 56px; box-sizing: border-box; padding: 10px 22px;
+  border: 3px solid #3a4a7a; border-bottom-width: 9px; border-radius: 12px;
+  background: #fff; color: #1a1a2e; cursor: pointer;
+  font-family: "bk-main", system-ui, sans-serif; font-size: 16px; font-weight: 600;
   transition: border-bottom-width .06s, transform .06s;
 }
+.bk-google-dugme svg { flex: 0 0 auto; }
 .bk-google-dugme:active { border-bottom-width: 3px; transform: translateY(6px); }
 .bk-google-dugme[disabled] { opacity: .4; cursor: default; transform: none; border-bottom-width: 9px; }
 
@@ -2310,4 +2316,131 @@
 .bk-reklam {
   width: 100%; min-height: 50px; margin-top: 12px;
   display: flex; justify-content: center; overflow: hidden;
+}
+
+/* ------------------------------------------------------- giriş/kayıt alt bandı */
+
+/* ⚠️ İsim `bk-sayfa-alt-*`: `bk-alt-bant` ZATEN test ekranındaki doğru/yanlış
+   bandı (satır 222, position:fixed). Aynı adı kullanınca bu footer sessizce
+   ekrana yapışıyor ve onun renk/hizasını miras alıyordu. */
+
+/* Sayfanın kendi .bk sarmalayıcısı min-height:100vh; bandı ekranın altından
+   taşırıyordu. Dış kabuk yüksekliği tutar, içteki esner. */
+.bk-sayfa-alt-kabuk { display: flex; flex-direction: column; }
+.bk-sayfa-alt-kabuk > .bk { flex: 1; min-height: 0; }
+
+.bk-sayfa-alt { border-top: 1px solid var(--cizgi); padding: 22px 20px 26px; }
+
+.bk-sayfa-alt-dersler {
+  display: flex; flex-wrap: wrap; justify-content: center;
+  gap: 10px 30px; margin: 0 0 18px; padding: 0; list-style: none;
+}
+.bk-sayfa-alt-dersler li { display: flex; align-items: center; gap: 8px; }
+.bk-sayfa-alt-dersler img { width: 30px; height: 30px; object-fit: contain; }
+/* Ders adı NÖTR: renkli yazı lacivert zeminde okunmuyordu (İngilizce moru
+   #971FB5 zemine karşı 1.6:1). Rengi ikon taşır, ad okunur kalır. */
+.bk-sayfa-alt-dersler span { font-size: 14px; color: var(--yazi); }
+
+.bk-sayfa-alt-yasal {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+  gap: 8px 18px; font-size: 12px; color: var(--soluk);
+}
+.bk-sayfa-alt-yasal nav { display: flex; flex-wrap: wrap; gap: 8px 16px; }
+.bk-sayfa-alt-yasal a { color: var(--soluk); text-decoration: none; }
+.bk-sayfa-alt-yasal a:hover { color: var(--yazi); text-decoration: underline; }
+.bk-sayfa-alt-yasal p { margin: 0; }
+
+/* Dar ekranda iki satır da ortalanır. */
+@media (max-width: 640px) {
+  /* Telefonda bant 4 satıra çıkıyor (dersler 2 + marka + linkler + telif);
+     boşluklar sıkılaşmazsa telif ekranın altına taşıyor. */
+  .bk-sayfa-alt { padding: 16px 16px 18px; }
+  .bk-sayfa-alt-dersler { gap: 8px 16px; margin-bottom: 12px; }
+  .bk-sayfa-alt-dersler img { width: 26px; height: 26px; }
+  .bk-sayfa-alt-dersler span { font-size: 13px; }
+  .bk-sayfa-alt-yasal { justify-content: center; text-align: center; gap: 6px 14px; }
+  .bk-sayfa-alt-yasal nav { justify-content: center; }
+}
+
+.bk-sayfa-alt-marka { display: flex; align-items: center; gap: 8px; text-decoration: none; }
+.bk-sayfa-alt-marka img { width: 26px; height: 26px; border-radius: 7px; }
+/* .bk-logo'nun kendi ölçüleri kenar çubuğu içindi (34px + 22px alt boşluk); bantta
+   satır yüksekliğini bozmasın diye burada sıfırlanıyor. */
+.bk-sayfa-alt-marka .bk-logo { font-size: 19px; padding: 0; line-height: 1; }
+
+/* ------------------------------------------------------------ kök tanıtımı */
+
+/* Oturum daha bilinmiyorken NE görünür?
+   Varsayılan (bayrak yok = ilk ziyaretçi ve arama motoru): tanıtım.
+   Bayrak "1" (bu tarayıcıda daha önce giriş yapılmış): iskelet — böylece
+   uygulama açılırken tanıtım bir an parlamaz.
+   `.gorunur` oturum KESİN bilindiğinde konur ve bayrağı geçersiz kılar. */
+.bk-kok-bekleme { display: none; }
+html[data-bk-oturum="1"] .bk-kok-tanitim:not(.gorunur) { display: none; }
+html[data-bk-oturum="1"] .bk-kok-bekleme { display: block; }
+
+/* Dikey akış: gövde ortada esner, alt bant tam genişlikte altta kalır.
+   (Grid + place-items:center yapılırsa alt bant da içeriğine daralıp ortalanır.) */
+.bk-tanitim { display: flex; flex-direction: column; min-height: 100vh; }
+/* Logo ve metin TEK blok olarak dikey ortalanır.
+   Ayrı ayrı ortalanınca (logo tepede sabit, metin kalan alanın ortasında)
+   ikisinin arasında ~230px ölü boşluk kalıyordu. */
+.bk-tanitim-orta {
+  flex: 1; display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 40px; width: 100%; padding: 40px 20px;
+}
+.bk-tanitim-yazi { max-width: 460px; text-align: center; }
+
+/* Marka sayfanın TEPESİNDE, gövdeden ayrı: başlıkla aynı blokta dururken
+   ikisi tek bir yığın gibi okunuyordu. */
+.bk-tanitim-ust {
+  display: flex; flex-direction: column; align-items: center; gap: 14px;
+}
+.bk-tanitim-etiket {
+  margin: 0; font-size: 13px; letter-spacing: 3px; text-transform: uppercase;
+  color: var(--soluk);
+}
+/* İkon ÜSTTE, kelime işareti ALTINDA — yan yana dururken ikon yazının
+   yanında bir düğme gibi okunuyordu. */
+.bk-tanitim-marka {
+  display: flex; flex-direction: column; align-items: center;
+  gap: 12px; text-decoration: none;
+}
+.bk-tanitim-marka img { width: 72px; height: 72px; border-radius: 18px; }
+/* Kelime işareti ikonun kendi mavisinde: ölçüldü #85B6DB, projedeki
+   --acik-mavi (#86B7DD) ile aynı ton. Lacivert zeminde kontrast 7,9:1. */
+.bk-tanitim-marka .bk-logo {
+  font-size: 44px; padding: 0; line-height: 1; color: var(--acik-mavi);
+}
+
+.bk-tanitim h1 {
+  font-family: "bk-baslik", system-ui, sans-serif; font-weight: 400;
+  font-size: 38px; line-height: 1.25; margin: 0 0 14px;
+}
+.bk-tanitim p { color: var(--soluk); font-size: 15px; line-height: 1.6; margin: 0 0 26px; }
+.bk-tanitim-giris {
+  display: block; text-align: center; margin-top: 16px;
+  color: var(--acik-mavi); font-size: 14px; text-decoration: none;
+}
+.bk-tanitim-giris:hover { text-decoration: underline; }
+
+.bk-tanitim-neler {
+  display: flex; flex-wrap: wrap; justify-content: center;
+  gap: 12px 30px; margin: 0; padding: 0; list-style: none;
+}
+.bk-tanitim-neler li { display: flex; align-items: center; gap: 9px; }
+.bk-tanitim-neler img { width: 34px; height: 34px; object-fit: contain; }
+.bk-tanitim-neler span { font-size: 14px; color: var(--soluk); }
+
+@media (max-width: 820px) {
+  .bk-tanitim-orta { gap: 30px; padding: 28px 18px; }
+  .bk-tanitim-ust { gap: 12px; }
+  .bk-tanitim-etiket { font-size: 12px; letter-spacing: 2.5px; }
+  .bk-tanitim-neler { gap: 10px 18px; }
+  .bk-tanitim-neler img { width: 30px; height: 30px; }
+  .bk-tanitim-neler span { font-size: 13px; }
+  .bk-tanitim-marka img { width: 58px; height: 58px; border-radius: 15px; }
+  .bk-tanitim-marka .bk-logo { font-size: 36px; }
+  .bk-tanitim h1 { font-size: 30px; }
 }

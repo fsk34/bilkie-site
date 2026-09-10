@@ -36,6 +36,7 @@ import {
   OnaySatiri,
   SinifSecimi,
 } from "./parcalar";
+import GoogleDugme from "../GoogleDugme";
 
 const TOPLAM_ADIM = 5;
 
@@ -149,14 +150,11 @@ export default function KayitSayfasi() {
             dugmeAktif={epostaGecerli(eposta) && onayVerildi && !bekliyor}
             dugmeyeBas={() => setAdim(2)}
             altinda={
-              <button
-                type="button"
-                className="bk-google-dugme"
-                disabled={!onayVerildi || bekliyor}
+              <GoogleDugme
+                yazi="Google ile devam et"
                 onClick={googleIleDevam}
-              >
-                Google ile Devam Et
-              </button>
+                disabled={!onayVerildi || bekliyor}
+              />
             }
           >
             <Link href="/" className="bk-logo bk-kayit-logo">

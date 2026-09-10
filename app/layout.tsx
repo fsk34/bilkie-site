@@ -92,6 +92,17 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
+        {/* Boyamadan ÖNCE çalışır: bu tarayıcıda daha önce oturum açıldıysa <html>'e
+            işaret koyar. Kökteki tanıtım sunucuda basıldığı için (arama motoru onu
+            JavaScript'siz okuyabilsin diye) giriş yapmış kullanıcı uygulama açılırken
+            tanıtımı bir an görecekti; CSS bu işarete bakıp onu gizliyor.
+            Bayrağı yazan yer: app/lib/oturum.tsx. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              "try{if(localStorage.getItem('bk-oturum')==='1')document.documentElement.dataset.bkOturum='1'}catch(e){}",
+          }}
+        />
         {children}
         {/* AdSense yükleyicisi — site doğrulaması ve Otomatik Reklamlar için HER sayfada
             bulunmalı. Reklam birimlerinin kendisi yalnız oyun ekranlarında (bkz.
