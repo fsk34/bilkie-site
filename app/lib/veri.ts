@@ -18,6 +18,17 @@ import {
 import { defterlerDb, gorevKatalogDb, kelimeGezmeceDb, kullaniciDb, sudokuDb, testlerDb, wordleDb, yazililarDb } from "./firebase";
 import { ayAnahtari, gunAnahtari, gunNo, dunMu, haftaGunIndeksi, seriyiCoz } from "./tarih";
 import { onbellekli } from "./onbellek";
+import {
+  defterDersAnahtari,
+  dizi,
+  sayfalariCevir,
+  sayi,
+  type DefterBlok,
+  type DefterSayfa,
+} from "./defterBicim";
+
+// Tipler eskiden burada tanımlıydı; dışarıdan bu dosyadan alanlar kırılmasın.
+export type { DefterBlok, DefterSayfa };
 
 
 export const XP_DOGRU_TEST = 2;      // iOS/Android: XpRules.testCorrectXp
@@ -31,11 +42,6 @@ export function sinifSinirla(g: number): number {
   return Math.max(3, Math.min(8, Math.round(g || 3)));
 }
 
-function sayi(v: unknown): number {
-  if (typeof v === "number") return Math.round(v);
-  if (typeof v === "string") return Number.parseInt(v, 10) || 0;
-  return 0;
-}
 
 /* ------------------------------------------------------------------ profil */
 
@@ -612,101 +618,12 @@ export async function haftaninAktifGunleri(uid: string): Promise<number[]> {
 
 export const XP_DEFTER_TAMAM = 50;   // iOS/Android: XpRules.defterCompleteXp
 
-export type DefterBlok = {
-  tip: string;
-  baslik?: string;
-  metin?: string;
-  terim?: string;
-  maddeler?: string[];
-  adimlar?: string[];
-  basliklar?: string[];
-  satirlar?: string[][];
-};
 
-export type DefterSayfa = { no: number; bloklar: DefterBlok[] };
 
-/** 3. sınıfta sosyal içeriği veritabanında hayat_bilgisi altında (uygulamayla aynı kural). */
-function defterDersAnahtari(sinif: number, dersKey: string): string {
-  return sinif === 3 && dersKey === "sosyal" ? "hayat_bilgisi" : dersKey;
-}
 
-function metin(v: unknown): string {
-  return typeof v === "string" ? v : "";
-}
-
-function dizi(v: unknown): string[] {
-  if (Array.isArray(v)) return v.filter((x): x is string => typeof x === "string");
-  if (v && typeof v === "object") {
-    return Object.keys(v as object)
-      .sort((a, b) => (Number(a) || 0) - (Number(b) || 0))
-      .map((k) => (v as Record<string, unknown>)[k])
-      .filter((x): x is string => typeof x === "string");
-  }
-  return [];
-}
 
 /** Uygulamadaki parseBlock ile aynı tip eşlemesi. */
-function blokCevir(ham: Record<string, unknown>): DefterBlok | null {
-  const tip = metin(ham.type);
-  const s = (k: string) => metin(ham[k]);
-  switch (tip) {
-    case "heading":                  return { tip: "baslik", baslik: s("title") };
-    case "main_title": case "title":  return { tip: "baslik", baslik: s("text") };
-    case "sub_title": case "subtitle":return { tip: "altbaslik", metin: s("text") };
-    case "text": case "paragraph":    return { tip: "paragraf", metin: s("text") };
-    case "highlight": case "info":    return { tip: "bilgi", metin: s("text") };
-    case "bullet_list": case "list":  return { tip: "liste", baslik: s("title"), maddeler: dizi(ham.items) };
-    case "note": case "example":      return { tip: "ornek", metin: s("text") };
-    case "rule":                      return { tip: "kural", metin: s("text") };
-    case "formula":                   return { tip: "formul", metin: s("text") };
-    case "pattern":                   return { tip: "kalip", metin: s("text") };
-    case "warning":                   return { tip: "uyari", metin: s("text") };
-    case "definition":                return { tip: "tanim", terim: s("term"), metin: s("text") };
-    case "steps": case "strategy":    return { tip: "adimlar", baslik: s("title"), adimlar: dizi(ham.steps) };
-    case "problem":                   return { tip: "problem", baslik: s("title"), metin: s("text") };
-    case "table": {
-      const satirlar: string[][] = [];
-      const r = ham.rows;
-      if (Array.isArray(r)) for (const x of r) satirlar.push(dizi(x));
-      else if (r && typeof r === "object") {
-        for (const k of Object.keys(r as object).sort((a, b) => (Number(a) || 0) - (Number(b) || 0))) {
-          satirlar.push(dizi((r as Record<string, unknown>)[k]));
-        }
-      }
-      return { tip: "tablo", basliklar: dizi(ham.headers), satirlar };
-    }
-    default: return null;
-  }
-}
 
-function sayfalariCevir(ham: unknown): DefterSayfa[] {
-  if (!ham) return [];
-  const liste = Array.isArray(ham)
-    ? ham
-    : Object.keys(ham as object)
-        .sort((a, b) => (Number.parseInt(a.replace(/\D/g, ""), 10) || 0) - (Number.parseInt(b.replace(/\D/g, ""), 10) || 0))
-        .map((k) => (ham as Record<string, unknown>)[k]);
-
-  const out: DefterSayfa[] = [];
-  liste.forEach((sayfa, i) => {
-    if (!sayfa || typeof sayfa !== "object") return;
-    const s = sayfa as Record<string, unknown>;
-    const bloklarHam = s.blocks ?? s.bloklar ?? [];
-    const bloklar: DefterBlok[] = [];
-    const bl = Array.isArray(bloklarHam)
-      ? bloklarHam
-      : Object.keys(bloklarHam as object)
-          .sort((a, b) => (Number.parseInt(a.replace(/\D/g, ""), 10) || 0) - (Number.parseInt(b.replace(/\D/g, ""), 10) || 0))
-          .map((k) => (bloklarHam as Record<string, unknown>)[k]);
-    for (const b of bl) {
-      if (!b || typeof b !== "object") continue;
-      const cevrilen = blokCevir(b as Record<string, unknown>);
-      if (cevrilen) bloklar.push(cevrilen);
-    }
-    if (bloklar.length > 0) out.push({ no: sayi(s.page ?? s.pageNo) || i + 1, bloklar });
-  });
-  return out;
-}
 
 /**
  * Defter sayfaları: defterler/grade{N}/subjects/{ders}/units/{ünite}/pages

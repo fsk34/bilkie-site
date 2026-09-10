@@ -21,6 +21,14 @@ const DERSLER = [
   { ad: "İngilizce",       ikon: "hello" },
 ];
 
+// Halka açık içerik — giriş istemez. Buraya konması hem okur için giriş kapısı,
+// hem arama motoru için: bu bağlantılar sitenin HER sayfasından erişilebilir
+// olduğu için tarayıcı robotu içerik ağacını tek adımda buluyor.
+const ICERIK = [
+  { ad: "Konu Anlatımı", yol: "/konu-anlatimi" },
+  { ad: "Atasözleri ve Deyimler", yol: "/atasozleri-ve-deyimler" },
+];
+
 // Yalnız GERÇEKTEN var olan sayfalar. Olmayan bir yasal belgeye bağlantı vermiyoruz.
 const YASAL = [
   { ad: "Gizlilik", yol: "/gizlilik" },
@@ -29,36 +37,51 @@ const YASAL = [
   { ad: "Hesap Silme", yol: "/hesap-silme" },
 ];
 
-export default function AltBant() {
+/**
+ * @param dersler Ders şeridini göster. Giriş/kayıt ekranlarında Bilkie'nin ne
+ *   olduğunu anlatan tek şey o. Tanıtım ve içerik sayfalarının kendi şeritleri
+ *   var; orada tekrara düştüğü için kapalı.
+ */
+export default function AltBant({ dersler = true }: { dersler?: boolean }) {
   return (
     <footer className="bk-sayfa-alt">
-      <ul className="bk-sayfa-alt-dersler">
-        {DERSLER.map((d) => (
-          <li key={d.ikon}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={`/uygulama/${d.ikon}.png`} alt="" width={30} height={30} />
-            <span>{d.ad}</span>
-          </li>
-        ))}
-      </ul>
+      {dersler && (
+        <ul className="bk-sayfa-alt-dersler">
+          {DERSLER.map((d) => (
+            <li key={d.ikon}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={`/uygulama/${d.ikon}.png`} alt="" width={30} height={30} />
+              <span>{d.ad}</span>
+            </li>
+          ))}
+        </ul>
+      )}
 
+      {/* Marka · bağlantılar · telif TEK satırda. Üçü ayrı sıralara bölününce
+          bant dört katlı bir yığına dönüşüyordu. */}
       <div className="bk-sayfa-alt-yasal">
-        {/* Marka: uygulama ikonu + bilkie.otf kelime işareti — sitenin logosu bu ikisi
-            (Kabuk.tsx'te de aynı `bk-logo` fontu). İkon public'e KOPYALANDI: app/icon.png
-            Next tarafından hash'li adresle servis ediliyor, /icon.png'ye güvenilmez. */}
-        <Link href="/" className="bk-sayfa-alt-marka">
+        <Link href="/" className="bk-sayfa-alt-marka" aria-label="Bilkie">
+          {/* İkon public'e KOPYALANDI: app/icon.png'yi Next hash'li adresle
+              servis ediyor, /icon.png'ye güvenilmez. */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/bilkie-ikon.png" alt="" width={26} height={26} />
+          <img src="/bilkie-ikon.png" alt="" width={24} height={24} />
           <span className="bk-logo">bilkie</span>
         </Link>
+
         <nav>
+          {ICERIK.map((i) => (
+            <Link key={i.yol} href={i.yol} className="one">
+              {i.ad}
+            </Link>
+          ))}
           {YASAL.map((y) => (
             <Link key={y.yol} href={y.yol}>
               {y.ad}
             </Link>
           ))}
         </nav>
-        <p>© {new Date().getFullYear()} Bilkie. Tüm hakları saklıdır.</p>
+
+        <p>© {new Date().getFullYear()} Bilkie</p>
       </div>
     </footer>
   );

@@ -11,11 +11,13 @@
 import Link from "next/link";
 import AltBant from "./AltBant";
 
-// Ana ekranın üç büyük kartıyla aynı bölümler (bkz. AnaEkran.tsx).
-const BOLUMLER = [
-  { ad: "Konu Testleri", ikon: "test" },
-  { ad: "Konu Defterleri", ikon: "defter" },
-  { ad: "Yazılıya Hazırlık", ikon: "yazili" },
+// Uygulamanın bölümleri: ana ekranın üç büyük kartı (AnaEkran.tsx) + Oyunlar
+// (Kabuk.tsx menüsündeki adıyla; beş oyunun beşi de web'de oynanıyor).
+const BOLUMLER: { ad: string; ikon: string; yol?: string }[] = [
+  { ad: "Konu Testleri", ikon: "test.png" },
+  { ad: "Konu Defterleri", ikon: "defter.png" },
+  { ad: "Yazılıya Hazırlık", ikon: "yazili.png" },
+  { ad: "Oyunlar", ikon: "oyunlar.svg" },
 ];
 
 export default function Tanitim() {
@@ -39,8 +41,8 @@ export default function Tanitim() {
           <h1>Ders çalış, eğlen ve öğren</h1>
           <p>
             3. sınıftan 8. sınıfa Türkçe, Matematik, Fen Bilimleri, Sosyal Bilgiler ve
-            İngilizce; konu testleri, konu defterleri ve yazılıya hazırlık — hepsi tek
-            uygulamada.
+            İngilizce; konu testleri, konu defterleri, yazılıya hazırlık ve oyunlar —
+            hepsi tek uygulamada.
           </p>
 
           <Link className="bk-dugme yesil tam" href="/kayit">
@@ -61,14 +63,14 @@ export default function Tanitim() {
           {BOLUMLER.map((b) => (
             <li key={b.ikon}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={`/uygulama/${b.ikon}.png`} alt="" width={34} height={34} />
-              <span>{b.ad}</span>
+              <img src={`/uygulama/${b.ikon}`} alt="" width={34} height={34} />
+              {b.yol ? <Link href={b.yol}>{b.ad}</Link> : <span>{b.ad}</span>}
             </li>
           ))}
         </ul>
       </div>
 
-      <AltBant />
+      <AltBant dersler={false} />
     </main>
   );
 }

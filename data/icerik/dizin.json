@@ -1,0 +1,870 @@
+{
+ "grade3": {
+  "fen": [
+   {
+    "key": "u1",
+    "title": "Gezegenimizi Tanıyalım"
+   },
+   {
+    "key": "u2",
+    "title": "Beş Duyumuz"
+   },
+   {
+    "key": "u3",
+    "title": "Kuvveti Tanıyalım"
+   },
+   {
+    "key": "u4",
+    "title": "Maddeyi Tanıyalım"
+   },
+   {
+    "key": "u5",
+    "title": "Işık ve Ses"
+   },
+   {
+    "key": "u6",
+    "title": "Canlılar Dünyasına Yolculuk"
+   },
+   {
+    "key": "u7",
+    "title": "Elektrikli Araçlar"
+   }
+  ],
+  "hayat_bilgisi": [
+   {
+    "key": "u1",
+    "title": "Okulumuzda Hayat"
+   },
+   {
+    "key": "u2",
+    "title": "evimizde hayat"
+   },
+   {
+    "key": "u3",
+    "title": "sağlıklı hayat"
+   },
+   {
+    "key": "u4",
+    "title": "güvenli hayat"
+   },
+   {
+    "key": "u5",
+    "title": "ülkemizde hayat"
+   },
+   {
+    "key": "u6",
+    "title": "doğada hayat"
+   }
+  ],
+  "ingilizce": [
+   {
+    "key": "u1",
+    "title": "greeting"
+   },
+   {
+    "key": "u10",
+    "title": "Nature"
+   },
+   {
+    "key": "u2",
+    "title": "My Family"
+   },
+   {
+    "key": "u3",
+    "title": "People I Love"
+   },
+   {
+    "key": "u4",
+    "title": "Feelings"
+   },
+   {
+    "key": "u5",
+    "title": "Toys and Games"
+   },
+   {
+    "key": "u6",
+    "title": "MY HOUSE"
+   },
+   {
+    "key": "u7",
+    "title": "In My City"
+   },
+   {
+    "key": "u8",
+    "title": "Transportation"
+   },
+   {
+    "key": "u9",
+    "title": "Weather"
+   }
+  ],
+  "matematik": [
+   {
+    "key": "u1",
+    "title": "Doğal Sayılarla Toplama ve Çıkarma İşlemi"
+   },
+   {
+    "key": "u2",
+    "title": "Veri Toplama ve Değerlendirme"
+   },
+   {
+    "key": "u3",
+    "title": "Bölme İşlemi"
+   },
+   {
+    "key": "u4",
+    "title": "Zaman Ölçme"
+   },
+   {
+    "key": "u5",
+    "title": "Geometride Temel Kavramlar"
+   },
+   {
+    "key": "u6",
+    "title": "Alan ve Sıvı Ölçme"
+   }
+  ],
+  "turkce": [
+   {
+    "key": "u1",
+    "title": "Adlar (İsimler)"
+   },
+   {
+    "key": "u2",
+    "title": "Eş Anlamlı, Zıt Anlamlı ve Eş Sesli Sözcükler"
+   },
+   {
+    "key": "u3",
+    "title": "Hece ve Sözcük Bilgisi"
+   },
+   {
+    "key": "u4",
+    "title": "Metin Bölümleri ve Olayların Oluş Sırası"
+   },
+   {
+    "key": "u5",
+    "title": "Noktalama İşaretleri ve Kullanım Kuralları"
+   },
+   {
+    "key": "u6",
+    "title": "Yazım Kuralları ve İmla Standartları"
+   }
+  ]
+ },
+ "grade4": {
+  "fen": [
+   {
+    "key": "u1",
+    "title": "Yer Kabuğu ve Dünya’nın Hareketleri"
+   },
+   {
+    "key": "u2",
+    "title": "Besinler, Özellikleri ve Sağlıklı Yaşam"
+   },
+   {
+    "key": "u3",
+    "title": "Kuvvetin Cisimler Üzerindeki Etkileri ve Hareket Dinamikleri"
+   },
+   {
+    "key": "u4",
+    "title": "Maddenin Özellikleri ve Isı Etkileşimi"
+   },
+   {
+    "key": "u5",
+    "title": "Aydınlatma Teknolojileri"
+   },
+   {
+    "key": "u6",
+    "title": "İnsan ve Çevre"
+   },
+   {
+    "key": "u7",
+    "title": "Basit Elektrik Devreleri"
+   }
+  ],
+  "ingilizce": [
+   {
+    "key": "u1",
+    "title": "Classroom Rules"
+   },
+   {
+    "key": "u10",
+    "title": "Food and Drinks"
+   },
+   {
+    "key": "u2",
+    "title": "Nationality"
+   },
+   {
+    "key": "u3",
+    "title": "Cartoon Characters"
+   },
+   {
+    "key": "u4",
+    "title": "Free Time"
+   },
+   {
+    "key": "u5",
+    "title": "My Day"
+   },
+   {
+    "key": "u6",
+    "title": "Fun with Science"
+   },
+   {
+    "key": "u7",
+    "title": "jobs"
+   },
+   {
+    "key": "u8",
+    "title": "my clothes"
+   },
+   {
+    "key": "u9",
+    "title": "My Friends"
+   }
+  ],
+  "matematik": [
+   {
+    "key": "u1",
+    "title": "Doğal Sayılarla İşlemler"
+   },
+   {
+    "key": "u2",
+    "title": "Toplama ve Çıkarma Problemleri"
+   },
+   {
+    "key": "u3",
+    "title": "Çarpma ve Bölme"
+   },
+   {
+    "key": "u4",
+    "title": "Kesirler ve Veri"
+   },
+   {
+    "key": "u5",
+    "title": "Geometri ve Uzunluk"
+   },
+   {
+    "key": "u6",
+    "title": "Alan, Kütle, Sıvı Ölçme"
+   }
+  ],
+  "sosyal": [
+   {
+    "key": "u1",
+    "title": "Birey ve Toplum"
+   },
+   {
+    "key": "u2",
+    "title": "Kültür ve Miras"
+   },
+   {
+    "key": "u3",
+    "title": "İnsanlar, Yerler ve Çevreler"
+   },
+   {
+    "key": "u4",
+    "title": "Bilim, Teknoloji ve Toplum"
+   },
+   {
+    "key": "u5",
+    "title": "Bilinçli Tüketim, Aile Ekonomisi ve Türkiye'nin Ekonomik Faaliyetleri"
+   },
+   {
+    "key": "u6",
+    "title": "Etkin Vatandaşlık ve Temel Haklar"
+   },
+   {
+    "key": "u7",
+    "title": "Küresel Bağlantılar"
+   }
+  ],
+  "turkce": [
+   {
+    "key": "u1",
+    "title": "Ünite 1"
+   },
+   {
+    "key": "u2",
+    "title": "Ünite 2"
+   },
+   {
+    "key": "u3",
+    "title": "Ünite 3"
+   },
+   {
+    "key": "u4",
+    "title": "Ünite 4"
+   }
+  ]
+ },
+ "grade5": {
+  "fen": [
+   {
+    "key": "u1",
+    "title": "Gökyüzündeki Komşularımız ve Biz"
+   },
+   {
+    "key": "u2",
+    "title": "Kuvveti Tanıyalım"
+   },
+   {
+    "key": "u3",
+    "title": "Canlıların Yapısına Yolculuk"
+   },
+   {
+    "key": "u4",
+    "title": "Işığın Dünyası"
+   },
+   {
+    "key": "u5",
+    "title": "Maddenin Doğası"
+   },
+   {
+    "key": "u6",
+    "title": "Yaşamımızdaki Elektrik"
+   },
+   {
+    "key": "u7",
+    "title": "Sürdürülebilir Yaşam ve Geri Dönüşüm"
+   }
+  ],
+  "ingilizce": [
+   {
+    "key": "u1",
+    "title": "School Life"
+   },
+   {
+    "key": "u2",
+    "title": "Classroom Life"
+   },
+   {
+    "key": "u3",
+    "title": "Personal Life"
+   },
+   {
+    "key": "u4",
+    "title": "Family Life"
+   },
+   {
+    "key": "u5",
+    "title": "Life in the Neighbourhood & City"
+   },
+   {
+    "key": "u6",
+    "title": "Life in the World"
+   },
+   {
+    "key": "u7",
+    "title": "Life in Nature"
+   },
+   {
+    "key": "u8",
+    "title": "Universe / Future"
+   }
+  ],
+  "matematik": [
+   {
+    "key": "u1",
+    "title": "Geometrik Şekiller"
+   },
+   {
+    "key": "u2",
+    "title": "Sayılar ve Nicelikler"
+   },
+   {
+    "key": "u3",
+    "title": "Geometrik Nicelikler"
+   },
+   {
+    "key": "u4",
+    "title": "Sayılar ve Nicelikler"
+   },
+   {
+    "key": "u5",
+    "title": "İstatistiksel Araştırma Süreci"
+   },
+   {
+    "key": "u6",
+    "title": "Cebirsel İfadeler"
+   },
+   {
+    "key": "u7",
+    "title": "Olasılık"
+   }
+  ],
+  "sosyal": [
+   {
+    "key": "u1",
+    "title": "Birlikte Yaşamak"
+   },
+   {
+    "key": "u2",
+    "title": "Evimizi Dünya"
+   },
+   {
+    "key": "u3",
+    "title": "Ortak Mirasımız"
+   },
+   {
+    "key": "u4",
+    "title": "Yaşayan Demokrasimiz"
+   },
+   {
+    "key": "u5",
+    "title": "Hayatımızdaki Ekonomi"
+   },
+   {
+    "key": "u6",
+    "title": "Teknoloji ve Sosyal Bilimler"
+   }
+  ],
+  "turkce": [
+   {
+    "key": "u1",
+    "title": "Ünite 1"
+   },
+   {
+    "key": "u2",
+    "title": "Ünite 2"
+   },
+   {
+    "key": "u3",
+    "title": "Ünite 3"
+   },
+   {
+    "key": "u4",
+    "title": "Ünite 4"
+   },
+   {
+    "key": "u5",
+    "title": "Ünite 5"
+   }
+  ]
+ },
+ "grade6": {
+  "fen": [
+   {
+    "key": "u1",
+    "title": "Güneş Sistemi ve Tutulmalar"
+   },
+   {
+    "key": "u2",
+    "title": "Kuvvetin Etkisinde Hareket"
+   },
+   {
+    "key": "u3",
+    "title": "Canlılarda Sistemler"
+   },
+   {
+    "key": "u4",
+    "title": "Işığın Yansıması ve Renkler"
+   },
+   {
+    "key": "u5",
+    "title": "Maddenin Ayırt Edici Özellikleri"
+   },
+   {
+    "key": "u6",
+    "title": "Elektriğin İletimi ve Elektriksel Direnç:"
+   },
+   {
+    "key": "u7",
+    "title": "Sürdürülebilir Yaşam ve Etkileşim"
+   }
+  ],
+  "ingilizce": [
+   {
+    "key": "u1",
+    "title": "Life"
+   },
+   {
+    "key": "u10",
+    "title": "Democracy"
+   },
+   {
+    "key": "u2",
+    "title": "Yummy Breakfast"
+   },
+   {
+    "key": "u3",
+    "title": "Downtown"
+   },
+   {
+    "key": "u4",
+    "title": "Weather and Emotions"
+   },
+   {
+    "key": "u5",
+    "title": "At the Fair"
+   },
+   {
+    "key": "u6",
+    "title": "Occupations"
+   },
+   {
+    "key": "u7",
+    "title": "Holidays"
+   },
+   {
+    "key": "u8",
+    "title": "Bookworms"
+   },
+   {
+    "key": "u9",
+    "title": "Saving The Planet"
+   }
+  ],
+  "matematik": [
+   {
+    "key": "u1",
+    "title": "Sayılar ve Nicelikler"
+   },
+   {
+    "key": "u2",
+    "title": "Sayılar ve Nicelikler (2)"
+   },
+   {
+    "key": "u3",
+    "title": "Geometrik Şekiller"
+   },
+   {
+    "key": "u4",
+    "title": "Geometrik Nicelikler"
+   },
+   {
+    "key": "u5",
+    "title": "İşlemlerle Cebirsel Düşünme ve Değişimler"
+   },
+   {
+    "key": "u6",
+    "title": "İstatistiksel Araştırma Süreci"
+   },
+   {
+    "key": "u7",
+    "title": "Veriden Olasılığa"
+   }
+  ],
+  "sosyal": [
+   {
+    "key": "u1",
+    "title": "Birlikte Yaşamak"
+   },
+   {
+    "key": "u2",
+    "title": "Evimiz Dünya"
+   },
+   {
+    "key": "u3",
+    "title": "Ortak Mirasımız"
+   },
+   {
+    "key": "u4",
+    "title": "Yaşayan Demokrasimiz"
+   },
+   {
+    "key": "u5",
+    "title": "Hayatımızdaki Ekonomi"
+   },
+   {
+    "key": "u6",
+    "title": "Teknoloji ve Sosyal Bilimler"
+   }
+  ],
+  "turkce": [
+   {
+    "key": "u1",
+    "title": "Ünite 1"
+   },
+   {
+    "key": "u2",
+    "title": "Ünite 2"
+   },
+   {
+    "key": "u3",
+    "title": "Ünite 3"
+   },
+   {
+    "key": "u4",
+    "title": "Ünite 4"
+   },
+   {
+    "key": "u5",
+    "title": "Ünite 5"
+   }
+  ]
+ },
+ "grade7": {
+  "fen": [
+   {
+    "key": "u1",
+    "title": "Güneş Sistemi ve Ötesi"
+   },
+   {
+    "key": "u2",
+    "title": "Hücre ve Bölünmeler"
+   },
+   {
+    "key": "u3",
+    "title": "Kuvvet ve Enerji"
+   },
+   {
+    "key": "u4",
+    "title": "Saf Madde ve Karışımlar"
+   },
+   {
+    "key": "u5",
+    "title": "Işığın Maddeyle Etkileşimi"
+   },
+   {
+    "key": "u6",
+    "title": "Canlılarda Üreme/Büyüme/Gelişme"
+   },
+   {
+    "key": "u7",
+    "title": "Elektrik Devreleri"
+   }
+  ],
+  "ingilizce": [
+   {
+    "key": "u1",
+    "title": "Appearance and Personality"
+   },
+   {
+    "key": "u10",
+    "title": "Planets"
+   },
+   {
+    "key": "u2",
+    "title": "Biographies"
+   },
+   {
+    "key": "u3",
+    "title": "Sports"
+   },
+   {
+    "key": "u4",
+    "title": "Wild Animals"
+   },
+   {
+    "key": "u5",
+    "title": "Television"
+   },
+   {
+    "key": "u6",
+    "title": "Celebrations"
+   },
+   {
+    "key": "u7",
+    "title": "Dreams"
+   },
+   {
+    "key": "u8",
+    "title": "Public Buildings"
+   },
+   {
+    "key": "u9",
+    "title": "Environment"
+   }
+  ],
+  "matematik": [
+   {
+    "key": "u1",
+    "title": "Tam Sayılar ve İşlemler"
+   },
+   {
+    "key": "u2",
+    "title": "Rasyonel Sayılar"
+   },
+   {
+    "key": "u3",
+    "title": "Eşitlik ve Denklem"
+   },
+   {
+    "key": "u4",
+    "title": "Oran, Orantı ve Yüzde Hesaplamaları"
+   },
+   {
+    "key": "u5",
+    "title": "Çember ve Daire"
+   },
+   {
+    "key": "u6",
+    "title": "Görünümler ve Grafikler"
+   }
+  ],
+  "sosyal": [
+   {
+    "key": "u1",
+    "title": "Birey ve Toplum"
+   },
+   {
+    "key": "u2",
+    "title": "Kültür ve Miras"
+   },
+   {
+    "key": "u3",
+    "title": "İnsanlar, Yerler ve Çevreler"
+   },
+   {
+    "key": "u4",
+    "title": "Bilim, Teknoloji ve Toplum"
+   },
+   {
+    "key": "u5",
+    "title": "Üretim, Dağıtım ve Tüketim"
+   },
+   {
+    "key": "u6",
+    "title": "Etkin Vatandaşlık"
+   },
+   {
+    "key": "u7",
+    "title": "Küresel Bağlantılar"
+   }
+  ],
+  "turkce": [
+   {
+    "key": "u1",
+    "title": "Ünite 1"
+   },
+   {
+    "key": "u2",
+    "title": "Ünite 2"
+   },
+   {
+    "key": "u3",
+    "title": "Ünite 3"
+   },
+   {
+    "key": "u4",
+    "title": "Ünite 4"
+   }
+  ]
+ },
+ "grade8": {
+  "fen": [
+   {
+    "key": "u1",
+    "title": "Mevsimler ve İklim"
+   },
+   {
+    "key": "u2",
+    "title": "DNA ve Genetik Kod"
+   },
+   {
+    "key": "u3",
+    "title": "Basınç"
+   },
+   {
+    "key": "u4",
+    "title": "Madde ve Endüstri"
+   },
+   {
+    "key": "u5",
+    "title": "Basit Makineler"
+   },
+   {
+    "key": "u6",
+    "title": "Enerji Dönüşümleri ve Çevre"
+   },
+   {
+    "key": "u7",
+    "title": "Elektrik Yükleri ve Enerji"
+   }
+  ],
+  "ingilizce": [
+   {
+    "key": "u1",
+    "title": "Friendship"
+   },
+   {
+    "key": "u10",
+    "title": "Natural Forces"
+   },
+   {
+    "key": "u2",
+    "title": "Teen Life"
+   },
+   {
+    "key": "u3",
+    "title": "In The Kitchen"
+   },
+   {
+    "key": "u4",
+    "title": "On The Phone"
+   },
+   {
+    "key": "u5",
+    "title": "The Internet"
+   },
+   {
+    "key": "u6",
+    "title": "Adventures"
+   },
+   {
+    "key": "u7",
+    "title": "Tourism"
+   },
+   {
+    "key": "u8",
+    "title": "Chores"
+   },
+   {
+    "key": "u9",
+    "title": "Science"
+   }
+  ],
+  "matematik": [
+   {
+    "key": "u1",
+    "title": "Üslü İfadeler ve Sayılar"
+   },
+   {
+    "key": "u2",
+    "title": "Kareköklü İfadeler / Veri"
+   },
+   {
+    "key": "u3",
+    "title": "Cebirsel İfadeler ve Özdeşlikler"
+   },
+   {
+    "key": "u4",
+    "title": "Eşitsizlikler ve Doğrusal İlişkiler"
+   },
+   {
+    "key": "u5",
+    "title": "Eşlik ve Benzerlik"
+   },
+   {
+    "key": "u6",
+    "title": "Geometrik Cisimler"
+   }
+  ],
+  "sosyal": [
+   {
+    "key": "u1",
+    "title": "Ünite 1"
+   }
+  ],
+  "turkce": [
+   {
+    "key": "u1",
+    "title": "Ünite 1"
+   },
+   {
+    "key": "u2",
+    "title": "Ünite 2"
+   },
+   {
+    "key": "u3",
+    "title": "Ünite 3"
+   },
+   {
+    "key": "u4",
+    "title": "Ünite 4"
+   }
+  ]
+ }
+}

@@ -1,0 +1,1878 @@
+{
+  "content": {
+    "atasozleri_deyimler": {
+      "letters": {
+        "A": {
+          "atasozleri": [
+            {
+              "meaning": "Bir şeyin gerçek değeri ona gereksinim duyulduğunda anlaşılır.",
+              "text": "Abanın kadri yağmurda bilinir"
+            },
+            {
+              "meaning": "Telaşla ve sabırsızlıkla başlanılan, düşünüp taşınmadan yapılan işler olumlu sonuç vermez.",
+              "text": "Acele giden ecele gider"
+            },
+            {
+              "meaning": "Herhangi bir duruma alışkın olan kimseyi benzer kötü durumlar etkilemez.",
+              "text": "Acı patlıcanı kırağı çalmaz"
+            },
+            {
+              "meaning": "Büyük sıkıntılar içinde bulunanlar mantık dışı işler yapabilirler.",
+              "text": "Acıklı başta akıl olmaz"
+            },
+            {
+              "meaning": "Kendisinden iş beklenilen kimseden emeğinin karşılığı esirgenmemelidir.",
+              "text": "Aç ayı oynamaz"
+            },
+            {
+              "meaning": "Aç insan elde ettiğinden çoğunu ister, varlıklı insan ise daha fazlasını ister.",
+              "text": "Aç doymam, tok acıkmam sanır"
+            },
+            {
+              "meaning": "Birinin bir kere adı çıktıktan sonra onun hakkındaki yaygın inanç artık kolay kolay düzelemez.",
+              "text": "Adı çıkmış dokuza, inmez sekize"
+            },
+            {
+              "meaning": "Kurt ağacı nasıl içten içe kemirirse dert de insanı içten içe yer bitirir.",
+              "text": "Ağacı kurt, insanı dert yer"
+            },
+            {
+              "meaning": "İnsanlar küçük yaşta kolay eğitilir.",
+              "text": "Ağaç yaş iken eğilir"
+            },
+            {
+              "meaning": "İnsan önemli işleri akrabası, yakınları, yandaşlarından güç alarak daha kolay yapar.",
+              "text": "Ağaç yaprağıyla gürler"
+            },
+            {
+              "meaning": "Ağustos ayının ortalarında yaz sıcakları azalır, serinlik başlar.",
+              "text": "Ağustosun yarısı yaz, yarısı kıştır"
+            },
+            {
+              "meaning": "Çalışarak kazandığımız para, dar zamanımızda bizi sıkıntıdan kurtarır.",
+              "text": "Ak akçe, kara gün içindir"
+            },
+            {
+              "meaning": "Kişi, alın yazısında olanla kesinlikle karşılaşır.",
+              "text": "Akacak kan damarda durmaz"
+            },
+            {
+              "meaning": "Sürekli olarak iş değiştiren bir kimse başarı kazanamaz.",
+              "text": "Akan su yosun tutmaz"
+            },
+            {
+              "meaning": "Bir kimsenin aklına gelmeyen bir çare, başka birinin aklına gelebilir.",
+              "text": "Akıl, akıldan üstündür"
+            },
+            {
+              "meaning": "Akıllı olmanın yaşla ilgisi yoktur, bazı küçükler büyüklerden daha akıllı olabilir.",
+              "text": "Akıl yaşta değil, baştadır"
+            },
+            {
+              "meaning": "Akılsız kimse iyi niyetli olsa dahi yaptığı işin ne gibi kötü sonuçlar doğuracağını hesap edemediğinden dostuna bilmeyerek fenalık edebilir, akıllı düşmanın yapacağı kötülükse akıl yoluyla sezilir ve gereken tedbir alınabilir.",
+              "text": "Akıllı düşman, akılsız dosttan hayırlıdır"
+            },
+            {
+              "meaning": "Bir işte düşüncesizce davranan kişi her türlü olumsuz sonuca katlanır.",
+              "text": "Akılsız başın cezasını ayak çeker"
+            },
+            {
+              "meaning": "İyi düşünüldüğünde ayrı ayrı kimselerce varılacak sonuç hep aynıdır.",
+              "text": "Aklın yolu birdir"
+            },
+            {
+              "meaning": "Bir yerden alacağınız parayla başka bir yere olan borcunuzu kapatamazsınız.",
+              "text": "Alacakla borç ödenmez"
+            },
+            {
+              "meaning": "Bir kimsenin, bir şeyin değerini ancak o konuda uzmanlığı olanlar bilir.",
+              "text": "Altının kıymetini sarraf bilir"
+            },
+            {
+              "meaning": "İki veya daha çok kişi yaptıkları iş kötü de gitse birbirlerinden ayrılmamalıdırlar.",
+              "text": "Anca beraber, kanca beraber"
+            },
+            {
+              "meaning": "Kötü davranışın karşılığı iyi olmaz.",
+              "text": "Arpa eken, buğday biçmez"
+            },
+            {
+              "meaning": "Bir kimsenin oturduğu yerin durumu, onun kişiliğini belli eder.",
+              "text": "Aslan yattığı yerden bellidir"
+            },
+            {
+              "meaning": "Bir acıyı onu çekenden başkası tam anlayamaz veya aynı ölçüde üzülemez.",
+              "text": "Ateş düştüğü yeri yakar"
+            },
+            {
+              "meaning": "Derdim olmasın da başka bir şey istemem.",
+              "text": "Azıcık aşım, ağrısız başım"
+            }
+          ],
+          "deyimler": [
+            {
+              "meaning": "Ne söylediğini bilmeden, düşüncesiz, tutarsız konuşmak.",
+              "text": "Abuk sabuk konuşmak"
+            },
+            {
+              "meaning": "Çok genç ve toy olmak.",
+              "text": "Ağzı süt kokmak"
+            },
+            {
+              "meaning": "Bir işi başarıncaya değin çok sıkıntı çekmek, güçlüklerle karşılaşmak.",
+              "text": "Akla karayı seçmek"
+            },
+            {
+              "meaning": "Çok yorulmak, güçsüz, dermansız kalmak.",
+              "text": "Ayağına kara sular inmek"
+            },
+            {
+              "meaning": "Sır saklamamak.",
+              "text": "Ağzında bakla ıslanmamak"
+            },
+            {
+              "meaning": "1) Delirmek. 2) Gereksiz, yersiz iş yapmak.",
+              "text": "Aklını kaçırmak"
+            },
+            {
+              "meaning": "Bir yerde ayakta durarak çokça beklemek.",
+              "text": "Ağaç olmak"
+            },
+            {
+              "meaning": "Baştan aşağı, tamamen.",
+              "text": "A'dan z'ye"
+            },
+            {
+              "meaning": "Çok kızgın olmak, ağır sözler söylemek.",
+              "text": "Ateş püskürmek"
+            },
+            {
+              "meaning": "Çok sevinmek.",
+              "text": "Ağzı kulaklarına varmak"
+            },
+            {
+              "meaning": "Karışık ve içinden çıkılması zor bir durum için kullanılır.",
+              "text": "Ayıkla pirincin taşını"
+            },
+            {
+              "meaning": "Bir konuda anlaşma ihtimalini yok etmemek.",
+              "text": "Açık kapı bırakmak"
+            },
+            {
+              "meaning": "Birine gönül vermek, aşık olmak.",
+              "text": "Abayı yakmak"
+            },
+            {
+              "meaning": "Birinin kusurunu veya eksikliğini yakalamak.",
+              "text": "Açığını bulmak"
+            }
+          ]
+        },
+        "B": {
+          "atasozleri": [
+            {
+              "meaning": "Yaradılıştan iyi ve doğru olan kimse, ne denli elverişsiz ortam içinde bulunursa bulunsun niteliğini yitirmez.",
+              "text": "Baca eğri de olsa dumanı doğru çıkar"
+            },
+            {
+              "meaning": "Kişi, karşılık beklediği işten istediğini alabilmek için gereken harcamaları yapmalıdır.",
+              "text": "Bağa bak, üzüm olsun; yemeye yüzün olsun"
+            },
+            {
+              "meaning": "Bakılıp onarılan şeylerden yararlanılır, bakımsız bırakılanlardan bir yarar elde edilemez.",
+              "text": "Bakarsan bağ olur, bakmazsan dağ olur"
+            },
+            {
+              "meaning": "İmkânları geniş bir işin başında bulunan kimse bunlardan az da olsa yararlanır.",
+              "text": "Bal tutan parmağını yalar"
+            },
+            {
+              "meaning": "Bir işte aksaklık başta olanlardan kaynaklanır.",
+              "text": "Balık baştan kokar"
+            },
+            {
+              "meaning": "Masrafsız ve emeksiz elde edilen şeyler insana hoş gelir.",
+              "text": "Bedava sirke, baldan tatlıdır"
+            },
+            {
+              "meaning": "Gücüm ancak bu kadarını yapmaya yeter.",
+              "text": "Benim adım Hıdır, elimden gelen budur"
+            },
+            {
+              "meaning": "Elinde büyüttüğün kişi gün gelip sana nankörlük edebilir.",
+              "text": "Besle kargayı, oysun gözünü"
+            },
+            {
+              "meaning": "İnsanın her şeyi bilmemesi kusur değildir ama bilmediği bir işi sorup öğrenmeden yapmaya kalkışması kusurdur.",
+              "text": "Bilmemek ayıp değil, öğrenmemek ayıp"
+            },
+            {
+              "meaning": "Başarıya ulaşmak için birlik olmak gerek.",
+              "text": "Bir elin nesi var, iki elin sesi var"
+            },
+            {
+              "meaning": "İyilik küçük de olsa unutulmaz.",
+              "text": "Bir fincan kahvenin kırk yıl hatırı vardır"
+            },
+            {
+              "meaning": "Aynı zamanda birden çok işle ilgilenmek başarı için sakıncalıdır.",
+              "text": "Bir koltuğa iki karpuz sığmaz"
+            },
+            {
+              "meaning": "Yaşanan olaylar, öğütlerden çok daha etkilidir.",
+              "text": "Bir musibet, bin nasihatten iyidir"
+            },
+            {
+              "meaning": "Toplu veya beraber davranmak daha büyük güç sağlar.",
+              "text": "Birlikten kuvvet doğar"
+            },
+            {
+              "meaning": "Borç, kişiyi daha çok çalışmaya zorlar.",
+              "text": "Borç yiğidin kamçısıdır"
+            },
+            {
+              "meaning": "Bugün yapılması gereken bir işin ertesi güne bırakılması iyi değildir.",
+              "text": "Bugünün işini yarına bırakma"
+            }
+          ],
+          "deyimler": [
+            {
+              "meaning": "Sabrını tüketmek.",
+              "text": "Bardağı taşırmak"
+            },
+            {
+              "meaning": "Çok abartmak.",
+              "text": "Bire bin katmak"
+            },
+            {
+              "meaning": "Belli bir iş sahibi olamamak.",
+              "text": "Bir baltaya sap olamamak"
+            },
+            {
+              "meaning": "Kibirlenmek, büyüklenmek.",
+              "text": "Burnu büyümek"
+            },
+            {
+              "meaning": "Beklenmedik bir durum karşısında olağanüstü bir üzüntü ve şaşkınlığa uğramak.",
+              "text": "Beyninden vurulmuşa dönmek"
+            },
+            {
+              "meaning": "Kendisine söz söyletmemek, çok huysuz olmak.",
+              "text": "Burnundan kıl aldırmamak"
+            },
+            {
+              "meaning": "Önem vermemek, küçümsemek, beğenmemek.",
+              "text": "Burun kıvırmak"
+            },
+            {
+              "meaning": "Çok öfkelenmiş olmak.",
+              "text": "Burnundan solumak"
+            },
+            {
+              "meaning": "Farkında olmayarak birine dokunacak sözler söylemek, pot kırmak.",
+              "text": "Baltayı taşa vurmak"
+            },
+            {
+              "meaning": "Gerekmeden her işe karışmak.",
+              "text": "Burnunu sokmak"
+            },
+            {
+              "meaning": "Herhangi bir güçlük karşısında kalmak, bunalmak.",
+              "text": "Başı sıkışmak"
+            },
+            {
+              "meaning": "Parasızlıktan dolayı sıkıntıda olmak.",
+              "text": "Başı darda kalmak"
+            },
+            {
+              "meaning": "Çok değer vermek, ilgi göstermek.",
+              "text": "Başına taç etmek"
+            },
+            {
+              "meaning": "Hiçbir zaman.",
+              "text": "Balık kavağa çıkınca"
+            },
+            {
+              "meaning": "Kimseden izin almadan istediğini yapan.",
+              "text": "Başına buyruk"
+            },
+            {
+              "meaning": "Özlemle kucaklamak, sevgiyle kabul etmek.",
+              "text": "Bağrına basmak"
+            },
+            {
+              "meaning": "Sürekli rahatsızlık vermek.",
+              "text": "Başına bela olmak"
+            }
+          ]
+        },
+        "C": {
+          "atasozleri": [
+            {
+              "meaning": "İnsanı alışkanlıklarından, huylarından vazgeçirmek mümkün değildir.",
+              "text": "Can çıkar, huy çıkmaz"
+            }
+          ],
+          "deyimler": [
+            {
+              "meaning": "Bir şeyi yapmayı çok istemek.",
+              "text": "Can atmak"
+            },
+            {
+              "meaning": "Çok büyük bir dikkatle dinlemek.",
+              "text": "Can kulağıyla dinlemek"
+            },
+            {
+              "meaning": "Birinin en hassas olduğu konuya dokunmak.",
+              "text": "Can damarına basmak"
+            },
+            {
+              "meaning": "Ölüm korkusuyla gelen büyük bir güçle.",
+              "text": "Can havliyle"
+            }
+          ]
+        },
+        "D": {
+          "atasozleri": [
+            {
+              "meaning": "Büyük adamların, büyük iş yapanların her zaman üzüntüleri, sıkıntıları vardır.",
+              "text": "Dağ başı dumansız olmaz"
+            },
+            {
+              "meaning": "Ne kadar uzak düşmüş olurlarsa olsunlar, insanlar günün birinde birbirleriyle karşılaşabilirler.",
+              "text": "Dağ dağa kavuşmaz, insan insana kavuşur"
+            },
+            {
+              "meaning": "Azar azar olagelen şeyler birikerek önemli bir niceliğe ulaşacağı için küçümsenmemelidir.",
+              "text": "Damlaya damlaya göl olur"
+            },
+            {
+              "meaning": "İşin içinde olmayanlar o işi kolay veya kârlı sanırlar.",
+              "text": "Davulun sesi uzaktan hoş gelir"
+            },
+            {
+              "meaning": "Akılsız kimse dostuna bilmeyerek fenalık edebilir, akıllı düşmanın yapacağı kötülükse akıl yoluyla sezilir ve gereken tedbir alınabilir.",
+              "text": "Deli dostun olacağına akıllı düşmanın olsun"
+            },
+            {
+              "meaning": "Her iş zamanında ve uygun durumda yapılır.",
+              "text": "Demir tavında dövülür"
+            },
+            {
+              "meaning": "Güç bir duruma düşenlerin bundan kurtulmak için her türlü çareye başvurmaları olağandır.",
+              "text": "Denize düşen yılana sarılır"
+            },
+            {
+              "meaning": "İnsan sıkıntısını başkasına açıklayarak giderebilir.",
+              "text": "Derdini söylemeyen derman bulamaz"
+            },
+            {
+              "meaning": "Herhangi bir konuda söz sahibi olanlardan daha büyük, daha yetkili biri mutlaka vardır.",
+              "text": "Deveden büyük fil var"
+            },
+            {
+              "meaning": "İnsan doğru veya yanlış her şeyi söyleyebilir.",
+              "text": "Dilin kemiği yok"
+            },
+            {
+              "meaning": "Doğru olmakla birlikte başkalarının işine gelmeyen sözleri söyleyenlerin sevilmediğini anlatan bir söz.",
+              "text": "Doğru söyleyeni dokuz köyden kovarlar"
+            },
+            {
+              "meaning": "Yakınlarımız, eksikliklerimizi çekinmeden söylerler.",
+              "text": "Dost acı söyler"
+            },
+            {
+              "meaning": "İyi bir görüntü verebilmek için her zaman temiz giyinip kuşanmak gereklidir.",
+              "text": "Dost başa, düşman ayağa bakar"
+            },
+            {
+              "meaning": "Gerçek dost üzüntülü, sıkıntılı günlerde insanı yalnız bırakmaz.",
+              "text": "Dost kara günde belli olur"
+            },
+            {
+              "meaning": "Nem demiri nasıl paslandırıp çürütürse gam da insanı öylece yıpratır.",
+              "text": "Duvarı nem, insanı gam yıkar"
+            },
+            {
+              "meaning": "İnsanların talihsizliklere uğraması olağandır.",
+              "text": "Düşmez kalkmaz bir Allah"
+            }
+          ],
+          "deyimler": [
+            {
+              "meaning": "Bir yerde tedirginlik duymak.",
+              "text": "Diken üstünde olmak"
+            },
+            {
+              "meaning": "Sevinç, korku, şaşkınlık vb. sebeplerle birdenbire söz söyleyemez olmak.",
+              "text": "Dili tutulmak"
+            },
+            {
+              "meaning": "Birini, duyarlı olduğu bir konuda kızdırmak.",
+              "text": "Damarına basmak"
+            },
+            {
+              "meaning": "Adını anmaz olmak, dost saymaz olmak.",
+              "text": "Defterden silmek"
+            },
+            {
+              "meaning": "Herkes tarafından konuşulur olmak.",
+              "text": "Dillere destan olmak"
+            },
+            {
+              "meaning": "Tekrar tekrar söylemekten usanmak.",
+              "text": "Dilinde tüy bitmek"
+            },
+            {
+              "meaning": "1) Okumak için yıllarca çalışmak. 2) Meslekte uzun yıllar geçirmek.",
+              "text": "Dirsek çürütmek"
+            },
+            {
+              "meaning": "Kandırmak veya inandırmak için tatlı sözler söylemek.",
+              "text": "Dil dökmek"
+            },
+            {
+              "meaning": "Yetersiz, çok küçük veya az olmak.",
+              "text": "Devede kulak kalmak"
+            },
+            {
+              "meaning": "Bir konuyu her fırsatta söylemek, birinden sürekli söz etmek.",
+              "text": "Diline dolamak"
+            },
+            {
+              "meaning": "Hileli iş yapmak.",
+              "text": "Dolap çevirmek"
+            },
+            {
+              "meaning": "Birdenbire, yersiz bir zamanda.",
+              "text": "Damdan düşer gibi"
+            },
+            {
+              "meaning": "Sık sık iş veya konu değiştirmek.",
+              "text": "Daldan dala konmak"
+            },
+            {
+              "meaning": "Saygısızca konuşmaya başlamak.",
+              "text": "Dili uzamak"
+            }
+          ]
+        },
+        "E": {
+          "atasozleri": [
+            {
+              "meaning": "Bir kimse, kendisinden üstün bir başkasının da olabileceğini bilmelidir.",
+              "text": "El elden üstündür"
+            },
+            {
+              "meaning": "İnsanın kendi sıkıntı ve sorunlarına başkaları gereken önemi vermez, gerektiği kadar ilgilenmez.",
+              "text": "El elin eşeğini türkü çağırarak arar"
+            },
+            {
+              "meaning": "Bir kimseden başka bir kimseye herhangi bir haber ulaştıran, bu aracılığından dolayı sorumlu tutulmaz.",
+              "text": "Elçiye zeval olmaz"
+            },
+            {
+              "meaning": "İnsanlık değerinden yoksun kişi, kılık kıyafetle, makam ve mevkiyle değer kazanmaz.",
+              "text": "Eşeğe altın semer vursalar yine eşektir"
+            },
+            {
+              "meaning": "Bilgisiz, görgüsüz kimse ince, güzel şeylerin zevkine varamaz, değerini ölçemez.",
+              "text": "Eşek hoşaftan ne anlar!"
+            },
+            {
+              "meaning": "Komşuluk ilişkileri, iyi komşuya sahip olma çok çok önemlidir.",
+              "text": "Ev alma, komşu al"
+            },
+            {
+              "meaning": "Önceden tasarlanan bir iş umulduğu gibi sonuçlanmaz, düşünüldüğü gibi olmaz.",
+              "text": "Evdeki hesap çarşıya uymaz"
+            }
+          ],
+          "deyimler": [
+            {
+              "meaning": "1) El tutuşmak. 2) Birlikte davranmak, bir konuda birleşmek.",
+              "text": "El ele vermek"
+            },
+            {
+              "meaning": "Bir kimseye çok saygı ve sevgi göstermek.",
+              "text": "El üstünde tutmak"
+            },
+            {
+              "meaning": "1) Çok sevinmek. 2) Alınan sevinçli bir haber üzerine telaşa ve heyecana kapılmak.",
+              "text": "Etekleri zil çalmak"
+            },
+            {
+              "meaning": "1) Söz dinlememek, baskı altına alınmamak, zapt edilememek. 2) Şımarık davranmak.",
+              "text": "Ele avuca sığmamak"
+            },
+            {
+              "meaning": "Çok telaşlanmak.",
+              "text": "Etekleri tutuşmak"
+            },
+            {
+              "meaning": "Kendisi çalışmayıp başkasının kazancıyla geçinme durumu.",
+              "text": "Ekmek elden su gölden"
+            },
+            {
+              "meaning": "1) Yardım etmek. 2) Kayırmak.",
+              "text": "Elinden tutmak"
+            },
+            {
+              "meaning": "Bir şeyin meydana gelmesi için özenle ve çok çalışmak.",
+              "text": "Emek vermek"
+            },
+            {
+              "meaning": "İşini güven altına almak.",
+              "text": "Eşeğini sağlam kazığa bağlamak"
+            },
+            {
+              "meaning": "Eksiklikleri gidermek için incelemek.",
+              "text": "Elden geçirmek"
+            },
+            {
+              "meaning": "Güçsüz, dermansız kalmak.",
+              "text": "Eli ayağı buz kesilmek"
+            },
+            {
+              "meaning": "Büyük bir saygıyla huzurda beklemek.",
+              "text": "El pençe divan durmak"
+            },
+            {
+              "meaning": "Geçim sağlamak için kazanılan para.",
+              "text": "Ekmek parası"
+            },
+            {
+              "meaning": "Hırsızlık yapmaya alışmış olan.",
+              "text": "Eli uzun"
+            }
+          ]
+        },
+        "F": {
+          "atasozleri": [
+            {
+              "meaning": "Kişinin oyalanmak, yalan da olsa geleceği üzerine bir şeyler dinlemek isteğini hoş karşılamak gerekir.",
+              "text": "Fala inanma, falsız kalma"
+            },
+            {
+              "meaning": "Ne kadar ve ne türden mal olursa olsun malın fazlası elden çıkarılmamalıdır çünkü mutlaka bir gün gelir lazım olur.",
+              "text": "Fazla mal göz çıkarmaz"
+            },
+            {
+              "meaning": "Başka şeylerde olduğu gibi nazlanmada da aşırı gidilmemelidir.",
+              "text": "Fazla naz âşık usandırır"
+            }
+          ],
+          "deyimler": [
+            {
+              "meaning": "Aldatılmak, tuzağa düşmek.",
+              "text": "Faka basmak"
+            },
+            {
+              "meaning": "Bir konu hakkında düşüncesini söylemek.",
+              "text": "Fikir yürütmek"
+            },
+            {
+              "meaning": "Hiçbir şeye aldırmadan dilediğince gezip eğlenmek.",
+              "text": "Fink atmak"
+            },
+            {
+              "meaning": "Bir işi hile ile bozmak.",
+              "text": "Fesat karıştırmak"
+            }
+          ]
+        },
+        "G": {
+          "atasozleri": [
+            {
+              "meaning": "Çeşitli engeller yüzünden gerçekleşemeyen işlerde avunmak için söylenen bir söz.",
+              "text": "Geç olsun da güç olmasın"
+            },
+            {
+              "meaning": "Hiçbir şey sürekli ve kalıcı değildir.",
+              "text": "Gelen geçer, konan göçer"
+            },
+            {
+              "meaning": "Bazı kusurları var fakat gelen daha kusurlu, daha da geçimsiz olabilir.",
+              "text": "Gelen, gideni aratır"
+            },
+            {
+              "meaning": "İnsan gençliğinde yaptığı şeylerin çoğunu yaşlandığında yapamaz ve gençliğin ne denli değerli olduğunu o zaman anlar.",
+              "text": "Gençliğin kıymeti, ihtiyarlıkta bilinir"
+            },
+            {
+              "meaning": "Ne kadar gizlense de gerçekler ortadadır.",
+              "text": "Görünen köy, kılavuz istemez"
+            },
+            {
+              "meaning": "Birinin başına gelen kötü bir durum senin de başına gelebilir.",
+              "text": "Gülme komşuna, gelir başına"
+            },
+            {
+              "meaning": "İnsan sevdiği kimse veya sevdiği iş yüzünden gelecek sıkıntılara katlanır.",
+              "text": "Gülü seven, dikenine katlanır"
+            },
+            {
+              "meaning": "Herkesin bildiği gerçek inkâr edilemez.",
+              "text": "Güneş balçıkla sıvanmaz"
+            },
+            {
+              "meaning": "Varlıklarına güvenerek ölçüsüz harcamalarda bulunanlar daha sonraları sıkıntıya düşebilirler.",
+              "text": "Güvenme varlığa, düşersin darlığa"
+            }
+          ],
+          "deyimler": [
+            {
+              "meaning": "Kandırmak, yanıltmak, gösterişle aldatmak.",
+              "text": "Göz boyamak"
+            },
+            {
+              "meaning": "Yoğun sis, duman, toz vb. sebeplerle hiçbir şey görülememek.",
+              "text": "Göz gözü görmemek"
+            },
+            {
+              "meaning": "Bir kişi veya şey değerini yitirmek, rağbet görmemek.",
+              "text": "Gözden düşmek"
+            },
+            {
+              "meaning": "Kısa bir süre, fazla dikkat etmeden bakıvermek.",
+              "text": "Göz atmak"
+            },
+            {
+              "meaning": "1) Görmezlikten gelmek, bağışlamak. 2) Umudunu kesmek.",
+              "text": "Göz yummak"
+            },
+            {
+              "meaning": "Övünç duymak, kıvanmak.",
+              "text": "Göğsü kabarmak"
+            },
+            {
+              "meaning": "Bir işi hiçbir engel tanımadan sürdürmek.",
+              "text": "Gemisini yürütmek"
+            },
+            {
+              "meaning": "Aralıksız, gece gündüz çalışmak.",
+              "text": "Gecesini gündüzüne katmak"
+            },
+            {
+              "meaning": "Çok güçlükle bulacağını sandığı şeyi birdenbire bulmak.",
+              "text": "Gökte ararken yerde bulmak"
+            },
+            {
+              "meaning": "Davranışlarıyla ilgi ve sevgi kazanmak.",
+              "text": "Göze girmek"
+            },
+            {
+              "meaning": "Bir işin güçlüğünü anlayıp onu yapmaktan çekinmek.",
+              "text": "Gözü korkmak"
+            },
+            {
+              "meaning": "Bırakıp gittiği bir şeyle ilgisi kesilmemek.",
+              "text": "Gözü arkada kalmak"
+            },
+            {
+              "meaning": "Zorluklara karşı dayanmak.",
+              "text": "Göğüs germek"
+            },
+            {
+              "meaning": "Aşırı öfkeden ne yaptığını bilmez hâle gelmek.",
+              "text": "Gözü dönmek"
+            }
+          ]
+        },
+        "H": {
+          "atasozleri": [
+            {
+              "meaning": "Bir işe girişen, o işin güçlüklerini veya masraflarını göze almalıdır.",
+              "text": "Hamama giren terler"
+            },
+            {
+              "meaning": "İnsan yanılmamak için ne kadar dikkat ederse etsin yine yanılır.",
+              "text": "Hatasız kul olmaz"
+            },
+            {
+              "meaning": "Karşısındakini bağırıp çağırmakla korkutmaya çalışan kimse eylemli bir saldırıda bulunmaz.",
+              "text": "Havlayan köpek ısırmaz"
+            },
+            {
+              "meaning": "Sürekli harcama, en büyük birikimleri bile eritir.",
+              "text": "Hazıra dağ(lar) dayanmaz"
+            },
+            {
+              "meaning": "Herkesin kendine özgü bir çalışma yöntemi, bir iş yapma biçimi vardır.",
+              "text": "Her yiğidin bir yoğurt yiyişi vardır"
+            },
+            {
+              "meaning": "Bir huy edinmiş olan kişiyi bu huyundan vazgeçirmek imkânsızdır.",
+              "text": "Huylu huyundan vazgeçmez"
+            }
+          ],
+          "deyimler": [
+            {
+              "meaning": "Özlem duymak.",
+              "text": "Hasret çekmek"
+            },
+            {
+              "meaning": "Rüya veya olayı iyi bir durumun belirtisi saymak.",
+              "text": "Hayra yormak"
+            },
+            {
+              "meaning": "Küçümsemek, önemsememek.",
+              "text": "Hafife almak"
+            },
+            {
+              "meaning": "Çok kötü bir duruma düşmek.",
+              "text": "Hapı yutmak"
+            },
+            {
+              "meaning": "Umduğunu bulamamak.",
+              "text": "Havasını almak"
+            },
+            {
+              "meaning": "Sert bir karşılıkla birini susturmak.",
+              "text": "Haddini bildirmek"
+            },
+            {
+              "meaning": "Gösteriş yapmak, böbürlenmek.",
+              "text": "Hava atmak"
+            }
+          ]
+        },
+        "I": {
+          "deyimler": [
+            {
+              "meaning": "Bir konuyu aydınlatmak, yol göstermek.",
+              "text": "Işık tutmak"
+            },
+            {
+              "meaning": "Bir konuda ayak diremek.",
+              "text": "Israr etmek"
+            },
+            {
+              "meaning": "Hedefi vuramamak, fırsatı kaçırmak.",
+              "text": "Iskalamak"
+            }
+          ]
+        },
+        "J": {
+          "deyimler": [
+            {
+              "meaning": "Bir şeyi ancak sonra anlayabilmek.",
+              "text": "Jeton düşmek"
+            }
+          ]
+        },
+        "K": {
+          "atasozleri": [
+            {
+              "meaning": "Elden kaçırılan fırsat gözde büyütülür.",
+              "text": "Kaçan balık büyük olur"
+            },
+            {
+              "meaning": "Sevgi karşılıklıdır.",
+              "text": "Kalp kalbe karşıdır"
+            },
+            {
+              "meaning": "Ölüm gibi kötü haber çabuk yayılır.",
+              "text": "Kara haber tez duyulur"
+            },
+            {
+              "meaning": "Kaza, beklenmedik zamanda, ansızın olur.",
+              "text": "Kaza geliyorum demez"
+            },
+            {
+              "meaning": "Büyük çıkarlar beklenen durumlarda küçük fedakârlıklar yapılmalıdır.",
+              "text": "Kaz gelecek yerden tavuk esirgenmez"
+            },
+            {
+              "meaning": "Kişi, elde edemediği şeyi istemiyormuş, beğenmiyormuş gibi görünür.",
+              "text": "Kedi, uzanamadığı ciğere murdar (pis) der"
+            },
+            {
+              "meaning": "Ölürken mal veya para götürülmez.",
+              "text": "Kefenin cebi yok"
+            },
+            {
+              "meaning": "Kendi işini halledemeyen kişiden aynı durum için yardım alınamaz.",
+              "text": "Kelin ilacı olsa başına sürer"
+            },
+            {
+              "meaning": "Kendi zararına kendisi neden olanın yakınmaya hakkı olmaz.",
+              "text": "Kendi düşen ağlamaz"
+            },
+            {
+              "meaning": "Her şey zaman içinde planlandığı gibi gerçekleşmeyebilir.",
+              "text": "Keser döner, sap döner; gün gelir, hesap döner"
+            },
+            {
+              "meaning": "Öfkeli, sert kimsenin zararı kendisinedir.",
+              "text": "Keskin sirke küpüne zarar"
+            },
+            {
+              "meaning": "Kişi arkadaşlık ettiği kimseden etkilenir.",
+              "text": "Kır atın yanında duran ya huyundan ya suyundan..."
+            },
+            {
+              "meaning": "Doğrudan doğruya kendisine söylenemeyen düşünce ve uyarıların, o kimsenin çok yakınına söylendiğinde kullanılan bir söz.",
+              "text": "Kızım sana söylüyorum, gelinim sen anla"
+            },
+            {
+              "meaning": "Bir iş yapılırken veya yapıldıktan sonra kiminden para, kiminden dua alınabilir.",
+              "text": "Kiminin parası, kiminin duası..."
+            },
+            {
+              "meaning": "Başka bir kimsenin malı bize olduğundan daha değerli görünür.",
+              "text": "Komşunun tavuğu, komşuya kaz görünür"
+            },
+            {
+              "meaning": "Kişi korkmakla kendisine gelecek bir kötülüğü önleyemez.",
+              "text": "Korkunun ecele faydası yoktur"
+            },
+            {
+              "meaning": "Güç ve yeteneğini yitiren insan, basit ve kendini bilmezlerce aşağılanır.",
+              "text": "Kurt kocayınca köpeğin maskarası olur"
+            },
+            {
+              "meaning": "Kötü günleri atlatan kişi, zor günlerinde kendine yardımcı olmayanları asla unutmaz.",
+              "text": "Kurt kışı geçirir ama yediği ayazı da unutmaz"
+            }
+          ],
+          "deyimler": [
+            {
+              "meaning": "Çok öfkelenmek.",
+              "text": "Küplere binmek"
+            },
+            {
+              "meaning": "Gönül kırmak.",
+              "text": "Kalbini kırmak"
+            },
+            {
+              "meaning": "Aşırı tekrarlanması yüzünden bıkkınlık vermek.",
+              "text": "Kabak tadı vermek"
+            },
+            {
+              "meaning": "Gürültü veya gevezelikle bir kimseyi tedirgin etmek.",
+              "text": "Kafa şişirmek"
+            },
+            {
+              "meaning": "Yardım etmek, korumak.",
+              "text": "Kol kanat germek"
+            },
+            {
+              "meaning": "Çok öfkelenmek.",
+              "text": "Küpe binmek"
+            },
+            {
+              "meaning": "Çaktırmadan dinlemeye çalışmak.",
+              "text": "Kulak kabartmak"
+            },
+            {
+              "meaning": "Bir konu üzerinde çok düşünmek.",
+              "text": "Kafa yormak"
+            },
+            {
+              "meaning": "Birine karşı çabucak sevgi duymak.",
+              "text": "Kanı kaynamak"
+            },
+            {
+              "meaning": "Gizlice, yasak bir şeyi yapmak.",
+              "text": "Kaçamak yapmak"
+            },
+            {
+              "meaning": "Görüşleri birbirine uyan arkadaş.",
+              "text": "Kafa dengi"
+            }
+          ]
+        },
+        "L": {
+          "atasozleri": [
+            {
+              "meaning": "Şöyle yaparım, böyle yaparım demekle yapılması gereken iş yapılmaz.",
+              "text": "Lafla peynir gemisi yürümez"
+            },
+            {
+              "meaning": "Boş, anlamsız konuşanların durumunu anlatmak için söylenen bir söz.",
+              "text": "Leyleğin ömrü laklakla geçer"
+            }
+          ],
+          "deyimler": [
+            {
+              "meaning": "Dedikodu yapmak, arayı bozacak sözler iletmek.",
+              "text": "Laf taşımak"
+            },
+            {
+              "meaning": "Birini konuşmasına izin vermeden susturmak.",
+              "text": "Lafı ağzına tıkamak"
+            },
+            {
+              "meaning": "Kelime oyunlarıyla karşısındakini şaşırtmak.",
+              "text": "Laf ebeliği yapmak"
+            },
+            {
+              "meaning": "Birinin şerefine zarar verecek suçlamada bulunmak.",
+              "text": "Leke sürmek"
+            }
+          ]
+        },
+        "M": {
+          "atasozleri": [
+            {
+              "meaning": "İnsan, malına gelen zarardan, canına gelmişçesine acı duyar.",
+              "text": "Mal canın yongasıdır"
+            },
+            {
+              "meaning": "Mart ayında zaman zaman güneş görünse de şiddetli soğuklar devam eder ve insanların yakıtları tükendiği için evdeki kazma kürek saplarını bile yakmak zorunda kalabilirler.",
+              "text": "Mart kapıdan baktırır, kazma kürek yaktırır"
+            },
+            {
+              "meaning": "Bilgili, hünerli, işinde başarılı olan kimseler kıskanılır, eleştirilir ve işlerini yapmaları zorlaştırılır.",
+              "text": "Meyve veren ağaç taşlanır"
+            },
+            {
+              "meaning": "Kolay kolay gizlenemeyecek kadar büyük bir yolsuzluğu yapan kimse, sorumluluktan kurtulma yollarını önceden düşünür.",
+              "text": "Minareyi çalan, kılıfını hazırlar"
+            },
+            {
+              "meaning": "Konuk, ev sahibinin kendisine çok şeyler ikram etmesini bekleyebilir ama ev sahibi ancak evinde olanları ikram edebilir.",
+              "text": "Misafir umduğunu değil, bulduğunu yer"
+            },
+            {
+              "meaning": "Etkili kişi kendi yakınlarına yardımcı olamaz.",
+              "text": "Mum, dibine ışık vermez"
+            },
+            {
+              "meaning": "Bir işte yetki kimde ise kuvvet ondadır.",
+              "text": "Mühür kimde ise Süleyman odur"
+            }
+          ],
+          "deyimler": [
+            {
+              "meaning": "Parası kalmamak.",
+              "text": "Meteliğe kurşun atmak"
+            },
+            {
+              "meaning": "İnandırıcı olmayan, oyalayıcı sözlerle kandırmaya çalışmak.",
+              "text": "Masal okumak"
+            },
+            {
+              "meaning": "Korkmadığını bildirmek, kavga veya yarışmaya çağırmak.",
+              "text": "Meydan okumak"
+            },
+            {
+              "meaning": "Şüphe uyandırmak.",
+              "text": "Mide bulandırmak"
+            },
+            {
+              "meaning": "Değersiz bir şeyi çok değerli sanmak.",
+              "text": "Matah sanmak"
+            },
+            {
+              "meaning": "Bir şeyi onaylamak.",
+              "text": "Mühür basmak"
+            },
+            {
+              "meaning": "Çalışmadan hazır parayı harcayan.",
+              "text": "Miras yedi"
+            }
+          ]
+        },
+        "N": {
+          "atasozleri": [
+            {
+              "meaning": "İyilik yapan iyilik, kötülük yapan kötülük bulur.",
+              "text": "Ne doğrarsan aşına, o çıkar kaşığına"
+            },
+            {
+              "meaning": "Kişi bugün içinde bulunduğu parlak durumun sürüp gideceğini sanmamalı, yarın kötü bir duruma düşeceğini hatırdan çıkarmamalıdır.",
+              "text": "Ne oldum dememeli, ne olacağım demeli"
+            }
+          ],
+          "deyimler": [
+            {
+              "meaning": "Bakışlardaki olumsuz enerjiden etkilenmek.",
+              "text": "Nazar değmek"
+            },
+            {
+              "meaning": "Bir şeyi boşuna anlatıp durmak.",
+              "text": "Nefes tüketmek"
+            },
+            {
+              "meaning": "Ün kazanmak, meşhur olmak.",
+              "text": "Nam salmak"
+            },
+            {
+              "meaning": "Şaşkınlıktan konuşamaz olmak.",
+              "text": "Nutku tutulmak"
+            }
+          ]
+        },
+        "O": {
+          "atasozleri": [
+            {
+              "meaning": "Oğlan çocuğunun yüzü de huyu da dayısına, kız çocuğunun ise halasına benzer.",
+              "text": "Oğlan dayıya, kız halaya çeker"
+            }
+          ],
+          "deyimler": [
+            {
+              "meaning": "Birinin evini barkını dağıtmak.",
+              "text": "Ocağına incir dikmek"
+            },
+            {
+              "meaning": "Elinden her iş gelmek, çok becerikli olmak.",
+              "text": "On parmağında on marifet olmak"
+            },
+            {
+              "meaning": "Önemsememek, aldırmamak.",
+              "text": "Omuz silkmek"
+            },
+            {
+              "meaning": "Birlikte başlanan bir işi keyfi nedenlerle bozmak.",
+              "text": "Oyunbozanlık etmek"
+            },
+            {
+              "meaning": "Geri dönülemeyecek bir işe başlamış olmak.",
+              "text": "Ok yaydan çıkmak"
+            }
+          ]
+        },
+        "P": {
+          "atasozleri": [
+            {
+              "meaning": "Zahmet çekmeden hiçbir iş gerçekleştirilemez.",
+              "text": "Paça ıslanmadan balık tutulmaz"
+            },
+            {
+              "meaning": "Paranın halledemeyeceği sorun yok gibidir.",
+              "text": "Para her kapıyı açar"
+            },
+            {
+              "meaning": "Para harcadığında insan istediğini elde edebilir.",
+              "text": "Parayı veren düdüğü çalar"
+            },
+            {
+              "meaning": "Elde para bulunursa onunla yeni paralar kazanılır.",
+              "text": "Para, parayı çeker"
+            },
+            {
+              "meaning": "Bir işin sonunun nasıl olacağı şimdiki gidişinden belli olur.",
+              "text": "Perşembenin gelişi çarşambadan bellidir"
+            },
+            {
+              "meaning": "Yararlı bir şeyi elde etmek için sonuna kadar uğraşılmalı, direnilmelidir.",
+              "text": "Pilavdan dönenin kaşığı kırılsın"
+            },
+            {
+              "meaning": "Yoluna girmiş olan bir işi bozulmaz.",
+              "text": "Pişmiş aşa su katılmaz"
+            }
+          ],
+          "deyimler": [
+            {
+              "meaning": "1) İmza yerine parmağını basmak. 2) Bir konu üzerine dikkati çekmek.",
+              "text": "Parmak basmak"
+            },
+            {
+              "meaning": "Kendinden üstün birinin çıkmasıyla gözden düşmek.",
+              "text": "Pabucu dama atılmak"
+            },
+            {
+              "meaning": "Önemsiz bir olayı büyütmek.",
+              "text": "Pireyi deve yapmak"
+            },
+            {
+              "meaning": "Önemsiz bir şey için kızıp daha büyük zarara yol açmak.",
+              "text": "Pire için yorgan yakmak"
+            },
+            {
+              "meaning": "Dişlerini göstererek yersiz ve aptalca gülmek.",
+              "text": "Pişmiş kelle gibi sırıtmak"
+            },
+            {
+              "meaning": "Birini korkutmak, birine gözdağı vermek.",
+              "text": "Posta koymak"
+            },
+            {
+              "meaning": "Kabaca ve terbiyesizce karşılık vermek.",
+              "text": "Pabuç kadar dili olmak"
+            },
+            {
+              "meaning": "Karşısındakine dokunacak uygunsuz söz söylemek.",
+              "text": "Pot kırmak"
+            },
+            {
+              "meaning": "Kandırarak veya zorla birinden para almak.",
+              "text": "Para sızdırmak"
+            },
+            {
+              "meaning": "Çok para kazanmak.",
+              "text": "Para basmak"
+            },
+            {
+              "meaning": "Korkmayıp geri çekilmemek.",
+              "text": "Pabuç bırakmamak"
+            }
+          ]
+        },
+        "R": {
+          "atasozleri": [
+            {
+              "meaning": "Başkalarına zarar veren kimse, sonunda en büyük zarara kendisi uğrar.",
+              "text": "Rüzgâr eken, fırtına biçer"
+            }
+          ],
+          "deyimler": [
+            {
+              "meaning": "Korkudan veya utançtan yüzünün rengi değişmek.",
+              "text": "Renkten renge girmek"
+            },
+            {
+              "meaning": "Korku veya heyecandan yüzü sararmak.",
+              "text": "Rengi atmak"
+            },
+            {
+              "meaning": "Bir işin düzenli bir biçimde yürümeye başlaması.",
+              "text": "Rayına oturmak"
+            },
+            {
+              "meaning": "Ölmek.",
+              "text": "Ruhunu teslim etmek"
+            }
+          ]
+        },
+        "S": {
+          "atasozleri": [
+            {
+              "meaning": "Beklemesini bilen kimse sonunda amacına ulaşır.",
+              "text": "Sabreden derviş, muradına ermiş"
+            },
+            {
+              "meaning": "Birine yaptığın iyiliği gizli tut.",
+              "text": "Sağ elin verdiğini, sol el görmesin"
+            },
+            {
+              "meaning": "Söylenen şeyi anlamadığından konuyla ilgisi olmayan cevaplar veren kimseler için kullanılan bir söz.",
+              "text": "Sağır duymaz, uydurur"
+            },
+            {
+              "meaning": "İnsanın sağlıklı yaşayabilmesi ve düşünebilmesi için vücudunun sağlıklı olması gerekir.",
+              "text": "Sağlam kafa, sağlam vücutta bulunur"
+            },
+            {
+              "meaning": "Üzerine çok düşülen şeyler genellikle kazaya veya zarara uğrar.",
+              "text": "Sakınılan (sakınan) göze çöp batar"
+            },
+            {
+              "meaning": "Gereksiz görülen şey ileride gerekli olabilir.",
+              "text": "Sakla samanı, gelir zamanı"
+            },
+            {
+              "meaning": "Bir işin yapılması veya gerçekleşmesi için konulmuş olan belli bir süre çabucak geçer.",
+              "text": "Sayılı günler tez geçer"
+            },
+            {
+              "meaning": "Küçük bir ilgi gösterdik, üzerimize büyük bir iş yüklendik.",
+              "text": "Selam verdik, borçlu çıktık"
+            },
+            {
+              "meaning": "İşten kaçanlara söylenen bir söz.",
+              "text": "Sen ağa, ben ağa; bu ineği kim sağa?"
+            },
+            {
+              "meaning": "Önemsiz, küçük gibi görünen bir şey kötü ve olumsuz bir izlenim yaratır.",
+              "text": "Sinek küçüktür ama mide bulandırır"
+            },
+            {
+              "meaning": "Sabırlı olan kişi, işin sonunda mutlu sona ulaşır.",
+              "text": "Son gülen, iyi güler"
+            },
+            {
+              "meaning": "İş işten geçtikten sonra pişman olmanın yararı yoktur.",
+              "text": "Son pişmanlık fayda (etmez) vermez"
+            },
+            {
+              "meaning": "İnsan sora sora çok uzak yerleri bile bulur.",
+              "text": "Sora sora Bağdat bulunur"
+            },
+            {
+              "meaning": "Susmak bazen konuşmaktan daha iyi sonuç verir.",
+              "text": "Söz gümüşse sükût altındır"
+            },
+            {
+              "meaning": "Bazı işler başlangıçta düzensiz olsa da zaman içinde tekrarlandıkça belli bir düzene kavuşur.",
+              "text": "Su akar, yolunu bulur"
+            },
+            {
+              "meaning": "Kişi, fırsattan yararlanmalı; geliri bol olduğu zaman ilerisi için para biriktirmeye, mal mülk edinmeye bakmalıdır.",
+              "text": "Su akarken testiyi doldurmalı"
+            },
+            {
+              "meaning": "Bir kişi amaç edindiği işte kazaya uğrar.",
+              "text": "Su testisi, su yolunda kırılır"
+            },
+            {
+              "meaning": "Düşmana karşı her zaman uyanık davranmak gerekir.",
+              "text": "Su uyur, düşman uyumaz"
+            },
+            {
+              "meaning": "Birlikte olduğu topluluktan ayrılıp kendi başına iş yapma yolunu tutan kimse dayanışmadan yoksun, koruyucusuz, desteksiz kalır ve zarara uğrar.",
+              "text": "Sürüden ayrılanı kurt kapar"
+            }
+          ],
+          "deyimler": [
+            {
+              "meaning": "Belli etmeden iş çevirmek, ortalığı karıştırmak.",
+              "text": "Saman altından su yürütmek"
+            },
+            {
+              "meaning": "Özveri ile çalışıp hizmet etmek.",
+              "text": "Saçını süpürge etmek"
+            },
+            {
+              "meaning": "Düşündüğünü çekinmeden söylemek.",
+              "text": "Sözünü esirgememek"
+            },
+            {
+              "meaning": "Katlanamaz duruma gelmek.",
+              "text": "Sabrı taşmak"
+            },
+            {
+              "meaning": "Sarsılmamak, yenilmemek.",
+              "text": "Sırtı yere gelmemek"
+            },
+            {
+              "meaning": "Elinde avucunda bir şey kalmamak.",
+              "text": "Sıfırı tüketmek"
+            }
+          ]
+        },
+        "T": {
+          "atasozleri": [
+            {
+              "meaning": "Kendini işe vermeyenden, bir iş üretmeyenden hayır gelmez.",
+              "text": "Tarlada izi olmayanın harmanda yüzü olmaz"
+            },
+            {
+              "meaning": "İşi yapacak olanda yeteri kadar güç bulunmadıkça başkalarının küçük katkılarıyla sürekli ve büyük bir iş yürütülemez.",
+              "text": "Taşıma su ile değirmen dönmez"
+            },
+            {
+              "meaning": "Gönül alıcı, okşayıcı sözlerle karşımızdakinin inadı yenilebilir.",
+              "text": "Tatlı dil, yılanı deliğinden çıkarır"
+            },
+            {
+              "meaning": "Acı verici, kötü sohbetlerden kaçınalım. Güzel, hoş bir dil kullanalım.",
+              "text": "Tatlı yiyelim, tatlı konuşalım"
+            },
+            {
+              "meaning": "Önemsiz kişi, önemli kişiye küsse önemli kişinin umurunda bile olmaz.",
+              "text": "Tavşan dağa küsmüş, dağın haberi olmamış"
+            },
+            {
+              "meaning": "Bir şeyi elde etmek için bazı sıkıntılara katlanmak gerekir.",
+              "text": "Tekkeyi bekleyen çorbayı içer"
+            },
+            {
+              "meaning": "Kendisinden bir konuda yardımcı olması istendiğinde yardım edeceği yerde çözüm yolları gösteren kimseler için kullanılan bir söz.",
+              "text": "Tembele iş buyur, sana akıl öğretsin"
+            },
+            {
+              "meaning": "Kötülük, kusur yönünden sen benden daha betersin.",
+              "text": "Tencere dibin kara, seninki benden kara"
+            },
+            {
+              "meaning": "Hoşa gitmeyen herhangi bir nitelik yönünden birbiriyle benzeşen iki kişi bir araya gelmiş.",
+              "text": "Tencere yuvarlanmış, kapağını bulmuş"
+            },
+            {
+              "meaning": "Her şeyin bir ölçüsü ve zamanı vardır.",
+              "text": "Terazi var, tartı var; her şeyin bir vakti var"
+            },
+            {
+              "meaning": "İnsanlar başkalarına yaptıkları hizmetleri kendilerine yapamazlar.",
+              "text": "Terzi kendi söküğünü dikemez"
+            },
+            {
+              "meaning": "Yeri geldiği zaman çirkin, kaba bir benzetme ile anlatıma daha etkili bir hava verilmesi, saygısızca bir davranış değildir, kimse bundan alınmamalıdır.",
+              "text": "Teşbihte hata olmaz"
+            },
+            {
+              "meaning": "Hiç kimse başkasından yardım beklememelidir.",
+              "text": "Tırnağın varsa başını kaşı"
+            },
+            {
+              "meaning": "İşini yapması gerektiği biçimde yapan kişi, çalışmasının verimlerinden yararlanır.",
+              "text": "Toprağı işleyen, ekmeği dişler"
+            }
+          ],
+          "deyimler": [
+            {
+              "meaning": "1) Çok yorulmak. 2) Ezilmek, parçalanmak.",
+              "text": "Turşusu çıkmak"
+            },
+            {
+              "meaning": "Bir şeyin güzelliğinden tam olarak yararlanmak.",
+              "text": "Tadını çıkarmak"
+            },
+            {
+              "meaning": "Küçümsemek, kibirli davranmak.",
+              "text": "Tepeden bakmak"
+            },
+            {
+              "meaning": "Parçalanıp dağılmak.",
+              "text": "Tuz buz olmak"
+            }
+          ]
+        },
+        "U": {
+          "atasozleri": [
+            {
+              "meaning": "Ucuz olan mal çabuk eskir, pahalıya alınmış gibi olur.",
+              "text": "Ucuz alan, pahalı alır"
+            },
+            {
+              "meaning": "Başkaları ezici, kırıcı davransa da sen onlara uyma, büyüklere karşı saygıda kusur etme.",
+              "text": "Ulular köprü olsa basıp geçme"
+            },
+            {
+              "meaning": "Elinden bir şey gelmez sanılan kişi kendisinden beklenilmeyen önemli işler yapabilir.",
+              "text": "Ummadığın taş, baş yarar"
+            },
+            {
+              "meaning": "Yoksul kişi, hep yakında bolluğa, rahata kavuşma umudu içinde yaşar.",
+              "text": "Umut, fakirin ekmeğidir"
+            }
+          ],
+          "deyimler": [
+            {
+              "meaning": "Pek çok kişiye borçlu olmak.",
+              "text": "Uçan kuşa borcu olmak"
+            },
+            {
+              "meaning": "Herhangi bir nedenle uyuyamamak.",
+              "text": "Uykusu kaçmak"
+            },
+            {
+              "meaning": "Bir işin yönetiminde düzeni bozmak.",
+              "text": "Ucunu kaçırmak"
+            },
+            {
+              "meaning": "Bir işten dolayı dolaylı olarak zarar görmek.",
+              "text": "Ucu dokunmak"
+            }
+          ]
+        },
+        "V": {
+          "atasozleri": [
+            {
+              "meaning": "Zaman çok değerlidir, boş yere harcanmamalıdır.",
+              "text": "Vakit nakittir"
+            },
+            {
+              "meaning": "Her söz yerinde ve zamanında söylenmelidir, zamansız ve yersiz söylenen sözler büyük zararlara yol açabilir.",
+              "text": "Vakitsiz öten horozun başını keserler"
+            },
+            {
+              "meaning": "Yardımını esirgemeyen, eli açık olan kimseye herkes saygı gösterir.",
+              "text": "Veren el, alan elden üstündür"
+            }
+          ],
+          "deyimler": [
+            {
+              "meaning": "Yıkıntı durumuna getirmek.",
+              "text": "Viraneye çevirmek"
+            },
+            {
+              "meaning": "Boş şeylerle zaman geçirmek.",
+              "text": "Vakit öldürmek"
+            },
+            {
+              "meaning": "Manevi sorumluluk üstlenmek.",
+              "text": "Vebal altında kalmak"
+            },
+            {
+              "meaning": "Aşırı eğlence içinde olmak.",
+              "text": "Vur patlasın çal oynasın"
+            }
+          ]
+        },
+        "Y": {
+          "atasozleri": [
+            {
+              "meaning": "Nasıl bir tek taş ile duvar örülmezse insan da tek başına önemli bir işi başaramaz, başkalarıyla ilişki kurmak, iş birliği yapmak zorundadır.",
+              "text": "Yalnız taş, duvar olmaz"
+            },
+            {
+              "meaning": "Söylenen söz yalansa durum çok geçmeden anlaşılır.",
+              "text": "Yalancının mumu, yatsıya kadar yanar"
+            },
+            {
+              "meaning": "İnsan ancak toplumsal dayanışma ve iş bölümü içinde rahat ve huzurlu yaşayabilir.",
+              "text": "Yalnızlık Allah'a mahsustur"
+            },
+            {
+              "meaning": "Ortaya çıkan bir yanlışlık çok geç de olsa düzeltilebilir.",
+              "text": "Yanlış hesap Bağdat'tan döner"
+            },
+            {
+              "meaning": "Ağaç kesmek, insan öldürmek kadar büyük bir suçtur.",
+              "text": "Yaş kesen, baş keser"
+            },
+            {
+              "meaning": "Çalışmayarak bir şeyden yararlanan kişi, çalışıp ortaya koyan kişiye borçludur.",
+              "text": "Yatanın yürüyene borcu vardır"
+            },
+            {
+              "meaning": "Biri, suçunu zarar verdiği kimseye yüklediğinde söylenen bir söz.",
+              "text": "Yavuz hırsız, ev sahibini bastırır"
+            },
+            {
+              "meaning": "Elde somut olarak bulunmayan şeyler üzerinde ne konuşulur ne pazarlık edilir ne de fikir yürütülür.",
+              "text": "Yayladaki yoğurda sarımsak dövülmez"
+            },
+            {
+              "meaning": "Elinde büyüttüğün kişi gün gelip sana nankörlük edebilir.",
+              "text": "Yaza çıkardık danayı, beğenmez oldu anayı"
+            },
+            {
+              "meaning": "Gençliğinde çok çalışıp varlık edinen hastalığında veya ihtiyarlığında rahat eder.",
+              "text": "Yazın başı pişenin, kışın aşı pişer"
+            },
+            {
+              "meaning": "Kazanma hırsı olanlar bir işte kaybettikçe aynı işi yeniden denemek ister.",
+              "text": "Yenilen pehlivan, güreşe doymaz"
+            },
+            {
+              "meaning": "Gizli konuşulan bir şey umulmadık bir yoldan başkalarınca duyulabilir.",
+              "text": "Yerin kulağı var"
+            },
+            {
+              "meaning": "Haysiyetine değer veren insanların hakkını yemek onları çok üzer.",
+              "text": "Yiğidi öldür ama hakkını yeme"
+            },
+            {
+              "meaning": "Birden ödenemeyen bir borç azar azar verilerek ödenebilir.",
+              "text": "Yol yürümekle, borç ödemekle tükenir"
+            },
+            {
+              "meaning": "Sürekli olarak iş değiştiren bir kimse başarı kazanamaz.",
+              "text": "Yuvarlanan taş, yosun tutmaz"
+            },
+            {
+              "meaning": "Evin kadını anlayışlı, idareci ve tutumlu olursa ancak o zaman evde dirlik düzenlik sağlanır.",
+              "text": "Yuvayı dişi kuş yapar"
+            }
+          ],
+          "deyimler": [
+            {
+              "meaning": "Taşınması kolay olan değerli eşya.",
+              "text": "Yükte hafif pahada ağır"
+            },
+            {
+              "meaning": "Bir işte gereksiz telaş ve ivedilik göstererek.",
+              "text": "Yangından mal kaçırır gibi"
+            },
+            {
+              "meaning": "İstenilen bir şeyin olmasından ferahlık duymak.",
+              "text": "Yüreği yağ bağlamak"
+            },
+            {
+              "meaning": "Birdenbire çok korkmak.",
+              "text": "Yüreği ağzına gelmek"
+            },
+            {
+              "meaning": "Dalkavukluk etmek.",
+              "text": "Yağ çekmek"
+            },
+            {
+              "meaning": "Bıkmak, usanmak.",
+              "text": "Yaka silkmek"
+            },
+            {
+              "meaning": "Doğruluğu kesin olmayan.",
+              "text": "Yalan yanlış"
+            }
+          ]
+        },
+        "Z": {
+          "atasozleri": [
+            {
+              "meaning": "Sürüp giden zararlı bir işten ne kadar erken vazgeçersek daha sonra uğrayacağımız zararı o kadar azaltmış oluruz.",
+              "text": "Zararından neresinden dönülse kârdır"
+            },
+            {
+              "meaning": "Birinin malından çokça söz etmek gereksizdir.",
+              "text": "Zenginin malı, züğürdün çenesini yorar"
+            }
+          ],
+          "deyimler": [
+            {
+              "meaning": "Bir sorunda haksız olduğunu kabul etmemek, ustalıkla kendini haklı çıkarmaya çalışmak.",
+              "text": "Zeytinyağı gibi üste çıkmak"
+            },
+            {
+              "meaning": "Çok öfkelenmek, delirmek, kontrolü kaybetmek.",
+              "text": "Zıvanadan çıkmak"
+            },
+            {
+              "meaning": "Bir işi geciktirerek uygun vakti beklemek.",
+              "text": "Zaman kazanmak"
+            },
+            {
+              "meaning": "Bir işin gerçekleşmesi için uygun ortamı oluşturmak.",
+              "text": "Zemin hazırlamak"
+            },
+            {
+              "meaning": "Sıkıntıya, güçlüğe katlanamamak.",
+              "text": "Zora gelmemek"
+            }
+          ]
+        },
+        "Ç": {
+          "atasozleri": [
+            {
+              "meaning": "Çalışmak; insandaki isteksizliği, uyuşukluğu yok eder.",
+              "text": "Çalışan kazanır, elması kızarır"
+            },
+            {
+              "meaning": "Bir yöntemden başka bir yönteme geçiş tehlikeli bir durum veya zamanda yapılmamalıdır.",
+              "text": "Çayı geçerken at değiştirilmez"
+            },
+            {
+              "meaning": "Elden gitti sandığımız bir şeyle ilgimiz büsbütün kesilmemişse gereken çabayı harcayarak onun elimizde kalmasını sağlayabileceğimizi umabiliriz.",
+              "text": "Çıkmadık candan umut kesilmez"
+            },
+            {
+              "meaning": "Hiçbir zaman aşırıya kaçılmamalıdır.",
+              "text": "Çoğu zarar, azı karar"
+            },
+            {
+              "meaning": "Bir kimsenin değeri, kılık kıyafeti ile değil kişiliğindeki cevherle ölçülür.",
+              "text": "Çul içinde aslan yatar"
+            }
+          ],
+          "deyimler": [
+            {
+              "meaning": "Karşısındakine dokunacak veya kötü bir sonuç doğuracak söz söylemek.",
+              "text": "Çam devirmek"
+            },
+            {
+              "meaning": "Bir iş veya görevde az da olsa emeği geçmiş olmak.",
+              "text": "Çorbada tuzu bulunmak"
+            },
+            {
+              "meaning": "Karşılıklı gevezelik etmek, çok konuşmak.",
+              "text": "Çene yarıştırmak"
+            },
+            {
+              "meaning": "Ele geçirilmesi çok kolay olan.",
+              "text": "Çantada keklik"
+            },
+            {
+              "meaning": "Büyük sıkıntılara katlanmak.",
+              "text": "Çile çekmek"
+            },
+            {
+              "meaning": "İftira etmek.",
+              "text": "Çamur atmak"
+            }
+          ]
+        },
+        "Ö": {
+          "atasozleri": [
+            {
+              "meaning": "Öfkeye kapıldığında bağırıp çağırmak insanı rahatlatır.",
+              "text": "Öfke baldan tatlıdır"
+            },
+            {
+              "meaning": "Öfkesine kapılarak iş gören sonunda güç duruma düşer.",
+              "text": "Öfkeyle kalkan zararla oturur"
+            },
+            {
+              "meaning": "İki ortak veya taraf arasındaki yakınlığın dayandığı sebep yok olduğunda bu yakınlık da çözülür.",
+              "text": "Öküz öldü, ortaklık bitti"
+            },
+            {
+              "meaning": "Kaybedecek bir şeyi kalmayan kişi, artık hiçbir şeyden korkmaz.",
+              "text": "Ölmüş eşek, kurttan korkmaz"
+            }
+          ],
+          "deyimler": [
+            {
+              "meaning": "Olmayacak sebeplerle suç ve suçlu bulma çabasında olmak.",
+              "text": "Öküzün altında buzağı aramak"
+            },
+            {
+              "meaning": "1) Örümcek ağı olmak. 2) Bir şeyin uzun süre kullanılmaması.",
+              "text": "Örümcek bağlamak"
+            },
+            {
+              "meaning": "Çok korkutmak.",
+              "text": "Ödünü patlatmak"
+            },
+            {
+              "meaning": "Bir iş yolunda uzun zaman harcamak.",
+              "text": "Ömür çürütmek"
+            },
+            {
+              "meaning": "Bir işin başlamasına öncülük etmek.",
+              "text": "Ön ayak olmak"
+            },
+            {
+              "meaning": "Yapılan bir işten dolayı sevinçli bir gurur hissetmek.",
+              "text": "Övünç duymak"
+            }
+          ]
+        },
+        "Ü": {
+          "atasozleri": [
+            {
+              "meaning": "Her zaman bir arada bulunan, arkadaşlık eden kimseler, birbirlerine huy aşılar.",
+              "text": "Üzüm üzüme baka baka kararır"
+            },
+            {
+              "meaning": "Yararlandığın şeyin nereden geldiğini araştırma.",
+              "text": "Üzümünü ye, bağını sorma"
+            }
+          ],
+          "deyimler": [
+            {
+              "meaning": "Bir şeye veya kimseye sevgi, özen göstermek.",
+              "text": "Üstüne titremek"
+            },
+            {
+              "meaning": "Yenmek, başarılı olmak.",
+              "text": "Üstün gelmek"
+            }
+          ]
+        },
+        "İ": {
+          "atasozleri": [
+            {
+              "meaning": "Başkasına zararı dokunacak bir davranışı yapmadan önce iyi düşün, kendi kendini eleştir.",
+              "text": "İğneyi kendine, çuvaldızı başkasına batır"
+            },
+            {
+              "meaning": "Kurnazlıkta eşit olan iki kimse birbirlerini aldatamaz.",
+              "text": "İki cambaz bir ipte oynamaz"
+            },
+            {
+              "meaning": "İnsanlar konuşarak birbirlerini daha iyi anlarlar.",
+              "text": "İnsan konuşa konuşa, hayvan koklaşa koklaşa anlaşır"
+            },
+            {
+              "meaning": "Her şey, onu gereği gibi kullanmasını bilene yakışır.",
+              "text": "İş bilenin, kılıç kuşananın..."
+            },
+            {
+              "meaning": "Tembel tembel oturan kimse hantallaşır, iş yapma yeteneğini yitirir, çalışan kimse gittikçe açılır, daha yararlı işler yapar.",
+              "text": "İşleyen demir, pas tutmaz"
+            },
+            {
+              "meaning": "Biriktirme, çok çalışmakla kazanıp yemekle değil, kazandıklarımızın bir kısmını bir kenara ayırmakla olur.",
+              "text": "İşten artmaz, dişten artar"
+            },
+            {
+              "meaning": "Gerçekleşmesi doğal olan işler engellenemez.",
+              "text": "İt ürür, kervan yürür"
+            },
+            {
+              "meaning": "Saldırgan biriyle karşılaşma olasılığı bulunan kimse kavgaya hazır olmalıdır.",
+              "text": "İti an, çomağı hazırla"
+            },
+            {
+              "meaning": "İyilik eden kimseye zamanı geldiğinde başkaları da iyilik ederler.",
+              "text": "İyilik eden, iyilik bulur"
+            }
+          ],
+          "deyimler": [
+            {
+              "meaning": "1) Derdini anlatmak. 2) Ferahlamak, rahatlamak.",
+              "text": "İçini dökmek"
+            },
+            {
+              "meaning": "Değerini yitirmek.",
+              "text": "İki paralık olmak"
+            },
+            {
+              "meaning": "Ansızın içi sızlamak.",
+              "text": "İçi ciz etmek"
+            },
+            {
+              "meaning": "Telaş, sabırsızlık, coşkunluk göstermek.",
+              "text": "İçi içine sığmamak"
+            },
+            {
+              "meaning": "Çok zayıflamak.",
+              "text": "İğne ipliğe dönmek"
+            },
+            {
+              "meaning": "Yersiz ve gönül kıracak biçimde konuşmak.",
+              "text": "İleri geri konuşmak"
+            },
+            {
+              "meaning": "Bir şeyi en küçük ayrıntılarına kadar araştırmak.",
+              "text": "İnce eleyip sık dokumak"
+            },
+            {
+              "meaning": "Geçersiz nedenler ileri sürerek işten kaçınmak.",
+              "text": "İpe un sermek"
+            },
+            {
+              "meaning": "Bir durumdan kuşkulanmak, tedirgin olmak.",
+              "text": "İçine kurt düşmek"
+            },
+            {
+              "meaning": "Birine muhtaç olmak.",
+              "text": "İşi düşmek"
+            },
+            {
+              "meaning": "1) Yaşlanmak. 2) Farkında olmadan uyuyuvermek.",
+              "text": "İçi geçmek"
+            },
+            {
+              "meaning": "Çok samimi olmak.",
+              "text": "İçli dışlı olmak"
+            },
+            {
+              "meaning": "Çok titiz araştırma yapmak.",
+              "text": "İnce eğirip sık dokumak"
+            }
+          ]
+        },
+        "Ş": {
+          "deyimler": [
+            {
+              "meaning": "Kendisine yapılan şakaya darılmamak.",
+              "text": "Şaka kaldırmak"
+            },
+            {
+              "meaning": "En önemli, en hassas nokta.",
+              "text": "Şah damarı"
+            },
+            {
+              "meaning": "Durup dururken kötü bir işe niyetlenmek.",
+              "text": "Şeytan dürtmek"
+            }
+          ]
+        }
+      },
+      "meta": {
+        "counts": {
+          "A": {
+            "atasozleri": 26,
+            "deyimler": 14
+          },
+          "B": {
+            "atasozleri": 16,
+            "deyimler": 17
+          },
+          "C": {
+            "atasozleri": 1,
+            "deyimler": 4
+          },
+          "D": {
+            "atasozleri": 16,
+            "deyimler": 14
+          },
+          "E": {
+            "atasozleri": 7,
+            "deyimler": 14
+          },
+          "F": {
+            "atasozleri": 3,
+            "deyimler": 4
+          },
+          "G": {
+            "atasozleri": 9,
+            "deyimler": 14
+          },
+          "H": {
+            "atasozleri": 6,
+            "deyimler": 7
+          },
+          "I": {
+            "atasozleri": 0,
+            "deyimler": 3
+          },
+          "J": {
+            "atasozleri": 0,
+            "deyimler": 1
+          },
+          "K": {
+            "atasozleri": 18,
+            "deyimler": 11
+          },
+          "L": {
+            "atasozleri": 2,
+            "deyimler": 4
+          },
+          "M": {
+            "atasozleri": 7,
+            "deyimler": 7
+          },
+          "N": {
+            "atasozleri": 2,
+            "deyimler": 4
+          },
+          "O": {
+            "atasozleri": 1,
+            "deyimler": 5
+          },
+          "P": {
+            "atasozleri": 7,
+            "deyimler": 11
+          },
+          "R": {
+            "atasozleri": 1,
+            "deyimler": 4
+          },
+          "S": {
+            "atasozleri": 19,
+            "deyimler": 6
+          },
+          "T": {
+            "atasozleri": 14,
+            "deyimler": 4
+          },
+          "U": {
+            "atasozleri": 4,
+            "deyimler": 4
+          },
+          "V": {
+            "atasozleri": 3,
+            "deyimler": 4
+          },
+          "Y": {
+            "atasozleri": 16,
+            "deyimler": 7
+          },
+          "Z": {
+            "atasozleri": 2,
+            "deyimler": 5
+          },
+          "Ç": {
+            "atasozleri": 5,
+            "deyimler": 6
+          },
+          "Ö": {
+            "atasozleri": 4,
+            "deyimler": 6
+          },
+          "Ü": {
+            "atasozleri": 2,
+            "deyimler": 2
+          },
+          "İ": {
+            "atasozleri": 9,
+            "deyimler": 13
+          },
+          "Ş": {
+            "atasozleri": 0,
+            "deyimler": 3
+          }
+        }
+      }
+    }
+  }
+}
