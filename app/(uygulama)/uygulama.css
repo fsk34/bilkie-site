@@ -2651,6 +2651,13 @@ html[data-bk-oturum="1"] .bk-kok-bekleme { display: block; }
   .bk-test-soru .no { left: 11px; top: 14px; }
 }
 
+/* Sınav düğmeleri listesi. Aralık BURADA: düğmenin kendisine margin vermek,
+   kilitli olanın altına baloncuk açılınca çift boşluk yapıyordu.
+   14px = Android YaziliScreens.kt'deki spacedBy(14.dp). */
+.bk-sinav-liste { display: grid; gap: 14px; }
+/* Baloncuk yuvası: düğme + baloncuk tek öğe sayılır, listenin aralığı bozulmaz. */
+.bk-sinav-kilitli-yuva { display: grid; }
+
 /* Kilitli yazılı dönemi: silik değil, sadece daha sessiz — dört dönem birden
    görünsün ama sırası gelen öne çıksın. (Android YaziliExamButton ile aynı dil.) */
 .bk-sinav-dugme.kilitli {

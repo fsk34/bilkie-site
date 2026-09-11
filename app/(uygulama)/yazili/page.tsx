@@ -93,32 +93,37 @@ export default function YaziliSayfasi() {
         </div>
       )}
 
-      {sonuc?.durum === "basarili" &&
-        sonuc.sinavlar.map((s) =>
-          s.acik ? (
-            <Link key={s.anahtar} href={`/yazili/${s.anahtar}`} className="bk-sinav-dugme">
-              {s.ad.toLocaleUpperCase("tr")}
-            </Link>
-          ) : (
-            <div key={s.anahtar}>
-              <button
-                type="button"
-                className="bk-sinav-dugme kilitli"
-                onClick={() => baloncukDegistir(s.anahtar)}
-              >
-                <span className="kilit" aria-hidden>
-                  🔒
-                </span>
+      {/* Dört düğme TEK konteynerde: aralık listeye ait, düğmenin kendisine değil.
+          Tek sınav varken fark edilmiyordu; dörde çıkınca bitişik göründüler. */}
+      {sonuc?.durum === "basarili" && sonuc.sinavlar.length > 0 && (
+        <div className="bk-sinav-liste">
+          {sonuc.sinavlar.map((s) =>
+            s.acik ? (
+              <Link key={s.anahtar} href={`/yazili/${s.anahtar}`} className="bk-sinav-dugme">
                 {s.ad.toLocaleUpperCase("tr")}
-              </button>
-              {baloncuk === s.anahtar && (
-                <p className="bk-sinav-baloncuk">
-                  <span aria-hidden>🕐</span> {acilisMetni(s.baslar)}
-                </p>
-              )}
-            </div>
-          )
-        )}
+              </Link>
+            ) : (
+              <div key={s.anahtar} className="bk-sinav-kilitli-yuva">
+                <button
+                  type="button"
+                  className="bk-sinav-dugme kilitli"
+                  onClick={() => baloncukDegistir(s.anahtar)}
+                >
+                  <span className="kilit" aria-hidden>
+                    🔒
+                  </span>
+                  {s.ad.toLocaleUpperCase("tr")}
+                </button>
+                {baloncuk === s.anahtar && (
+                  <p className="bk-sinav-baloncuk">
+                    <span aria-hidden>🕐</span> {acilisMetni(s.baslar)}
+                  </p>
+                )}
+              </div>
+            )
+          )}
+        </div>
+      )}
     </Kabuk>
   );
 }
