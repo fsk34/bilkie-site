@@ -14,7 +14,8 @@ import AltBant from "./AltBant";
 // Uygulamanın bölümleri: ana ekranın üç büyük kartı (AnaEkran.tsx) + Oyunlar
 // (Kabuk.tsx menüsündeki adıyla; beş oyunun beşi de web'de oynanıyor).
 const BOLUMLER: { ad: string; ikon: string; yol?: string }[] = [
-  { ad: "Konu Testleri", ikon: "test.png" },
+  // Konu testlerinin ilk 10 sorusu halka açık; diğerleri giriş istiyor.
+  { ad: "Konu Testleri", ikon: "test.png", yol: "/konu-testi" },
   { ad: "Konu Defterleri", ikon: "defter.png" },
   { ad: "Yazılıya Hazırlık", ikon: "yazili.png" },
   { ad: "Oyunlar", ikon: "oyunlar.svg" },

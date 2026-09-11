@@ -17,6 +17,7 @@ import { join } from "node:path";
 /* ------------------------------------------------------------------ kaynak */
 
 let _dizin: Record<string, unknown> | null = null;
+let _testler: Record<string, unknown> | null = null;
 let _atasozleri: Record<string, unknown> | null = null;
 
 function oku(dosya: string): Record<string, unknown> {
@@ -45,6 +46,18 @@ function atasozleriHam(): Record<string, unknown> {
     _atasozleri = ((k?.atasozleri_deyimler as Record<string, unknown>)?.letters ?? {}) as Record<string, unknown>;
   }
   return _atasozleri;
+}
+
+/**
+ * Konu testleri — her testin YALNIZ 1. adımı (10 soru) burada.
+ *
+ * Testin tamamı 30 soru; kalan 20'si uygulamada. Dışa aktarımdan sadece açılacak
+ * kısım çıkarıldı: kapalı sorular depoda da durmuyor (tam dosya 8,4 MB, bu 1,4 MB).
+ * Üretim betiği: bkz. commit mesajı; katalog.ts'teki "[tN]" etiketleriyle eşleşiyor.
+ */
+function testlerHam(): Record<string, unknown> {
+  if (!_testler) _testler = oku("testler.json");
+  return _testler;
 }
 
 /* ------------------------------------------------------------- adres parçası */
@@ -179,4 +192,61 @@ export function harfKumeleri(): HarfKumesi[] {
 
 export function harfBul(harfSlug: string): HarfKumesi | undefined {
   return harfKumeleri().find((h) => h.slug === harfSlug);
+}
+
+
+/* ------------------------------------------------------------- konu testleri */
+
+export type TestSoru = { s: string; o: string[]; d?: number };
+export type Test = {
+  t: string;
+  ad: string;
+  slug: string;
+  unite: string;
+  toplam: number;      // testin TAM soru sayısı (30) — açık olan 10
+  sorular: TestSoru[];
+};
+export type TestDers = { key: string; ad: string; slug: string; testler: Test[] };
+export type TestSinif = { sinif: number; slug: string; dersler: TestDers[] };
+
+export function testAgaci(): TestSinif[] {
+  const ham = testlerHam() as Record<string, Record<string, Test[]>>;
+  const out: TestSinif[] = [];
+  for (const [sinifKey, dersler] of Object.entries(ham)) {
+    const sinif = Number.parseInt(sinifKey, 10);
+    if (!sinif) continue;
+    const liste: TestDers[] = [];
+    for (const [dersKey, testler] of Object.entries(dersler)) {
+      if (!Array.isArray(testler) || !testler.length) continue;
+      liste.push({ key: dersKey, ad: dersAdi(dersKey, sinif), slug: dersKey, testler });
+    }
+    if (liste.length) {
+      liste.sort((a, b) => a.ad.localeCompare(b.ad, "tr"));
+      out.push({ sinif, slug: `${sinif}-sinif`, dersler: liste });
+    }
+  }
+  return out.sort((a, b) => a.sinif - b.sinif);
+}
+
+export function testSinifBul(sinifSlug: string): TestSinif | undefined {
+  return testAgaci().find((s) => s.slug === sinifSlug);
+}
+
+export function testDersBul(
+  sinifSlug: string,
+  dersSlug: string
+): { sinif: TestSinif; ders: TestDers } | undefined {
+  const sinif = testSinifBul(sinifSlug);
+  const ders = sinif?.dersler.find((d) => d.slug === dersSlug);
+  return sinif && ders ? { sinif, ders } : undefined;
+}
+
+export function testBul(
+  sinifSlug: string,
+  dersSlug: string,
+  konuSlug: string
+): { sinif: TestSinif; ders: TestDers; test: Test } | undefined {
+  const b = testDersBul(sinifSlug, dersSlug);
+  const test = b?.ders.testler.find((t) => t.slug === konuSlug);
+  return b && test ? { ...b, test } : undefined;
 }

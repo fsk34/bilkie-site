@@ -1,5 +1,5 @@
 import { MetadataRoute } from "next";
-import { harfKumeleri, icerikAgaci } from "./lib/icerik";
+import { harfKumeleri, icerikAgaci, testAgaci } from "./lib/icerik";
 
 const KOK = "https://www.bilkie.com";
 
@@ -16,7 +16,27 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: KOK, lastModified: simdi, priority: 1 },
     { url: `${KOK}/konu-anlatimi`, lastModified: simdi, priority: 0.9 },
     { url: `${KOK}/atasozleri-ve-deyimler`, lastModified: simdi, priority: 0.9 },
+    { url: `${KOK}/konu-testi`, lastModified: simdi, priority: 0.9 },
   ];
+
+  // Konu testleri: sınıf → ders → test. Asıl içerik en alttaki katmanda.
+  for (const s of testAgaci()) {
+    girisler.push({ url: `${KOK}/konu-testi/${s.slug}`, lastModified: simdi, priority: 0.8 });
+    for (const d of s.dersler) {
+      girisler.push({
+        url: `${KOK}/konu-testi/${s.slug}/${d.slug}`,
+        lastModified: simdi,
+        priority: 0.7,
+      });
+      for (const t of d.testler) {
+        girisler.push({
+          url: `${KOK}/konu-testi/${s.slug}/${d.slug}/${t.slug}`,
+          lastModified: simdi,
+          priority: 0.7,
+        });
+      }
+    }
+  }
 
   for (const s of icerikAgaci()) {
     girisler.push({ url: `${KOK}/konu-anlatimi/${s.slug}`, lastModified: simdi, priority: 0.8 });

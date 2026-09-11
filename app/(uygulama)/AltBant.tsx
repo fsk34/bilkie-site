@@ -25,6 +25,7 @@ const DERSLER = [
 // hem arama motoru için: bu bağlantılar sitenin HER sayfasından erişilebilir
 // olduğu için tarayıcı robotu içerik ağacını tek adımda buluyor.
 const ICERIK = [
+  { ad: "Konu Testleri", yol: "/konu-testi" },
   { ad: "Konu Anlatımı", yol: "/konu-anlatimi" },
   { ad: "Atasözleri ve Deyimler", yol: "/atasozleri-ve-deyimler" },
 ];
