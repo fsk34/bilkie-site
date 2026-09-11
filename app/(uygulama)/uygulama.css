@@ -2650,3 +2650,27 @@ html[data-bk-oturum="1"] .bk-kok-bekleme { display: block; }
   .bk-test-soru { padding: 14px 14px 12px 40px; }
   .bk-test-soru .no { left: 11px; top: 14px; }
 }
+
+/* Kilitli yazılı dönemi: silik değil, sadece daha sessiz — dört dönem birden
+   görünsün ama sırası gelen öne çıksın. (Android YaziliExamButton ile aynı dil.) */
+.bk-sinav-dugme.kilitli {
+  background: #232845; border-color: #39406b; cursor: pointer;
+  color: rgba(255, 255, 255, .55);
+  display: flex; align-items: center; justify-content: center; gap: 9px;
+}
+.bk-sinav-dugme.kilitli .kilit { font-size: 15px; opacity: .75; }
+
+/* Baloncuk butonun ALTINDA: üste binen bir katman dar ekranda bir sonraki
+   düğmeyi örtüyordu. */
+.bk-sinav-baloncuk {
+  display: flex; align-items: center; gap: 9px;
+  margin: 8px 0 0; padding: 11px 14px; border-radius: 12px;
+  background: var(--kutu); border: 1px solid #39406b;
+  color: rgba(255, 255, 255, .85); font-size: 14px;
+}
+
+.bk-yazili-bos {
+  display: grid; gap: 14px; justify-items: center; text-align: center;
+  padding: 28px 20px; color: var(--soluk);
+}
+.bk-yazili-bos p { margin: 0; }

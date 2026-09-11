@@ -1,16 +1,56 @@
 "use client";
 
 // Yazılıya Hazırlık — sınav seçimi (uygulamadaki YaziliyaHazirlikScreen).
+//
+// Sınav listesi VERİDEN gelir (`yazililar/takvim`) — Android'le aynı düğüm.
+// ⚠️ Eskiden burada tek bir sabit satır vardı: `[{ key: "term2_exam2", ... }]`.
+// Bir sınavı açmak kod değişikliği + yayın gerektiriyordu; üstelik dönem geçince
+// yanlış sınav görünüyordu (Eylül'de "2. Dönem 2. Yazılı").
+//
+// Dört dönem birden listelenir: sırası gelmemiş olan kilitli görünür ve
+// üstüne tıklayınca ne zaman açılacağını söyler. Boş ekran göstermek yerine
+// öğrenciye takvimi göstermek, bölümün var olduğunu da anlatıyor.
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 import Kabuk from "../Kabuk";
-
-// Uygulamada şimdilik tek sınav tanımlı
-const SINAVLAR = [{ key: "term2_exam2", ad: "2. Dönem 2. Yazılı" }];
+import Bekleme from "../Bekleme";
+import { acilisMetni, yaziliTakvimi, type TakvimSonuc } from "../../lib/yaziliTakvim";
 
 export default function YaziliSayfasi() {
   const router = useRouter();
+  const [sonuc, setSonuc] = useState<TakvimSonuc | null>(null);
+  // Hangi kilitli sınavın baloncuğu açık. Aynı anda tek tane.
+  const [baloncuk, setBaloncuk] = useState<string | null>(null);
+
+  // Yeniden yükleme sayacı: "Tekrar dene" bunu artırır, efekt yeniden koşar.
+  // (Efektin GÖVDESİNDE setState çağırmıyoruz — yalnız sonuç gelince, geri
+  //  çağrının içinde. Senkron setState basamaklı render'a yol açıyor.)
+  const [deneme, setDeneme] = useState(0);
+
+  useEffect(() => {
+    let iptal = false;
+    yaziliTakvimi().then((r) => {
+      if (!iptal) setSonuc(r);
+    });
+    return () => {
+      iptal = true;
+    };
+  }, [deneme]);
+
+  // Baloncuk kendiliğinden kapansın — kapatmak için ikinci dokunuş gerekmesin.
+  // Zamanlayıcı efektte değil BURADA kuruluyor: efekt içinde setState React'in
+  // set-state-in-effect kuralına takılıyor ve gereksiz bir render turu açıyor.
+  const zamanlayici = useRef<ReturnType<typeof setTimeout> | null>(null);
+  function baloncukDegistir(anahtar: string) {
+    if (zamanlayici.current) clearTimeout(zamanlayici.current);
+    setBaloncuk((onceki) => (onceki === anahtar ? null : anahtar));
+    zamanlayici.current = setTimeout(() => setBaloncuk(null), 3500);
+  }
+  useEffect(() => () => {
+    if (zamanlayici.current) clearTimeout(zamanlayici.current);
+  }, []);
 
   return (
     <Kabuk>
@@ -29,11 +69,56 @@ export default function YaziliSayfasi() {
         <img src="/uygulama/yazili.png" alt="" />
       </div>
 
-      {SINAVLAR.map((s) => (
-        <Link key={s.key} href={`/yazili/${s.key}`} className="bk-sinav-dugme">
-          {s.ad.toLocaleUpperCase("tr")}
-        </Link>
-      ))}
+      {sonuc === null && <Bekleme />}
+
+      {/* Okuma BAŞARISIZ: "kapalı" demek yanlış olurdu, tekrar denenebilmeli. */}
+      {sonuc?.durum === "okunamadi" && (
+        <div className="bk-yazili-bos">
+          <p>Yazılılar yüklenemedi. Bağlantını kontrol et.</p>
+          <button
+            className="bk-dugme"
+            onClick={() => {
+              setSonuc(null);
+              setDeneme((n) => n + 1);
+            }}
+          >
+            Tekrar dene
+          </button>
+        </div>
+      )}
+
+      {sonuc?.durum === "basarili" && sonuc.sinavlar.length === 0 && (
+        <div className="bk-yazili-bos">
+          <p>Yazılı dönemleri hazırlanıyor. Yazılı zamanı geldiğinde burada görünecek.</p>
+        </div>
+      )}
+
+      {sonuc?.durum === "basarili" &&
+        sonuc.sinavlar.map((s) =>
+          s.acik ? (
+            <Link key={s.anahtar} href={`/yazili/${s.anahtar}`} className="bk-sinav-dugme">
+              {s.ad.toLocaleUpperCase("tr")}
+            </Link>
+          ) : (
+            <div key={s.anahtar}>
+              <button
+                type="button"
+                className="bk-sinav-dugme kilitli"
+                onClick={() => baloncukDegistir(s.anahtar)}
+              >
+                <span className="kilit" aria-hidden>
+                  🔒
+                </span>
+                {s.ad.toLocaleUpperCase("tr")}
+              </button>
+              {baloncuk === s.anahtar && (
+                <p className="bk-sinav-baloncuk">
+                  <span aria-hidden>🕐</span> {acilisMetni(s.baslar)}
+                </p>
+              )}
+            </div>
+          )
+        )}
     </Kabuk>
   );
 }
