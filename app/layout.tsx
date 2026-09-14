@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import Script from "next/script";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
@@ -13,6 +13,12 @@ const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
 });
+
+// Tarayıcı çerçevesi (mobil adres çubuğu, overscroll tuvali) uygulama zeminiyle aynı renk;
+// eskiden tanımsızdı, telefonda üst bant siyah/beyaz kalıyordu.
+export const viewport: Viewport = {
+  themeColor: "#0c1a3f",
+};
 
 export const metadata: Metadata = {
   title: "Bilkie | Öğrenciler için oyunlaştırılmış öğrenme",

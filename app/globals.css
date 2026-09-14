@@ -1,8 +1,13 @@
 @import "tailwindcss";
 
+/* Sitenin tamamı uygulama zemini (#0C1A3F). Eskiden Tailwind şablonunun beyaz/siyah
+   zemini duruyordu: her sayfa kendi lacivertini çizdiği için normalde görünmüyordu, ama
+   kaydırma sonunda (lastik etkisi / overscroll) html-body zemini açığa çıkıp üstte-altta
+   SİYAH bant görünüyordu. Zemin artık html'de de tanımlı (Safari overscroll tuvali html'i
+   kullanır); tek tema olduğu için prefers-color-scheme dalı kaldırıldı. */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #0c1a3f;
+  --foreground: #eaf2ff;
 }
 
 @theme inline {
@@ -12,11 +17,9 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  background: var(--background);
+  /* Lastik etkisini tamamen kapatmıyoruz (iOS'ta doğal his), yalnız zemin aynı renk. */
 }
 
 body {

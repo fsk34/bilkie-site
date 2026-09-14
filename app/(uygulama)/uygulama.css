@@ -1691,9 +1691,10 @@
 .bk-rozet { display: grid; justify-items: center; gap: 6px; }
 .bk-rozet .kutu {
   width: 92px; height: 92px; border-radius: 20px; background: var(--dugme-dis);
-  display: grid; place-items: center;
+  display: grid; place-items: center; overflow: hidden;
 }
-.bk-rozet img { width: 64px; height: 64px; object-fit: contain; }
+/* Yeni ay rozeti kare çizim, kutuyu doldurur (Android ContentScale.Crop, 92dp). */
+.bk-rozet img { width: 92px; height: 92px; object-fit: cover; }
 .bk-rozet[data-kazanildi="false"] img { opacity: .25; }
 .bk-rozet .ad { font-size: 12px; color: rgba(255,255,255,.85); }
 
@@ -1904,7 +1905,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .bk-secenek[data-anim], .bk-parilti > .kayan, .bk-parilti .ucgen,
+  .bk-secenek[data-anim], .bk-quiz-kutu[data-anim], .bk-parilti > .kayan, .bk-parilti .ucgen,
   .bk-alt-bant[data-gorunur="true"], .bk-akis-adim[data-yon],
   .bk-yildiz[data-pop="true"], .bk-hafta-gun .halka, .bk-kombo { animation: none; }
 }
@@ -2288,27 +2289,43 @@
    normal #1F2C4E/#293659 · seçili #253660/#8085A7 · doğru #2ECC71/#15B056
    · yanlış #E74C3C/#B01F15 */
 
-.bk-quiz-izgara { display: grid; gap: 12px; }
-.bk-quiz-satir { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-.bk-quiz-kutu {
-  min-height: 64px; padding: 12px 14px; border-radius: 14px; cursor: pointer;
-  background: var(--kutu); border: 2px solid var(--kutu-cizgi); color: var(--yazi);
-  font-family: "bk-main", system-ui, sans-serif; font-size: 15px; line-height: 1.35;
-  display: grid; place-items: center; text-align: center;
-  transition: background .12s, border-color .12s, transform .12s;
+/* Quiz — Android QuizMatchScreen: tam ekran, satırlar kalan yüksekliği paylaşır
+   (Row.weight(1f)), kutu min 58dp. Alt bant test ekranınınkiyle aynı; band yalnız
+   düğme taşıdığı için alt boşluk test'teki 190 yerine 110. */
+.bk-quiz {
+  display: flex; flex-direction: column; box-sizing: border-box;
+  min-height: 100vh; min-height: 100dvh; padding-bottom: 150px; /* bant + "Doğru" yazısı */
 }
+.bk-quiz .bk-test-ust { margin-bottom: 16px; }
+.bk-quiz .bk-cikis { background: none; border: 0; padding: 0; cursor: pointer; }
+.bk-quiz-izgara { flex: 1; display: flex; flex-direction: column; gap: 12px; }
+/* Satır tavanı: masaüstünde 5 satır ekranı doldurunca kutular dev oluyor; telefonda
+   (Android'de) satır ~110dp. Tavan olmadan 1080px'lik ekranda kutu 190px'e çıkıyordu. */
+.bk-quiz-satir {
+  flex: 1 1 0; min-height: 58px; max-height: 132px;
+  /* minmax(0,1fr): düz 1fr'da sütun min-content'e (en uzun kelimeye) büyüyüp telefonda taşıyordu */
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px;
+}
+/* Kutu = test şıkkıyla aynı dil (Android MatchTile drawBehind: 3px çerçeve + alt dudak) */
+.bk-quiz-kutu {
+  position: relative; overflow: hidden; height: 100%; min-height: 58px; min-width: 0;
+  padding: 10px 14px; border-radius: 16px; cursor: pointer; overflow-wrap: anywhere;
+  background: var(--kutu); border: 2px solid var(--kutu-cizgi); border-bottom-width: 5px;
+  color: var(--yazi); font-family: "bk-main", system-ui, sans-serif; font-size: 15px; line-height: 1.35;
+  display: grid; place-items: center; text-align: center;
+  transition: opacity .25s;
+}
+.bk-quiz-kutu:hover:not([disabled]) { background: #22315a; }
 .bk-quiz-kutu[data-durum="secili"] { background: var(--secili); border-color: var(--secili-cizgi); }
-.bk-quiz-kutu[data-durum="dogru"]  { background: var(--yesil); border-color: var(--yesil-koyu); color: #06371c; }
-.bk-quiz-kutu[data-durum="yanlis"] { background: var(--kirmizi); border-color: var(--kirmizi-koyu); animation: bk-sarsil .3s; }
+/* Android: kilitlenen çift alpha 0.52 — "bitti, artık dokunulmaz" */
+.bk-quiz-kutu[data-durum="dogru"]  { background: var(--yesil); border-color: var(--yesil-koyu); color: #06371c; opacity: .52; }
+.bk-quiz-kutu[data-durum="yanlis"] { background: var(--kirmizi); border-color: var(--kirmizi-koyu); }
+.bk-quiz-kutu[data-anim="dogru"]  { animation: bk-zipla .52s ease-out both; }
+.bk-quiz-kutu[data-anim="yanlis"] { animation: bk-sarsil .405s linear both; }
 .bk-quiz-kutu:disabled { cursor: default; }
 /* Pasif kutular SOLMAZ: sağ sütun, soldan seçim yapılmadan önce zaten pasif;
    soluk gösterilirse "kullanılamaz" gibi okunuyor. Android'de de solmuyor. */
 
-@keyframes bk-sarsil {
-  0%, 100% { transform: translateX(0); }
-  25% { transform: translateX(-5px); }
-  75% { transform: translateX(5px); }
-}
 /* Tamamlanmış quiz satırı yeşile döner (Android'deki quiz_done işareti) */
 .bk-akordiyon-alt a[data-bitti="true"] { color: var(--yesil); }
 
