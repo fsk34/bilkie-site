@@ -43,6 +43,9 @@ export const quizDb = getDatabase(app, "https://unitequizler.europe-west1.fireba
 
 /* Ana ekrandaki 4 keşif kutusunun veritabanları (iOS: FirebaseDb) */
 export const atasozDeyimlerDb = getDatabase(app, "https://atasozudeyimler.europe-west1.firebasedatabase.app");
+// Sözlükler (14 Eyl 2026) — Android FirebaseDb.SOZLUK_DB_URL / INGSOZLUK_DB_URL ile aynı
+export const trSozlukDb = getDatabase(app, "https://trsozluk.europe-west1.firebasedatabase.app");
+export const ingSozlukDb = getDatabase(app, "https://ingsozluk.europe-west1.firebasedatabase.app");
 export const dunyaHarikalariDb = getDatabase(app, "https://dunyaharikalari.europe-west1.firebasedatabase.app");
 export const mesleklerDb = getDatabase(app, "https://meslekler.europe-west1.firebasedatabase.app");
 export const turkiyeyiKesfetDb = getDatabase(app, "https://turkiyeyikesfet.europe-west1.firebasedatabase.app");

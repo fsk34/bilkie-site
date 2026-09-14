@@ -2780,3 +2780,19 @@ html[data-bk-oturum="1"] .bk-kok-bekleme { display: block; }
   animation: bk-uc-nokta-sol .45s cubic-bezier(.4,0,.2,1) infinite alternate; }
 @keyframes bk-uc-nokta-sol { to { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .bk-uc-nokta i { animation: none; opacity: .6; } }
+
+/* ------------------------------------------------------------------ sözlük */
+.bk-kesif[data-tur="sozluk"] { background: linear-gradient(180deg, #0c1a3f, #2c335e 55%, #4a538e); }
+.bk-sozluk-ara { position: relative; }
+.bk-sozluk-ara .temizle {
+  position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+  background: none; border: 0; color: rgba(255,255,255,.8); font-size: 16px; cursor: pointer; padding: 6px;
+}
+.bk-sozluk-kelime { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.bk-sozluk-tur {
+  font-family: "bk-kucukbaslik", system-ui, sans-serif; font-size: 11px; color: rgba(255,255,255,.85);
+  background: rgba(255,255,255,.14); border-radius: 8px; padding: 3px 8px;
+}
+.bk-sozluk-ornek { font-family: "bk-kucukbaslik", system-ui, sans-serif; font-size: 12px; font-style: italic; color: rgba(255,255,255,.65); margin-top: 6px; line-height: 1.5; }
+.bk-sozluk-ornek.tr { font-style: normal; color: rgba(255,255,255,.55); }
+.bk-ady-liste .oge .bk-sozluk-kelime { font-family: "bk-baslik", system-ui, sans-serif; font-size: 14px; }

@@ -10,9 +10,10 @@ import RozetKazandin from "./RozetKazandin";
 
 const KUTULAR = [
   { ad: "Atasözleri\nve Deyimler", gorsel: "atasozu",     ust: "#1F2C6B", alt: "#262F6F", yol: "/atasozleri" },
-  { ad: "Dünya\nHarikaları",       gorsel: "harikalar",   ust: "#10496E", alt: "#0F5870", yol: "/harikalar" },
+  // 14 Eyl 2026: Dünya Harikaları → Türkçe Sözlük, Meslek Grupları → İngilizce Sözlük (Android ile aynı)
+  { ad: "Türkçe\nSözlük",           gorsel: "abc",         ust: "#10496E", alt: "#0F5870", yol: "/sozluk" },
   { ad: "Türkiye'yi\nKeşfet",      gorsel: "turkbayragi", ust: "#25256B", alt: "#453486", yol: "/turkiye" },
-  { ad: "Meslek\nGrupları",        gorsel: "meslek",      ust: "#2967A5", alt: "#346EB5", yol: "/meslekler" },
+  { ad: "İngilizce\nSözlük",        gorsel: "hello",       ust: "#2967A5", alt: "#346EB5", yol: "/ingilizce-sozluk" },
 ];
 
 const BUYUKLER = [
