@@ -17,20 +17,25 @@ export const AY_AD = [
   "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık",
 ] as const;
 
-/** Aylık dolgu rengi (Android `AyGorsel.VURGU` ile birebir aynı). */
+/**
+ * Ayın vurgu rengi (görev çubuğu dolgusu) — 14 Eyl 2026: banner'ın BASKIN tonundan türetildi
+ * (doygun piksel kümesi ölçüldü), ray #4A538E üzerinde ≥3:1 kontrast verene kadar açıldı; üç
+ * platformda aynı liste. Eskiden 7 ay "geçici" ve banner'la ilgisizdi (Haziran kırmızısı
+ * mor banner üstünde 1,4:1'di). Temmuz/Ağustos'un banner'ı yok, o ikisi hâlâ geçici.
+ */
 const VURGU = [
-  "#9AD5F0", // Ocak     — geçici
-  "#F8B9C3", // Şubat
-  "#FFB63B", // Mart
-  "#A7F432", // Nisan
-  "#FAD785", // Mayıs
-  "#D3211B", // Haziran
-  "#FF8A3D", // Temmuz   — geçici
-  "#FFD54F", // Ağustos  — geçici
-  "#6FC7B0", // Eylül    — geçici
-  "#E07A3F", // Ekim     — geçici
-  "#A9714B", // Kasım    — geçici
-  "#4C8DD9", // Aralık   — geçici
+  "#45B9EF", // Ocak
+  "#45B7EF", // Şubat
+  "#AFD85C", // Mart
+  "#71D861", // Nisan
+  "#E4A936", // Mayıs
+  "#B69AFF", // Haziran
+  "#FF8A3D", // Temmuz   — banner yok, geçici
+  "#FFD54F", // Ağustos  — banner yok, geçici
+  "#F98B42", // Eylül
+  "#B2D861", // Ekim
+  "#ADA0FF", // Kasım
+  "#59B3FF", // Aralık
 ] as const;
 
 /**
