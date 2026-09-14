@@ -34,7 +34,7 @@ function Icerik() {
   const router = useRouter();
   const { sinif } = useOturum();
   // Tüm yazılı ilerlemesi TEK canlı düğümden (ders → sınav → tamamlanan adım).
-  const tumIlerleme = useYaziliIlerlemesi();
+  const tumIlerleme = useYaziliIlerlemesi(sinif);
   const ilerleme = useMemo(() => {
     const out: Record<string, number> = {};
     for (const d of DERSLER) out[d.key] = tumIlerleme?.[d.key]?.[sinavKey] ?? 0;

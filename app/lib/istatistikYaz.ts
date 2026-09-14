@@ -154,9 +154,11 @@ export async function istatistikOlayiUygula(uid: string, o: IstatistikOlayi): Pr
         if (konu) await kovaGuncelle(`${dersTemel}/topics/${konu}/tests`, dogru, toplam, sureSn, puan);
       }
     } else if (o.tip === "defter") {
+      // Android `addReadNotebookOnce` → txInc(overall/defter/completedNotebooks) +
+      // txInc(subjects/{ders}/defter/completedNotebooks). lastResult YAZILMAZ: sonuç ekranı
+      // onu test için okur, 0/0'lık bir "defter" kaydı Android'de yanlış görünürdü.
       await sayacArtir(`${temel}/overall/defter/completedNotebooks`, 1);
       await update(dbRef(kullaniciDb, `${temel}/overall/defter`), { updatedAt: Date.now() });
-      await sonSonucYaz(temel, "defter", o, 0, 0, sureSn, puan);
 
       if (ders) {
         await sayacArtir(`${temel}/subjects/${ders}/defter/completedNotebooks`, 1);

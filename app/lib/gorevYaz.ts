@@ -5,10 +5,11 @@
 // Yollar: users/{uid}/tasks/{yyyy-MM-dd} · tasksWeekly/{yyyy-Www} · tasksMonthly/{yyyy-MM}
 // Her görev kendi düğümünde transaction ile güncellenir — telefonla yarışsa da kaybolmaz.
 
-import { ref as dbRef, runTransaction, serverTimestamp, set } from "firebase/database";
+import { get, ref as dbRef, runTransaction, serverTimestamp, set } from "firebase/database";
 import { kullaniciDb } from "./firebase";
 import { ayAnahtari, gunAnahtari } from "./tarih";
 import { sessizHata } from "./hata";
+import { rozetYiliAnahtari } from "./sezon";
 import {
   aylikGorevDurumYolu,
   aylikGorevTanimlari,
@@ -40,7 +41,6 @@ export type GorevOlayi = {
   testId?: string | null;
 };
 
-const ROZET_SEZON = "2025_2026_guz";
 const AY_ADLARI = [
   "ocak", "subat", "mart", "nisan", "mayis", "haziran",
   "temmuz", "agustos", "eylul", "ekim", "kasim", "aralik",
@@ -58,6 +58,29 @@ function sadeAnahtar(ham: string | null | undefined): string {
   return s.replace(/\s+/g, "_").replace(/\|/g, "_").replace(/\//g, "_");
 }
 
+/* "a/b/c" yollu anahtarlar için iç içe nesne yardımcıları (Android MutableData.child davranışı). */
+type Dugum = Record<string, unknown>;
+function derinKopya(v: unknown): Dugum {
+  return v && typeof v === "object" ? (JSON.parse(JSON.stringify(v)) as Dugum) : {};
+}
+function derinOku(kok: Dugum, yol: string): boolean {
+  let d: unknown = kok;
+  for (const p of yol.split("/").filter(Boolean)) {
+    if (!d || typeof d !== "object") return false;
+    d = (d as Dugum)[p];
+  }
+  return d === true;
+}
+function derinYaz(kok: Dugum, yol: string, deger: unknown): void {
+  const parcalar = yol.split("/").filter(Boolean);
+  let d: Dugum = kok;
+  for (const p of parcalar.slice(0, -1)) {
+    if (!d[p] || typeof d[p] !== "object") d[p] = {};
+    d = d[p] as Dugum;
+  }
+  d[parcalar[parcalar.length - 1]] = deger;
+}
+
 /** Android `buildTestIdV1` — görev dedüplikasyonunun anahtarı. */
 export function testIdUret(
   sinif: number,
@@ -70,12 +93,42 @@ export function testIdUret(
   return `v1|g${g}|${sadeAnahtar(dersKey)}|${sadeAnahtar(konuKey)}|${adim}`;
 }
 
+/**
+ * Android `UserProgressRepository.onAllDailyTasksCompleted` — günün TÜM görevleri bitince
+ * "gorevdedektifi" başarımı, günde bir kez (`dailyActivity/{gün}/allTasksAwarded`).
+ * Android bunu görev özeti EKRANI açılınca kontrol ediyor; burada görev olayı işlenir
+ * işlenmez kontrol ediliyor — ekrana bağlı kalmasın diye. Eskiden web'de fonksiyon vardı
+ * ama hiçbir yerden çağrılmıyordu (14 Eyl 2026'da bulundu).
+ */
+async function tumGunlukGorevlerBittiyseOdullendir(uid: string, tanimlar: GorevTanim[], yol: string): Promise<void> {
+  if (tanimlar.length === 0) return;
+  try {
+    const durum = ((await get(dbRef(kullaniciDb, yol))).val() ?? {}) as Record<string, Record<string, unknown>>;
+    const hepsiBitti = tanimlar.every((t) => {
+      const d = durum[t.id] ?? {};
+      return d.completed === true || sayi(d.progress) >= Math.max(1, gorevHedefi(t));
+    });
+    if (!hepsiBitti) return;
+
+    const kok = `users/${uid}/dailyActivity/${gunAnahtari()}`;
+    const bayrak = await get(dbRef(kullaniciDb, `${kok}/allTasksAwarded`));
+    if (bayrak.val() === true) return;
+    await set(dbRef(kullaniciDb, `${kok}/allTasksAwarded`), true);
+    await runTransaction(
+      dbRef(kullaniciDb, `users/${uid}/achievements/gorevdedektifi/current`),
+      (mevcut) => Math.max(0, sayi(mevcut) + 1)
+    );
+  } catch (e) {
+    sessizHata("gorevdedektifi", e);
+  }
+}
+
 /** Android `setMonthlyBadgeEarned` — aylık görev bitince o ayın rozeti işaretlenir. */
 async function aylikRozetVer(uid: string): Promise<void> {
   const ayAdi = AY_ADLARI[new Date().getMonth()];
   if (!ayAdi) return;
   try {
-    await set(dbRef(kullaniciDb, `users/${uid}/badges/${ROZET_SEZON}/${ayAdi}`), true);
+    await set(dbRef(kullaniciDb, `users/${uid}/badges/${rozetYiliAnahtari()}/${ayAdi}`), true);
   } catch (e) {
     sessizHata("gorev", e);
     /* best-effort */
@@ -181,9 +234,14 @@ async function bolumeUygula(
           if (kind === "notebook_complete") {
             const anahtar = o.defterId;
             if (anahtar) {
-              const sayilan = { ...((d.countedNotebooks ?? {}) as Record<string, unknown>) };
-              if (sayilan[anahtar] !== true) {
-                sayilan[anahtar] = true;
+              // ⚠️ defterId "ders/ünite" biçiminde. Android `child("countedNotebooks").child(key)`
+              // yazar; Android SDK'da `/` YOL AYIRICIDIR → veri iç içe `countedNotebooks/ders/ünite`.
+              // Burada eskiden `{"ders/ünite": true}` diye tek anahtar yazılıyordu; Firebase JS
+              // anahtarda `/` kabul etmediği için transaction patlıyor, `catch → continue` yutuyor
+              // ve "Konu defterini tamamla" görevi HİÇ artmıyordu (14 Eyl 2026'da bulundu).
+              const sayilan = derinKopya(d.countedNotebooks);
+              if (!derinOku(sayilan, anahtar)) {
+                derinYaz(sayilan, anahtar, true);
                 d.countedNotebooks = sayilan;
                 yeni = Math.min(hedef, oncekiIlerleme + 1);
               }
@@ -254,8 +312,11 @@ async function bolumeUygula(
       // "ilerledi mi" bakılıyordu: xpEkle tekrarı engellemediği için 3 adımlı bir
       // görev ödülünü ÜÇ KEZ veriyordu ve şişen puan lig tablosuna da yansıyordu.
       if (yeniBitti) yeniBitenler.push(def);
-    } catch {
-      continue; // bir görev yazılamazsa diğerleri denensin
+    } catch (e) {
+      // Bir görev yazılamazsa diğerleri denensin — ama SESSİZ kalmasın: countedNotebooks'taki
+      // "/" hatası tam burada aylarca yutulmuştu.
+      sessizHata("gorev", e);
+      continue;
     }
   }
 
@@ -308,6 +369,7 @@ export async function gorevOlayiUygula(uid: string, o: GorevOlayi): Promise<Gore
     if (b.tanimlar.length === 0) continue;
     const sonuc = await bolumeUygula(b.tanimlar, b.yol, b.donem, o, b.etiket);
     degisenler.push(...sonuc.degisenler);
+    if (b.etiket === "gunluk") await tumGunlukGorevlerBittiyseOdullendir(uid, b.tanimlar, b.yol);
 
     // `yeniBitenler` artık gerçekten YENİ TAMAMLANANLAR (bkz. bolumeUygula sonu).
     for (const def of sonuc.yeniBitenler) {

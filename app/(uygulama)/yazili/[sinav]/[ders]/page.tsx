@@ -79,6 +79,7 @@ export default function YaziliCalismaSayfasi() {
     siralama: 0, acikuclu: 0, test: 0, dogruyanlis: 0,
   });
   const [kazanilanXp, setKazanilanXp] = useState(0);
+  const [tekrarCozum, setTekrarCozum] = useState(false);
   const [seriSayisi, setSeriSayisi] = useState<number | null>(null);
   // Seri bugün ilk kez işaretlendiyse uygulamadaki seri özeti gösterilir.
   const [seriAkisi, setSeriAkisi] = useState<SeriArgs | null>(null);
@@ -102,7 +103,7 @@ export default function YaziliCalismaSayfasi() {
         if (kullanici) {
           const [ilerleme, kalanCan] = await Promise.all([
             // ⚠️ ilerleme SADE ders anahtarıyla tutulur
-            yaziliIlerlemesi(kullanici.uid, [dersKey], sinavKey),
+            yaziliIlerlemesi(kullanici.uid, sinif, [dersKey], sinavKey),
             canlariTazele(kullanici.uid),
           ]);
           if (iptal) return;
@@ -168,9 +169,10 @@ export default function YaziliCalismaSayfasi() {
     if (!kullanici) return;
     try {
       const sonuc = await yaziliTamamla({
-        uid: kullanici.uid, sinif, dersKey, sinavKey, adim, dogru: dyDogru,
+        uid: kullanici.uid, sinif, dersKey, sinavKey, adim, dogru: dyDogru, toplam: dy.length,
       });
       setKazanilanXp(sonuc.xp);
+      setTekrarCozum(!sonuc.ilkKez);
       if (sonuc.seri?.basarili) {
         setSeriSayisi(sonuc.seri.sayi);
         if (sonuc.seri.ilkAktiviteBugun) {
@@ -187,6 +189,8 @@ export default function YaziliCalismaSayfasi() {
         dogru: dyDogru, toplam: dy.length,
         sureSn: Math.max(1, Math.round((Date.now() - baslangicRef.current) / 1000)),
         puan: Math.max(0, dyDogru) * XP_DOGRU_YAZILI,
+        // Android: incrementCounter = stepKey == "step1" — hazırlanan yazılı sayacı adım 2'de artmaz
+        sayaciArtir: adim === "step1",
       }));
     } catch {
       /* yazma hatası akışı durdurmasın */
@@ -296,6 +300,12 @@ export default function YaziliCalismaSayfasi() {
             <div className="bk-rozet"><span>⚡</span><span>+{kazanilanXp} XP</span></div>
             {seriSayisi != null && <div className="bk-rozet"><span>🔥</span><span>{seriSayisi}</span></div>}
           </div>
+
+          {kullanici && tekrarCozum && (
+            <p className="bk-soluk" style={{ margin: "0 auto 18px", maxWidth: 420, fontSize: 14 }}>
+              Bu çalışmayı daha önce bitirmiştin; XP yalnızca ilk seferde veriliyor.
+            </p>
+          )}
 
           <div className="bk-kart" style={{ maxWidth: 460, margin: "0 auto 22px", textAlign: "left" }}>
             {bolumler.map((b) => (

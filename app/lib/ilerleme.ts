@@ -165,15 +165,20 @@ export async function testBittiIsle(a: TestBitisArgs): Promise<GorevDegisimi[]> 
 /* ---------------------------------------------------------------- defter */
 
 /**
- * Defter İLK KEZ tamamlandığında — Android: incrementAchievementCurrent("defteradet") +
- * onNotebookCompletedExtras + updateStatsForDefterComplete.
+ * Defter İLK KEZ tamamlandığında — Android `addReadNotebookOnce` (stats sayaçları) +
+ * incrementAchievementCurrent("defteradet") + onNotebookCompletedExtras +
+ * updateStatsForDefterComplete (görev).
  * ⚠️ Yalnızca ilk tamamlamada çağrılmalı (çağıran `defterTamamla`nın `ilkKez` sonucuna bakar).
- * NOT: Android defter için StatsManager'a YAZMIYOR (defter istatistiği progress_defter'den
- * okunuyor) — burada da yazılmıyor, bilerek.
+ * NOT: Android StatsManager.applyEvent'i defter için çağırmıyor ama `addReadNotebookOnce`
+ * içinde `stats/grade{N}/overall/defter/completedNotebooks` ve
+ * `subjects/{ders}/defter/completedNotebooks` sayaçlarını transaction ile artırıyor.
+ * Eski not "Android yazmıyor" diyordu — yanlıştı; web'den bitirilen defterler istatistik
+ * ekranındaki "okunan defter" sayısına hiç girmiyordu (14 Eyl 2026'da bulundu).
  */
 export async function defterBittiIsle(
   uid: string, sinif: number, dersKey: string, uniteKey: string
 ): Promise<GorevDegisimi[]> {
+  await istatistikOlayiUygula(uid, { tip: "defter", sinif, dersKey });
   await basarimArtir(uid, "defteradet", 1);
   await basarimArtir(uid, "unitesenfoni", 1);
   await gunlukBayrakVeKontrol(uid, "defterDone", "testDone", "kusursuzsanatAwarded", "kusursuzsanat");
@@ -239,18 +244,3 @@ export async function yaziliBittiIsle(a: YaziliBitisArgs): Promise<GorevDegisimi
   return gorevIlerledi;
 }
 
-/* ------------------------------------------------- tüm günlük görevler bitti */
-
-/** Android `onAllDailyTasksCompleted` — günün tüm görevleri bitince "gorevdedektifi". */
-export async function tumGunlukGorevlerBitti(uid: string): Promise<void> {
-  try {
-    const kok = `users/${uid}/dailyActivity/${gunAnahtari()}`;
-    const snap = await get(dbRef(kullaniciDb, `${kok}/allTasksAwarded`));
-    if (snap.val() === true) return;
-    await set(dbRef(kullaniciDb, `${kok}/allTasksAwarded`), true);
-    await basarimArtir(uid, "gorevdedektifi", 1);
-  } catch (e) {
-    sessizHata("ilerleme", e);
-    /* best-effort */
-  }
-}

@@ -18,6 +18,8 @@ import {
 import { defterlerDb, gorevKatalogDb, kelimeGezmeceDb, kullaniciDb, sudokuDb, testlerDb, wordleDb, yazililarDb } from "./firebase";
 import { ayAnahtari, gunAnahtari, gunNo, dunMu, haftaGunIndeksi, seriyiCoz } from "./tarih";
 import { onbellekli } from "./onbellek";
+import { ligAnahtari, rozetYiliAnahtari } from "./sezon";
+import { AY_ANAHTAR } from "./ayGorsel";
 import {
   defterDersAnahtari,
   dizi,
@@ -36,7 +38,9 @@ export const ADIM_SAYISI = 3;        // her konu 3 adım (s1..s3)
 export const CAN_LIMITI = 3;
 export const ACT_TEST = 1 << 0;      // seri aktivite biti (iOS: ACT_TEST)
 
-const SEZON = "2025_2026_guz";       // XpManager.leagueSeasonKey
+// Lig sezonu tarihe göre çözülür (XpManager.leagueSeasonKey → Sezon.ligAnahtari);
+// her yazma/okuma anında hesaplanır ki dönem değişince sabit kalmasın.
+const SEZON = () => ligAnahtari();
 
 export function sinifSinirla(g: number): number {
   return Math.max(3, Math.min(8, Math.round(g || 3)));
@@ -263,7 +267,9 @@ export function defterIlerlemesiCoz(
   return out;
 }
 
-export const yaziliIlerlemeYolu = (uid: string) => `users/${uid}/progress_yazili`;
+/** Sınıflı kök — Android `rememberYaziliSubjectCompletedSteps` ile aynı yol. */
+export const yaziliIlerlemeYolu = (uid: string, sinif: number) =>
+  `users/${uid}/progress_yazili/grade${sinifSinirla(sinif)}`;
 
 /** ders → sınav → tamamlanan adım (saf). */
 export function yaziliIlerlemesiCoz(ham: unknown): Record<string, Record<string, number>> {
@@ -321,12 +327,12 @@ async function ligPuaniYansit(uid: string, sinif: number, puan: number): Promise
   const avatar = prof?.avatar || "profil0";
 
   await update(dbRef(kullaniciDb, `users/${uid}/league`), {
-    seasonKey: SEZON,
+    seasonKey: SEZON(),
     [`seasonPoints/grade${g}`]: guvenli,
     updatedAt: serverTimestamp(),
   });
   await update(
-    dbRef(kullaniciDb, `leaderboards/leagues/grade${g}/${SEZON}/${uid}`),
+    dbRef(kullaniciDb, `leaderboards/leagues/grade${g}/${SEZON()}/${uid}`),
     { points: guvenli, name: ad, avatar, updatedAt: serverTimestamp() }
   );
 }
@@ -702,8 +708,12 @@ export async function defterToplamSayfaYaz(
 export type DefterBitisSonucu = { ilkKez: boolean; xp: number; seri: SeriSonucu | null };
 
 /**
- * Defteri tamamla: işaret + XP(50) + seri — uygulamadaki onNotebookCompleted ile aynı.
- * Ödül YALNIZCA ilk tamamlamada verilir; işaret transaction ile konur (çift ödül olmasın).
+ * Defteri tamamla: seri + işaret + XP(50) — Android DefterScreens "Bitir" zinciri.
+ * Seri HER tamamlamada işaretlenir (Android son sayfaya gelince `markStreakActivity`,
+ * ilk-kez şartından ÖNCE). XP ve başarım/görev/istatistik YALNIZ ilk tamamlamada;
+ * işaret `progress_defter_done` transaction ile konur (çift ödül olmasın).
+ * ⚠️ Eskiden seri de ilk-kez şartının içindeydi: daha önce bitirilmiş bir defteri
+ * yeniden okumak web'de seriyi sürdürmüyordu, Android'de sürdürüyordu.
  */
 export async function defterTamamla(
   uid: string, sinif: number, dersKey: string, uniteKey: string, toplamSayfa: number
@@ -726,10 +736,10 @@ export async function defterTamamla(
     ilkKez = false;
   }
 
-  if (!ilkKez) return { ilkKez: false, xp: 0, seri: null };
-
-  await xpEkle(uid, g, XP_DEFTER_TAMAM, "defter");
   const seri = await seriIsaretle(uid, ACT_DEFTER);
+  if (!ilkKez) return { ilkKez: false, xp: 0, seri };
+
+  await xpEkle(uid, g, XP_DEFTER_TAMAM, "defter_complete");   // Android: reason "defter_complete"
   return { ilkKez: true, xp: XP_DEFTER_TAMAM, seri };
 }
 
@@ -749,7 +759,7 @@ export type LigSatiri = {
  * Uygulamadaki sıralama kuralı: puana göre azalan, eşitlikte ada göre artan.
  */
 export const ligTablosuYolu = (sinif: number) =>
-  `leaderboards/leagues/grade${sinifSinirla(sinif)}/${SEZON}`;
+  `leaderboards/leagues/grade${sinifSinirla(sinif)}/${SEZON()}`;
 
 /**
  * Ham lig düğümünü sıralı satırlara çevirir (saf) — okuma ve canlı dinleme ortak kullanır.
@@ -800,12 +810,12 @@ export async function ligKendiniYayinla(uid: string, sinif: number): Promise<voi
   const g = sinifSinirla(sinif);
   const [prof, ust] = await Promise.all([profilOku(uid), ustBilgiOku(uid, g)]);
   const ad = prof?.kullaniciAdi?.trim() || prof?.adSoyad?.trim() || "Kullanıcı";
-  await update(dbRef(kullaniciDb, `leaderboards/leagues/grade${g}/${SEZON}/${uid}`), {
+  await update(dbRef(kullaniciDb, `leaderboards/leagues/grade${g}/${SEZON()}/${uid}`), {
     name: ad,
     avatar: prof?.avatar || "profil0",
     points: ust.xp,
     grade: g,
-    season: SEZON,
+    season: SEZON(),
     atMs: serverTimestamp(),
   });
 }
@@ -845,13 +855,13 @@ export async function yaziliDersCoz(
 
 /** Ders bazında tamamlanan adım sayısı (0-2). */
 export async function yaziliIlerlemesi(
-  uid: string, dersler: string[], sinavKey: string
+  uid: string, sinif: number, dersler: string[], sinavKey: string
 ): Promise<Record<string, number>> {
   const out: Record<string, number> = {};
   await Promise.all(
     dersler.map(async (d) => {
       const snap = await get(
-        dbRef(kullaniciDb, `users/${uid}/progress_yazili/${d}/${sinavKey}/completedSteps`)
+        dbRef(kullaniciDb, `${yaziliIlerlemeYolu(uid, sinif)}/${d}/${sinavKey}/completedSteps`)
       );
       out[d] = Math.max(0, Math.min(YAZILI_ADIM_SAYISI, sayi(snap.val())));
     })
@@ -1020,29 +1030,58 @@ export async function yaziliGorselAdresi(yol: string): Promise<string | null> {
   }
 }
 
-export type YaziliBitisSonucu = { xp: number; seri: SeriSonucu | null };
+export type YaziliBitisSonucu = { xp: number; ilkKez: boolean; seri: SeriSonucu | null };
 
 /**
- * Yazılı bitişi — uygulamadaki son halkanın (doğru-yanlış) yaptığı iş:
- * completedSteps (step1→1, step2→2) + XP (doğru-yanlış doğrusu × 4) + ACT_YAZILI serisi.
- * ⚠️ İlerleme SADE ders anahtarıyla yazılır (içerik 'fen_bilimleri' olsa da ilerleme 'fen').
+ * Yazılı adımı bitti — Android `markYaziliFinished` + `awardYaziliXpAndAddOnce` +
+ * `markStreakActivity(ACT_YAZILI)`.
+ *
+ * ⚠️ Yol SINIFLI: `progress_yazili/grade{N}/{ders}/{sınav}`. Eskiden web (ve iOS) sınıfsız
+ * `progress_yazili/{ders}/{sınav}` yazıyordu; Android'in canlı ekranı sınıflı yolu okuduğu
+ * için web'de çözülen yazılı telefonda görünmüyordu (tersi de). Android'in sınıfsız yolu
+ * okuyan `YaziliSubjectsScreen` ölü kod (14 Eyl 2026 tespiti).
+ *
+ * Alanlar Android'le aynı: completedSteps (mevcut ile MAX — transaction), correct, total,
+ * score, completedAt. XP adım başına BİR kez: `xp_once/yazili/grade{N}/{ders}/{sınav}/{adım}`
+ * (Android aynı düğümü transaction'la kilitliyor). Seri her çözümde işaretlenir.
  */
 export async function yaziliTamamla(params: {
   uid: string; sinif: number; dersKey: string; sinavKey: string;
-  adim: "step1" | "step2"; dogru: number;
+  adim: "step1" | "step2"; dogru: number; toplam: number;
 }): Promise<YaziliBitisSonucu> {
-  const { uid, sinif, dersKey, sinavKey, adim, dogru } = params;
+  const { uid, sinif, dersKey, sinavKey, adim, dogru, toplam } = params;
+  const g = sinifSinirla(sinif);
   const tamamlanan = adim === "step1" ? 1 : 2;
+  const puan = Math.max(0, dogru) * XP_DOGRU_YAZILI;
+  const kok = `users/${uid}/progress_yazili/grade${g}/${dersKey}/${sinavKey}`;
 
-  await update(
-    dbRef(kullaniciDb, `users/${uid}/progress_yazili/${dersKey}/${sinavKey}`),
-    { completedSteps: tamamlanan }
+  await runTransaction(dbRef(kullaniciDb, `${kok}/completedSteps`), (m) =>
+    Math.min(YAZILI_ADIM_SAYISI, Math.max(sayi(m), tamamlanan))
   );
+  await update(dbRef(kullaniciDb, kok), {
+    correct: Math.max(0, dogru),
+    total: Math.max(0, toplam),
+    score: puan,
+    completedAt: serverTimestamp(),
+  });
 
-  const xp = Math.max(0, dogru) * XP_DOGRU_YAZILI;
-  if (xp > 0) await xpEkle(uid, sinif, xp, "yazili");
+  // XP bir kez — Android awardYaziliXpAndAddOnce (abort = daha önce verilmiş)
+  let ilkKez = false;
+  if (puan > 0) {
+    try {
+      const once = await runTransaction(
+        dbRef(kullaniciDb, `users/${uid}/xp_once/yazili/grade${g}/${dersKey}/${sinavKey}/${adim}`),
+        (m) => (m === true ? undefined : true)
+      );
+      ilkKez = once.committed && once.snapshot.val() === true;
+    } catch {
+      ilkKez = false;
+    }
+    if (ilkKez) await xpEkle(uid, g, puan, "yazili");
+  }
+
   const seri = await seriIsaretle(uid, ACT_YAZILI);
-  return { xp, seri };
+  return { xp: ilkKez ? puan : 0, ilkKez, seri };
 }
 
 /* -------------------------------------------------------------- istatistik */
@@ -1572,10 +1611,10 @@ export function ayaKalanGun(): number {
 
 /* ------------------------------------------------------ başarımlar/rozetler */
 
-const ROZET_SEZON = "2025_2026_guz";
-const AY_ANAHTARI: Record<string, number> = {
-  ocak: 0, subat: 1, mart: 2, nisan: 3, mayis: 4, haziran: 5,
-};
+// Rozet yılı: öğretim yılı (Eyl–Ağu), lig anahtarından AYRI — bkz. sezon.ts.
+const ROZET_SEZON = () => rozetYiliAnahtari();
+// ⚠️ Eskiden 6 aylıktı (ocak…haziran): Eylül–Aralık rozeti kayıtlı olsa bile çözülmüyordu.
+const AY_ANAHTARI: Record<string, number> = Object.fromEntries(AY_ANAHTAR.map((k, i) => [k, i]));
 
 /**
  * Başarım sayaçları — uygulamadaki loadEnrichedAchievements ile aynı:
@@ -1675,7 +1714,7 @@ export async function basarimlariOku(uid: string, sinif: number): Promise<Record
 }
 
 /** Kazanılmış ay rozetleri: users/{uid}/badges/{sezon}/{ay} === true */
-export const rozetYolu = (uid: string) => `users/${uid}/badges/${ROZET_SEZON}`;
+export const rozetYolu = (uid: string) => `users/${uid}/badges/${ROZET_SEZON()}`;
 
 /** Ham rozet düğümünü ay indekslerine çevirir (saf). */
 export function rozetleriCoz(hamDugum: unknown): number[] {

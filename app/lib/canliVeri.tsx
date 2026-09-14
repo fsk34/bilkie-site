@@ -91,8 +91,10 @@ export function useDefterIlerlemesi(
   );
 }
 
-export function useYaziliIlerlemesi(): Record<string, Record<string, number>> | null {
-  return useKullaniciDugumu(kullaniciDb, yaziliIlerlemeYolu, yaziliIlerlemesiCoz, {});
+export function useYaziliIlerlemesi(sinif: number): Record<string, Record<string, number>> | null {
+  return useKullaniciDugumu(
+    kullaniciDb, (uid) => yaziliIlerlemeYolu(uid, sinif), yaziliIlerlemesiCoz, {}
+  );
 }
 
 /* ---------------------------------------------------- başarımlar/rozetler */
