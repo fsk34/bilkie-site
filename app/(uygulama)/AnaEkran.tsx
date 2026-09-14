@@ -6,6 +6,7 @@
 
 import Link from "next/link";
 import Kabuk from "./Kabuk";
+import RozetKazandin from "./RozetKazandin";
 
 const KUTULAR = [
   { ad: "Atasözleri\nve Deyimler", gorsel: "atasozu",     ust: "#1F2C6B", alt: "#262F6F", yol: "/atasozleri" },
@@ -23,6 +24,7 @@ const BUYUKLER = [
 export default function AnaEkran() {
   return (
     <Kabuk>
+      <RozetKazandin />
       {/* Başlık yok: içerik doğrudan yukarıdan başlar, sağ raydaki kartlarla aynı hizada.
           Sınıf bilgisi sağ raydaki profil kartında duruyor. */}
       <div className="bk-kutular">

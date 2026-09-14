@@ -2713,3 +2713,62 @@ html[data-bk-oturum="1"] .bk-kok-bekleme { display: block; }
   padding: 28px 20px; color: var(--soluk);
 }
 .bk-yazili-bos p { margin: 0; }
+
+/* ================================================================ "Rozeti Kazandın"
+   Android RozetKazandin.kt / iOS RozetKazandinOverlay.swift ile aynı zaman çizelgesi.
+   Işıltı kodla: radyal hale + dönen 12 dilimlik ışın (conic gradient, ortası maskeli). */
+.bk-rozetk-ortu {
+  position: fixed; inset: 0; z-index: 265; display: grid; place-items: center;
+  background: rgba(12, 26, 63, .72); backdrop-filter: blur(2px);
+  animation: bk-rozetk-ortu-gel .22s ease-out both;
+}
+.bk-rozetk-sahne { display: grid; justify-items: center; gap: 8px; width: min(92vw, 360px); }
+.bk-rozetk-kutu { position: relative; width: 300px; height: 300px; display: grid; place-items: center; }
+.bk-rozetk-kutu > * { grid-area: 1 / 1; }
+.bk-rozetk-hale {
+  width: 240px; height: 240px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(255,224,130,.55) 0%, rgba(255,224,130,.22) 38%, rgba(255,224,130,0) 70%);
+  transform: scale(.55); opacity: .7;
+  animation: bk-rozetk-nabiz 1.4s ease-in-out infinite alternate,
+             bk-rozetk-hale-buyu .7s cubic-bezier(.2,.8,.2,1) 1.4s forwards;
+}
+.bk-rozetk-isinlar {
+  width: 300px; height: 300px; border-radius: 50%; opacity: 0;
+  background: repeating-conic-gradient(from 0deg, rgba(255,224,130,0) 0deg 9deg, rgba(255,224,130,.28) 9deg 15deg, rgba(255,224,130,0) 15deg 30deg);
+  -webkit-mask: radial-gradient(circle, #000 20%, transparent 70%);
+          mask: radial-gradient(circle, #000 20%, transparent 70%);
+  animation: bk-rozetk-don 18s linear infinite, bk-rozetk-belir .7s ease-out 1.5s forwards;
+}
+.bk-rozetk-fisek { width: 300px; height: 300px; pointer-events: none; }
+.bk-rozetk-rozet {
+  width: 200px; height: 200px; object-fit: contain; transform-origin: 50% 12%;
+  opacity: .25; filter: grayscale(.35);
+  animation: bk-rozetk-salla 1.4s ease-in-out both, bk-rozetk-acil .6s cubic-bezier(.2,.8,.2,1) 1.4s both;
+}
+.bk-rozetk-yazi { text-align: center; opacity: 0; transform: translateY(10px); animation: bk-rozetk-gel .45s ease-out 2.2s forwards; }
+.bk-rozetk-yazi .ay  { font-family: "bk-baslik", system-ui, sans-serif; font-size: 34px; letter-spacing: .06em; color: #ffe082; line-height: 1; }
+.bk-rozetk-yazi .ana { font-family: "bk-baslik", system-ui, sans-serif; font-size: 22px; margin-top: 6px; }
+.bk-rozetk-yazi .alt { font-size: 14px; color: var(--soluk); margin-top: 6px; }
+.bk-rozetk-dugme {
+  margin-top: 14px; width: 220px; height: 52px; border-radius: 16px; cursor: pointer;
+  border: 2px solid rgba(255,255,255,.85); background: rgba(255,255,255,.08); color: #fff;
+  font-family: "bk-baslik", system-ui, sans-serif; font-size: 17px;
+  opacity: 0; transform: translateY(8px); pointer-events: none;
+  animation: bk-rozetk-gel .4s ease-out 2.5s forwards;
+}
+.bk-rozetk-dugme:focus-visible { outline: 3px solid #ffe082; outline-offset: 2px; }
+@keyframes bk-rozetk-gel   { to { opacity: 1; transform: none; pointer-events: auto; } }
+@keyframes bk-rozetk-belir { to { opacity: 1; } }
+@keyframes bk-rozetk-ortu-gel { from { opacity: 0; } to { opacity: 1; } }
+@keyframes bk-rozetk-salla { 0%{transform:rotate(0)} 12%{transform:rotate(-8deg)} 30%{transform:rotate(8deg)} 48%{transform:rotate(-5deg)} 64%{transform:rotate(5deg)} 80%{transform:rotate(-2deg)} 92%{transform:rotate(2deg)} 100%{transform:rotate(0)} }
+@keyframes bk-rozetk-acil  { 0%{opacity:.25;filter:grayscale(.35);transform:scale(1)} 60%{opacity:1;filter:none;transform:scale(1.1)} 100%{opacity:1;filter:none;transform:scale(1)} }
+@keyframes bk-rozetk-nabiz { from{opacity:.6} to{opacity:.85} }
+@keyframes bk-rozetk-hale-buyu { to { transform: scale(1.25); opacity: 1; } }
+@keyframes bk-rozetk-don   { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+  .bk-rozetk-rozet, .bk-rozetk-hale, .bk-rozetk-isinlar, .bk-rozetk-yazi, .bk-rozetk-dugme, .bk-rozetk-ortu { animation: none; }
+  .bk-rozetk-rozet { opacity: 1; filter: none; }
+  .bk-rozetk-hale { transform: scale(1.25); opacity: 1; }
+  .bk-rozetk-isinlar { opacity: 1; }
+  .bk-rozetk-yazi, .bk-rozetk-dugme { opacity: 1; transform: none; pointer-events: auto; }
+}
