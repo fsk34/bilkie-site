@@ -1603,10 +1603,11 @@ export async function aylikGorevler(uid: string): Promise<Gorev[]> {
 }
 
 /** Ay bitimine kalan gün (banner'daki "N GÜN"). */
+/** Aya kalan gün, BUGÜN DAHİL — Android `daysLeftInMonth` ("including today"). Eskiden web bir eksik gösteriyordu. */
 export function ayaKalanGun(): number {
   const [y, m, g] = gunAnahtari().split("-").map(Number);
   const sonGun = new Date(Date.UTC(y, m, 0)).getUTCDate();
-  return Math.max(0, sonGun - g);
+  return Math.max(1, sonGun - g + 1);
 }
 
 /* ------------------------------------------------------ başarımlar/rozetler */
