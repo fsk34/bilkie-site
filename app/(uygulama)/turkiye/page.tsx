@@ -7,6 +7,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useOturum } from "../../lib/oturum";
+import UcNokta from "../UcNokta";
 import { KesifGirisGerekli, KesifKartGorseli } from "../kesif/ortak";
 import { kesfetGetir, kesfetOnbellekten, type KesfetYer } from "../../lib/kesif";
 
@@ -60,7 +61,7 @@ function Icerik() {
       {hata ? (
         <div className="bk-kesif-bos">Veriler yüklenemedi.</div>
       ) : yerler == null ? (
-        <div className="bk-kesif-bos">Yükleniyor…</div>
+        <div className="bk-kesif-bos"><UcNokta boyut={8} aralik={6} /></div>
       ) : !yer ? (
         <div className="bk-kesif-bos">İçerik bulunamadı.</div>
       ) : (

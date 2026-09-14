@@ -8,6 +8,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useOturum } from "../../lib/oturum";
+import UcNokta from "../UcNokta";
 import { KesifDaire, KesifGorsel , KesifGirisGerekli } from "../kesif/ortak";
 import {
   harikalariGetir,
@@ -63,7 +64,7 @@ function Icerik() {
       {hata ? (
         <div className="bk-kesif-bos">Veriler yüklenemedi.</div>
       ) : kategoriler == null ? (
-        <div className="bk-kesif-bos">Yükleniyor…</div>
+        <div className="bk-kesif-bos"><UcNokta boyut={8} aralik={6} /></div>
       ) : (
         <div className="bk-harika-liste">
           {kategoriler.map((k, i) => (

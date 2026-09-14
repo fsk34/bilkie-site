@@ -6,6 +6,7 @@
 
 import Link from "next/link";
 import Kabuk from "../Kabuk";
+import UcNokta from "../UcNokta";
 import { useOturum } from "../../lib/oturum";
 import { useGorevler } from "../../lib/canliVeri";
 import { ayaKalanGun, type Gorev } from "../../lib/veri";
@@ -81,7 +82,7 @@ function Bolum({ ad, gorevler, renk }: { ad: string; gorevler: Gorev[] | null; r
       <h2 className="bk-gorev-bolum">{ad}</h2>
       <div className="bk-gorev-kutu">
         {gorevler == null && (
-          <div className="bk-gorev-satir"><span className="bk-soluk" style={{ fontSize: 14 }}>Yükleniyor…</span></div>
+          <div className="bk-gorev-satir"><UcNokta /></div>
         )}
         {gorevler != null && gorevler.length === 0 && (
           <div className="bk-gorev-satir">

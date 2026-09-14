@@ -1,5 +1,7 @@
 "use client";
 
+import UcNokta from "../../UcNokta";
+
 // Sudoku — Android `SudokuScreen.kt` portu. Zorluk seçimi → 10 bölüm → oyun.
 // Puanlama, hata hakkı (3 kalp), not kipi, geri al, ipucu ve yıldız eşikleri birebir.
 //
@@ -143,7 +145,7 @@ export default function Sudoku() {
         </div>
 
         {asama === "yukleniyor" ? (
-          <p className="bk-wl-not" style={{ marginTop: 60 }}>Yükleniyor...</p>
+          <UcNokta style={{ marginTop: 60 }} />
         ) : (
           <>
             <p className="bk-sdk-alt">Zorluk Seçin</p>

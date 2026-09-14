@@ -1,5 +1,7 @@
 "use client";
 
+import UcNokta from "./UcNokta";
+
 // Uygulama kabuğu: sol gezinme + içerik + sağ ray.
 // Sağ ray düzeni: üstte sayaçlar (seri / puan / can), altında lig ve günlük görev kartları.
 // Giriş ZORUNLU: /uygulama altına misafir giremiyor, kapı `Kapi.tsx`te.
@@ -182,7 +184,7 @@ function GorevKarti({ gorevler }: { gorevler: Gorev[] | null }) {
       </div>
 
       <div className="bk-kart-govde">
-      {gorevler == null && <p className="bk-soluk" style={{ fontSize: 13 }}>Görevler yükleniyor…</p>}
+      {gorevler == null && <UcNokta boyut={8} aralik={6} etiket="Görevler yükleniyor" style={{ padding: "8px 0" }} />}
       {gorevler != null && gorevler.length === 0 && (
         <p className="bk-soluk" style={{ fontSize: 13 }}>Bugün için görev bulunmuyor.</p>
       )}

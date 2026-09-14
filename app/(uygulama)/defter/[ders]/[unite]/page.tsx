@@ -5,6 +5,7 @@
 // Son sayfada "Devam Et": ilerleme + (ilk kez ise) 50 XP + seri işareti yazılır.
 
 import Link from "next/link";
+import Perde from "../../../Perde";
 import SonucAkisi, { type SeriArgs } from "../../../sonuc/SonucAkisi";
 import type { GorevDegisimi } from "../../../../lib/gorevYaz";
 import { useParams } from "next/navigation";
@@ -104,7 +105,7 @@ export default function DefterOkuyucuSayfasi() {
 
   /* --------------------------------------------------------------- ekranlar */
 
-  if (durum === "yukleniyor") return <Perde metin="Defter yükleniyor…" />;
+  if (durum === "yukleniyor") return <Perde metin="Defter yükleniyor…" nokta />;
 
   if (durum === "hata") {
     return (
@@ -356,13 +357,3 @@ function Blok({ blok, renk }: { blok: DefterBlok; renk: string }) {
   }
 }
 
-function Perde({ metin, children }: { metin: string; children?: React.ReactNode }) {
-  return (
-    <div className="bk" style={{ display: "grid", placeItems: "center", minHeight: "100vh", padding: 24 }}>
-      <div style={{ textAlign: "center", display: "grid", gap: 18, justifyItems: "center" }}>
-        <p className="bk-soluk" style={{ fontSize: 16, maxWidth: 420 }}>{metin}</p>
-        {children}
-      </div>
-    </div>
-  );
-}

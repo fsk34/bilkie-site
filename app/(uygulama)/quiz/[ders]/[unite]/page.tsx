@@ -97,7 +97,7 @@ export default function QuizSayfasi() {
     }
   }, [kullanici, sinif, dersKey, uniteKey]);
 
-  if (durum === "yukleniyor") return <Perde metin="Quiz yükleniyor…" />;
+  if (durum === "yukleniyor") return <Perde metin="Quiz yükleniyor…" nokta />;
 
   if (durum === "hata") {
     return (

@@ -2773,3 +2773,10 @@ html[data-bk-oturum="1"] .bk-kok-bekleme { display: block; }
   .bk-rozetk-isinlar { opacity: 1; }
   .bk-rozetk-yazi, .bk-rozetk-dugme { opacity: 1; transform: none; pointer-events: auto; }
 }
+
+/* Android ThreeDotLoader: saydamlık 0,25↔1, 450ms ileri-geri, 0/150/300ms faz. */
+.bk-uc-nokta { display: flex; align-items: center; justify-content: center; }
+.bk-uc-nokta i { display: block; border-radius: 50%; background: #fff; opacity: .25;
+  animation: bk-uc-nokta-sol .45s cubic-bezier(.4,0,.2,1) infinite alternate; }
+@keyframes bk-uc-nokta-sol { to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .bk-uc-nokta i { animation: none; opacity: .6; } }

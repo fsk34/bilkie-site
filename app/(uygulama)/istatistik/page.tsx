@@ -9,6 +9,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import Kabuk from "../Kabuk";
+import UcNokta from "../UcNokta";
 import { useOturum } from "../../lib/oturum";
 import { konuAyristir, uniteler, type Unite } from "../../lib/katalog";
 import {
@@ -494,14 +495,9 @@ function Secim({
   );
 }
 
+// Android StatsScreen: ThreeDotLoader(10dp, 8dp). Eskiden sabit üç nokta — kıpırdamıyordu.
 function Noktalar() {
-  return (
-    <div style={{ display: "flex", gap: 8, justifyContent: "center", paddingTop: 48 }}>
-      {[0, 1, 2].map((i) => (
-        <span key={i} style={{ width: 10, height: 10, borderRadius: 999, background: "rgba(255,255,255,.6)" }} />
-      ))}
-    </div>
-  );
+  return <UcNokta style={{ paddingTop: 48 }} />;
 }
 
 /** 0→1 easeOut dolum (uygulamada TimelineView ile kare kare sürülüyor). */

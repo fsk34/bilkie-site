@@ -6,6 +6,7 @@
 // (completedSteps + XP = doğru-yanlış doğrusu × 4 + ACT_YAZILI serisi).
 
 import Link from "next/link";
+import Perde from "../../../Perde";
 import SonucAkisi, { type SeriArgs } from "../../../sonuc/SonucAkisi";
 import type { GorevDegisimi } from "../../../../lib/gorevYaz";
 import { useParams } from "next/navigation";
@@ -256,7 +257,7 @@ export default function YaziliCalismaSayfasi() {
 
   /* ---------------------------------------------------------- ekranlar */
 
-  if (durum === "yukleniyor") return <Perde metin="Yazılı soruları yükleniyor…" />;
+  if (durum === "yukleniyor") return <Perde metin="Yazılı soruları yükleniyor…" nokta />;
 
   if (durum === "hata") {
     return (
@@ -507,13 +508,3 @@ function karistir<T>(dizi: T[]): T[] {
   return k;
 }
 
-function Perde({ metin, children }: { metin: string; children?: React.ReactNode }) {
-  return (
-    <div className="bk" style={{ display: "grid", placeItems: "center", minHeight: "100vh", padding: 24 }}>
-      <div style={{ textAlign: "center", display: "grid", gap: 18, justifyItems: "center" }}>
-        <p className="bk-soluk" style={{ fontSize: 16, maxWidth: 420 }}>{metin}</p>
-        {children}
-      </div>
-    </div>
-  );
-}
