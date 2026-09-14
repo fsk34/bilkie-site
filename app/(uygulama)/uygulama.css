@@ -1293,19 +1293,23 @@
   width: 108px; height: 108px; object-fit: contain; margin: 0 auto;
   animation: bk-kupa-nabiz 3.6s ease-in-out infinite;
 }
+/* Işıltılar TEK SEFERLİK — Android sparkleT: 700ms bekle, 2 tur (1100ms hareket + 350ms
+   ara), sonra dur. Eskiden web'de sonsuz döngüydü. Tur 1450ms; hareket ilk %75,9'unda,
+   parçacık t=0,556'da (%42) görünmez olur (alpha = 1 − 1,8t). Faz gecikmesi sayfada. */
 .bk-kupa-kutu i {
   position: absolute; left: 50%; top: 50%; width: 8px; height: 8px; border-radius: 50%;
   background: #ffe082; opacity: 0; pointer-events: none;
-  animation: bk-kupa-isilti 2.6s linear infinite;
+  animation: bk-kupa-isilti 1.45s linear 2;
 }
 @keyframes bk-kupa-nabiz {
   0%, 100% { transform: scale(1); }
   50%      { transform: scale(1.04); }
 }
 @keyframes bk-kupa-isilti {
-  0%   { transform: translate(var(--x0), var(--y0)); opacity: .70; }
-  55%  { opacity: 0; }
-  100% { transform: translate(var(--x1), var(--y1)); opacity: 0; }
+  0%     { transform: translate(var(--x0), var(--y0)); opacity: .70; }
+  42%    { opacity: 0; }
+  75.9%  { transform: translate(var(--x1), var(--y1)); opacity: 0; }
+  100%   { transform: translate(var(--x1), var(--y1)); opacity: 0; }
 }
 /* Lig ATLAYINCA kupa terfi animasyonu — Android LeagueScreen promotionTrigger.
    Süreler birebir: eski kupa 300ms büyür (1→1.28), 220ms söner; yeni kupa 240ms
@@ -1331,7 +1335,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .bk-lig-ust .kupa, .bk-kupa-kutu i,
+  .bk-lig-ust .kupa, .bk-kupa-kutu i, .bk-nokta-yukleniyor i,
   .bk-kupa-kutu .kupa.cikan, .bk-kupa-kutu .kupa.giren { animation: none; }
 }
 .bk-lig-ust .ad {
@@ -1350,6 +1354,17 @@
 }
 .bk-lig-gosterge img { width: 28px; height: 28px; object-fit: contain; }
 .bk-lig-gosterge span[data-aktif="true"] img { width: 36px; height: 36px; }
+
+/* Android ThreeDotLoader / LeagueScreen yükleme noktaları: 10dp, −10dp zıplama,
+   400ms ileri-geri, 130ms faz farkı. */
+.bk-nokta-yukleniyor { display: flex; gap: 10px; justify-content: center; padding: 28px 0; }
+.bk-nokta-yukleniyor i {
+  width: 10px; height: 10px; border-radius: 50%; background: rgba(255,255,255,.7);
+  animation: bk-nokta-zipla .4s cubic-bezier(.4,0,.2,1) infinite alternate;
+}
+.bk-nokta-yukleniyor i:nth-child(2) { animation-delay: .13s; }
+.bk-nokta-yukleniyor i:nth-child(3) { animation-delay: .26s; }
+@keyframes bk-nokta-zipla { from { transform: translateY(0); } to { transform: translateY(-10px); } }
 
 .bk-lig-satir {
   display: flex; align-items: center; gap: 8px; padding: 10px 0; border-radius: 14px;

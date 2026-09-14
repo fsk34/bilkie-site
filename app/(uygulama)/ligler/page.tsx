@@ -4,7 +4,7 @@
 // Aynı veri: leaderboards/leagues/grade{N}/{sezon}; aynı sıralama kuralı ve görseller.
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import Kabuk from "../Kabuk";
 import { useOturum } from "../../lib/oturum";
 import { useLigTablosu } from "../../lib/canliVeri";
@@ -36,7 +36,9 @@ const ISILTILAR = [
     y0: Math.round(yy * baslangicYaricap - 4),
     x1: Math.round(yx * (baslangicYaricap + suzulme) - 4),
     y1: Math.round(yy * (baslangicYaricap + suzulme) - 4),
-    gecikme: -faz * 2.6,
+    // Android: parçacık k, tur içinde sv = 1−faz anında yeniden başlar → gecikme (1−faz)·1,1s;
+    // en başta 700ms bekleme. Tur uzunluğu CSS'te (1,45s), iki tur.
+    gecikme: 0.7 + (1 - faz) * 1.1,
   };
 });
 
@@ -141,16 +143,19 @@ function Icerik() {
 
     // Satır parıltısı: puan artınca ya da sıra yükselince (Android'de aynı iki koşul).
     // CSS animasyonu yeniden tetiklemek sınıf ekle-çıkar hilesi gerektirdiği için
-    // doğrudan Web Animations API kullanılıyor.
+    // doğrudan Web Animations API kullanılıyor. Süreler Android LeagueRow popTrigger:
+    // glow 140ms yükselir · scale 1,05 140ms · geri 220ms · glow 420ms söner = 920ms.
     if (el && (puanArtti || siraIyilesti) && !azHareket) {
       el.animate(
         [
           { transform: "scale(1)",    backgroundColor: "rgba(255,213,79,.08)" },
-          { transform: "scale(1.05)", backgroundColor: "rgba(255,213,79,.26)", offset: 0.25 },
-          { transform: "scale(1)",                                             offset: 0.64 },
+          { transform: "scale(1.05)", backgroundColor: "rgba(255,213,79,.26)", offset: 0.152 },
+          { transform: "scale(1)",    backgroundColor: "rgba(255,213,79,.26)", offset: 0.391 },
           { transform: "scale(1)",    backgroundColor: "rgba(255,213,79,.08)" },
         ],
-        { duration: 560, easing: "ease-out" }
+        // composite:add — aynı anda yer değiştirme (translateY) animasyonu da varsa
+        // scale onu ezmesin, üstüne eklensin.
+        { duration: 920, easing: "ease-out", composite: "add" }
       );
     }
 
@@ -171,6 +176,34 @@ function Icerik() {
       if (!gorunurMu()) el.scrollIntoView({ block: "center" });
     }
   }, [benimSatirim]);
+
+  /* ---- satır yer değiştirme (Android: Modifier.animateItemPlacement) ----
+     Liste yeniden sıralanınca her satır eski yerinden yenisine kayar. FLIP: çizimden önce
+     eski konumlar ölçülür, yeni çizimde fark kadar geri itilip 0'a animasyonla getirilir. */
+  const listeRef = useRef<HTMLDivElement | null>(null);
+  const konumlarRef = useRef<Map<string, number>>(new Map());
+  useLayoutEffect(() => {
+    const kok = listeRef.current;
+    if (!kok) return;
+    const azHareket = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    const yeni = new Map<string, number>();
+    kok.querySelectorAll<HTMLElement>("[data-uid]").forEach((el) => {
+      const id = el.dataset.uid!;
+      const ust = el.getBoundingClientRect().top;
+      yeni.set(id, ust);
+      const eski = konumlarRef.current.get(id);
+      if (eski != null && !azHareket) {
+        const fark = eski - ust;
+        if (Math.abs(fark) > 1) {
+          el.animate(
+            [{ transform: `translateY(${fark}px)` }, { transform: "translateY(0)" }],
+            { duration: 380, easing: "cubic-bezier(.2,.8,.2,1)" }
+          );
+        }
+      }
+    });
+    konumlarRef.current = yeni;
+  }, [satirlar]);
 
   return (
     <>
@@ -224,17 +257,22 @@ function Icerik() {
           {benimSiram ? <span className="bk-soluk" style={{ fontSize: 13 }}>Sıran: {benimSiram}</span> : null}
         </div>
 
-        {satirlar == null && <p className="bk-soluk" style={{ fontSize: 14 }}>Sıralama yükleniyor…</p>}
+        {satirlar == null && (
+          // Android: sınıf doğrulanana kadar üç zıplayan nokta
+          <div className="bk-nokta-yukleniyor" aria-label="Sıralama yükleniyor"><i /><i /><i /></div>
+        )}
         {satirlar != null && satirlar.length === 0 && (
           <p className="bk-soluk" style={{ fontSize: 14 }}>
             Bu sezon için henüz sıralama yok. Test çözdükçe puanın buraya işlenir.
           </p>
         )}
 
+        <div ref={listeRef}>
         {satirlar?.map((s) => (
           <div
             className="bk-lig-satir"
             data-sensin={s.sensin}
+            data-uid={s.uid}
             key={s.uid}
             ref={s.sensin ? benimRef : undefined}
           >
@@ -252,6 +290,7 @@ function Icerik() {
             <span className="bk-lig-puan">{s.puan}</span>
           </div>
         ))}
+        </div>
       </div>
     </>
   );
