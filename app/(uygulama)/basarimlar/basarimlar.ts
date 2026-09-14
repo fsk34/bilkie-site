@@ -79,13 +79,13 @@ export const AY_ROZETLERI = ROZET_YILI.map((i) => ({
 }));
 
 /**
- * Profildeki önizleme: içinde bulunulan ay ve ondan önceki iki ay (Android
- * `ProfileScreen.onizlemeAylari` ile aynı). Rozet yılı dışında kalınmaz: Eylül'de
- * yalnız Eylül görünür, Ekim'de Eylül+Ekim, Kasım'dan sonra hep üçlü.
+ * Profildeki önizleme HER ZAMAN 3 rozet (Başarımlar gibi): bu aydan başlayarak sıradaki üç ay;
+ * yıl sonunda pencere geri kayar (Haz–Tem–Ağu). Android `ProfileScreen.onizlemeAylari` ile aynı.
+ * Eskiden "bu ay + önceki iki ay"dı → Eylül'de tek rozet görünüyordu (kullanıcı, 14 Eyl 2026).
  */
 export function onizlemeRozetleri(simdi = new Date()) {
   const ay = simdi.getMonth();
-  const son = Math.max(0, ROZET_YILI.indexOf(ay as (typeof ROZET_YILI)[number]));
-  const bas = Math.max(0, son - 2);
-  return AY_ROZETLERI.slice(bas, son + 1);
+  const idx = Math.max(0, ROZET_YILI.indexOf(ay as (typeof ROZET_YILI)[number]));
+  const bas = Math.min(idx, ROZET_YILI.length - 3);
+  return AY_ROZETLERI.slice(bas, bas + 3);
 }

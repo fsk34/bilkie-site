@@ -1705,8 +1705,9 @@
 
 .bk-rozet-izgara { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
 .bk-rozet { display: grid; justify-items: center; gap: 6px; }
+/* Arka kutu YOK (kullanıcı kararı 14 Eyl): madalya doğrudan panel üstünde (Android/iOS aynı) */
 .bk-rozet .kutu {
-  width: 92px; height: 92px; border-radius: 20px; background: var(--dugme-dis);
+  width: 92px; height: 92px; border-radius: 20px;
   display: grid; place-items: center; overflow: hidden;
 }
 /* Yeni ay rozeti kare çizim, kutuyu doldurur (Android ContentScale.Crop, 92dp). */
