@@ -7,6 +7,7 @@ import Kabuk from "../Kabuk";
 import { useOturum } from "../../lib/oturum";
 import { useRozetler } from "../../lib/canliVeri";
 import { AY_ROZETLERI } from "../basarimlar/basarimlar";
+import { rozetYiliBasligi } from "../../lib/sezon";
 
 export default function RozetlerSayfasi() {
   return (
@@ -42,7 +43,7 @@ function Icerik() {
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/uygulama/cikis.png" alt="" />
         </Link>
-        <h1>2025-2026 Güz</h1>
+        <h1>{rozetYiliBasligi()}</h1>
       </div>
 
       <div className="bk-kart">
@@ -51,7 +52,7 @@ function Icerik() {
             <div className="bk-rozet" key={a.i} data-kazanildi={aylar.includes(a.i)}>
               <div className="kutu">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={`/uygulama/rozet/${a.gorsel}.svg`} alt="" />
+                <img src={`/uygulama/rozet/${a.gorsel}.webp`} alt="" />
               </div>
               <span className="ad">{a.ad}</span>
             </div>

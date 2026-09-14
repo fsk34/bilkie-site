@@ -2,6 +2,8 @@
 // (başlık, görsel, açıklama, hedef, eşikler, renkler). Kademe ve hedef cümlesi
 // eşiklerden türetilir; kademe gösterimi uygulamadaki "level/maxLevel" ile aynı.
 
+import { AY_AD, AY_ANAHTAR } from "../../lib/ayGorsel";
+
 export type Basarim = {
   id: string; ad: string; gorsel: string; aciklama: string;
   hedef: number; esikler: number[]; zemin: string; kenar?: string; yil?: string;
@@ -60,11 +62,30 @@ export function hedefCumlesi(b: Basarim, deger: number): string {
   return b.hedefSablonu.replace("{n}", String(sonrakiEsik(b, deger)));
 }
 
-export const AY_ROZETLERI = [
-  { i: 0, ad: "Ocak", gorsel: "ocak" },
-  { i: 1, ad: "Şubat", gorsel: "subat" },
-  { i: 2, ad: "Mart", gorsel: "mart" },
-  { i: 3, ad: "Nisan", gorsel: "nisan" },
-  { i: 4, ad: "Mayıs", gorsel: "mayis" },
-  { i: 5, ad: "Haziran", gorsel: "haziran" },
-];
+/**
+ * Ay rozetleri ROZET YILI sırasında: Eylül → Ağustos (12 ay, 3×4 ızgara) — Android
+ * `AyGorsel.ROZET_YILI` ile aynı. Eskiden Ocak–Haziran'dı; sezon Eylül'de başladığı
+ * için ilk dört ay ızgarada hiç yoktu. Görsel `public/uygulama/rozet/<ay>rozet.webp`,
+ * kare, kutuyu doldurur (Android `drawable-nodpi/<ay>rozet.webp` ile aynı çizim).
+ * ⚠️ Temmuz/Ağustos rozeti ancak yaz görevleri kataloğa girince kazanılabilir; o güne
+ * kadar hep soluk durur.
+ */
+export const ROZET_YILI = [8, 9, 10, 11, 0, 1, 2, 3, 4, 5, 6, 7] as const;
+
+export const AY_ROZETLERI = ROZET_YILI.map((i) => ({
+  i,
+  ad: AY_AD[i],
+  gorsel: `${AY_ANAHTAR[i]}rozet`,
+}));
+
+/**
+ * Profildeki önizleme: içinde bulunulan ay ve ondan önceki iki ay (Android
+ * `ProfileScreen.onizlemeAylari` ile aynı). Rozet yılı dışında kalınmaz: Eylül'de
+ * yalnız Eylül görünür, Ekim'de Eylül+Ekim, Kasım'dan sonra hep üçlü.
+ */
+export function onizlemeRozetleri(simdi = new Date()) {
+  const ay = simdi.getMonth();
+  const son = Math.max(0, ROZET_YILI.indexOf(ay as (typeof ROZET_YILI)[number]));
+  const bas = Math.max(0, son - 2);
+  return AY_ROZETLERI.slice(bas, son + 1);
+}

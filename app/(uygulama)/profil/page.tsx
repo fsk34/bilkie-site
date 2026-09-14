@@ -13,7 +13,7 @@ import { sinifDegistir } from "../../lib/profilYaz";
 import { SINIFLAR } from "../../lib/kayit";
 import { useBasarimlar, useRozetler, useUstBilgi } from "../../lib/canliVeri";
 import { ligBul } from "../../lib/veri";
-import { AY_ROZETLERI, BASARIMLAR, sonrakiEsik } from "../basarimlar/basarimlar";
+import { BASARIMLAR, onizlemeRozetleri, sonrakiEsik } from "../basarimlar/basarimlar";
 import BasarimSatiri from "../basarimlar/BasarimSatiri";
 
 const LIG_ADI: Record<string, string> = {
@@ -149,11 +149,11 @@ function Icerik() {
         </div>
         <div className="bk-kart">
           <div className="bk-rozet-izgara">
-            {AY_ROZETLERI.map((a) => (
+            {onizlemeRozetleri().map((a) => (
               <div className="bk-rozet" key={a.i} data-kazanildi={rozetler.includes(a.i)}>
                 <div className="kutu">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={`/uygulama/rozet/${a.gorsel}.svg`} alt="" />
+                  <img src={`/uygulama/rozet/${a.gorsel}.webp`} alt="" />
                 </div>
                 <span className="ad">{a.ad}</span>
               </div>
