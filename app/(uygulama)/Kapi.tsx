@@ -10,6 +10,7 @@
 
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
+import { sesleriHazirla } from "./ses";
 import { useOturum } from "../lib/oturum";
 
 /** Giriş gerektirmeyen yollar — kapının kendisi bunları kilitlemez. */
@@ -19,6 +20,8 @@ import { useOturum } from "../lib/oturum";
 const ACIK_YOLLAR = ["/giris", "/kayit"];
 
 export default function Kapi({ children }: { children: React.ReactNode }) {
+  // Sesler: ilk dokunuşta AudioContext açılır + sık sesler belleğe alınır (Android SoundPool gibi)
+  useEffect(() => { sesleriHazirla(); }, []);
   const { yukleniyor, kullanici } = useOturum();
   const yol = usePathname() ?? "";
   const router = useRouter();
