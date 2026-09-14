@@ -106,7 +106,8 @@ function Satir({
         <span className="sayi">{deger}/{g.hedef}</span>
       </div>
       <div className="bk-gorev-cubuk">
-        <i style={{ width: `${oran}%`, background: bitti ? "#2ECC71" : renk }} />
+        {/* Android TaskSummaryScreen: biten görev de ayın rengiyle dolu (yeşil yok) */}
+        <i style={{ width: `${oran}%`, background: renk }} />
       </div>
     </div>
   );

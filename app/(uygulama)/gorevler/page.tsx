@@ -99,7 +99,8 @@ function Bolum({ ad, gorevler, renk }: { ad: string; gorevler: Gorev[] | null; r
                 <span className="sayi">{g.ilerleme}/{g.hedef}</span>
               </div>
               <div className="bk-gorev-cubuk">
-                <i style={{ width: `${oran}%`, background: bitti ? "#2ECC71" : renk }} />
+                {/* Android TaskCardSingle: biten görev de AYIN RENGİYLE dolu kalır (yeşil/üstü çizili yok) */}
+                <i style={{ width: `${oran}%`, background: renk }} />
               </div>
             </div>
           );

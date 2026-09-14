@@ -1630,7 +1630,8 @@
 }
 .bk-gorev-cubuk { height: 16px; border-radius: 999px; background: var(--dugme-dis); overflow: hidden; }
 .bk-gorev-cubuk > i { display: block; height: 100%; border-radius: 999px; transition: width .5s ease-out; }
-.bk-gorev-satir[data-bitti="true"] .ad { color: var(--soluk); text-decoration: line-through; }
+/* Biten görevde başlık beyaz kalır, üstü çizilmez — Android titleColor = White. (Eski web
+   kuralı yeşil çubuk + üstü çizili başlıktı; uygulamada böyle bir şey yok.) */
 
 /* ------------------------------------------------------------------ profil */
 
