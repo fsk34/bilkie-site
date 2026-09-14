@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import Script from "next/script";
 import { Geist, Geist_Mono } from "next/font/google";
-import "./globals.css";
+import "./kok.css";   // eski adı globals.css — Vercel bayat CSS önbelleği (14 Eyl) yüzünden yeniden adlandırıldı
 import { REKLAM_ISTEMCI } from "./lib/reklam";
 
 const geistSans = Geist({
