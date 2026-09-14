@@ -15,6 +15,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { dersBul } from "../../../dersler";
 import Lottie from "../../../Lottie";
+import Perde from "../../../Perde";
 import { sesCal } from "../../../ses";
 import SonucAkisi, { type SeriArgs, type SonucArgs } from "../../../sonuc/SonucAkisi";
 import type { GorevDegisimi } from "../../../../lib/gorevYaz";
@@ -296,17 +297,6 @@ export default function TestSayfasi() {
             Kontrol Et
           </button>
         )}
-      </div>
-    </div>
-  );
-}
-
-function Perde({ metin, children }: { metin: string; children?: React.ReactNode }) {
-  return (
-    <div className="bk" style={{ display: "grid", placeItems: "center", minHeight: "100vh", padding: 24 }}>
-      <div style={{ textAlign: "center", display: "grid", gap: 18, justifyItems: "center" }}>
-        <p className="bk-soluk" style={{ fontSize: 16, maxWidth: 420 }}>{metin}</p>
-        {children}
       </div>
     </div>
   );

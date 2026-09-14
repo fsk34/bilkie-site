@@ -1,22 +1,28 @@
 "use client";
 
-// Ünite eşleştirme quizi — Android `QuizScreens.kt` → QuizMatchScreen portu.
+// Ünite eşleştirme quizi — Android `QuizScreens.kt` → QuizUnitMatchPagerScreen + QuizMatchScreen.
 //
-// Oynanış birebir: çiftler `pageSize`lik sayfalara bölünür, SAĞ sütun karıştırılır.
-// Önce soldan bir kutu seçilir, sonra sağdan eşi. Doğruysa ikisi de yeşile kilitlenir;
-// yanlışsa 1400 ms kırmızı kalır ve tahta kilitlenir. Sayfadaki tüm çiftler eşleşince
-// "Kontrol Et" açılır, basınca "Devam Et"e döner. Son sayfada quiz biter.
+// Ekran TAM EKRAN: test ekranıyla aynı iskelet (Kabuk yok, sol menü/ray yok, üstte
+// yalnız çıkış, altta sabit bant + 260px eylem düğmesi). Android'de de quiz test gibi
+// kendi başına açılır; eskiden burada Kabuk içinde kart gibi duruyordu.
+//
+// Oynanış birebir: çiftler ünite yüklenince BİR KEZ karıştırılır, `pageSize`lik
+// sayfalara bölünür, sağ sütun sayfa başına ayrıca karıştırılır. Önce soldan bir kutu,
+// sonra sağdan eşi seçilir. Doğruysa ikisi de yeşile kilitlenir (zıplama + ışık bandı);
+// yanlışsa 1400 ms kırmızı kalır ve tahta kilitlenir (sarsıntı). Sayfadaki tüm çiftler
+// eşleşince "Kontrol Et" açılır; basınca ses + yeşil bant + "Devam Et". Son sayfada biter.
+// Ses yalnız Kontrol Et'te (Android: SoundManager.playDogru) — eşleşme başına ses YOK.
 //
 // Ödül: ilk tamamlamada +30 XP. Seri/başarım/görev/istatistik YOK — Android de yazmıyor.
+// Bitiş ekranı Android'de YOK (son Devam Et kapatır, XP arkada yazılır); web'de kalıyor
+// çünkü "30 XP kazandın" görünmeden kapanmak ödülü boşa harcıyor (14 Eyl 2026 kararı).
 
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import Kabuk from "../../../Kabuk";
+import Perde from "../../../Perde";
 import { useOturum } from "../../../../lib/oturum";
 import { sesCal } from "../../../ses";
-import { dersBul } from "../../../dersler";
-import { uniteler } from "../../../../lib/katalog";
 import {
   quizTamamla,
   quizUnitesiGetir,
@@ -27,15 +33,7 @@ import {
 
 type Durum = "yukleniyor" | "hata" | "oynaniyor" | "bitti";
 
-export default function QuizSayfasi() {
-  return (
-    <Kabuk>
-      <Icerik />
-    </Kabuk>
-  );
-}
-
-/** Deterministik olmayan karıştırma — sayfa değişince yenilenir (Android: remember(pageIndex)). */
+/** Deterministik olmayan karıştırma (Android: `shuffled()`). */
 function karistir<T>(dizi: T[]): T[] {
   const k = [...dizi];
   for (let i = k.length - 1; i > 0; i--) {
@@ -45,7 +43,7 @@ function karistir<T>(dizi: T[]): T[] {
   return k;
 }
 
-function Icerik() {
+export default function QuizSayfasi() {
   const router = useRouter();
   const params = useParams<{ ders: string; unite: string }>();
   const dersKey = String(params.ders ?? "");
@@ -57,13 +55,9 @@ function Icerik() {
   const [sayfa, setSayfa] = useState(0);
   const [kazanilanXp, setKazanilanXp] = useState(0);
   const [ilkKez, setIlkKez] = useState(false);
+  const [cikisSorusu, setCikisSorusu] = useState(false);
 
-  const ders = dersBul(dersKey);
-  const uniteAdi = useMemo(() => {
-    // Adres çubuğundaki anahtar `quizKey` de olabilir `key` de (defterde defterKey gibi)
-    const u = uniteler(sinif, dersKey).find((x) => x.quizKey === uniteKey || x.key === uniteKey);
-    return u?.title ?? "";
-  }, [sinif, dersKey, uniteKey]);
+  const geriYolu = `/defter/${dersKey}`;
 
   useEffect(() => {
     if (yukleniyor) return;
@@ -73,7 +67,10 @@ function Icerik() {
         const q = await quizUnitesiGetir(sinif, dersKey, uniteKey);
         if (iptal) return;
         if (!q || q.ciftler.length === 0) { setDurum("hata"); return; }
-        setVeri(q);
+        // Android: `loaded.copy(pairs = loaded.pairs.shuffled())` — önbellekteki nesne
+        // değişmesin diye kopya karıştırılır.
+        setVeri({ ...q, ciftler: karistir(q.ciftler) });
+        setSayfa(0);
         setDurum("oynaniyor");
       } catch {
         if (!iptal) setDurum("hata");
@@ -100,52 +97,64 @@ function Icerik() {
     }
   }, [kullanici, sinif, dersKey, uniteKey]);
 
-  if (durum === "yukleniyor") {
-    return <p className="bk-soluk" style={{ padding: 24 }}>Quiz yükleniyor…</p>;
-  }
+  if (durum === "yukleniyor") return <Perde metin="Quiz yükleniyor…" />;
 
   if (durum === "hata") {
     return (
-      <div className="bk-kart">
-        <p className="bk-soluk" style={{ fontSize: 14, marginBottom: 14 }}>
-          Bu ünitenin quizi bulunamadı.
-        </p>
-        <Link className="bk-dugme" href={`/defter/${dersKey}`}>Ünitelere dön</Link>
-      </div>
+      <Perde metin="Bu ünite için quiz bulunamadı.">
+        <Link className="bk-dugme" href={geriYolu}>Ünitelere dön</Link>
+      </Perde>
     );
   }
 
   if (durum === "bitti") {
     return (
-      <div className="bk-kart" style={{ textAlign: "center", padding: 28 }}>
-        <div style={{ fontSize: 44, marginBottom: 8 }}>🎉</div>
-        <h2 style={{ fontSize: 22, marginBottom: 8 }}>Quiz tamamlandı!</h2>
-        <p className="bk-soluk" style={{ fontSize: 14, marginBottom: 16 }}>
-          {ilkKez
-            ? `${kazanilanXp} XP kazandın.`
-            : `Bu quizi daha önce tamamlamıştın, ${XP_QUIZ_TAMAM} XP yalnız ilk seferde veriliyor.`}
-        </p>
+      <Perde
+        metin={
+          ilkKez
+            ? `Quiz tamamlandı! 🎉 ${kazanilanXp} XP kazandın.`
+            : `Quiz tamamlandı! Bu quizi daha önce bitirmiştin; ${XP_QUIZ_TAMAM} XP yalnız ilk seferde veriliyor.`
+        }
+      >
         <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
-          <Link className="bk-dugme" href={`/defter/${dersKey}`}>Ünitelere dön</Link>
+          <Link className="bk-dugme" href={geriYolu}>Ünitelere dön</Link>
           <button className="bk-dugme acik" onClick={() => router.push("/")}>Ana ekran</button>
         </div>
-      </div>
+      </Perde>
     );
   }
 
   return (
-    <Sayfa
-      key={sayfa}
-      baslik={`Quiz • ${ders?.ad ?? dersKey} • ${uniteAdi || veri?.baslik || ""}`}
-      ciftler={sayfaCiftleri}
-      sayfa={sayfa}
-      sayfaSayisi={sayfaSayisi}
-      onGeri={() => router.push(`/defter/${dersKey}`)}
-      onSonraki={() => {
-        if (sayfa >= sayfaSayisi - 1) void bitir();
-        else setSayfa(sayfa + 1);
-      }}
-    />
+    <div className="bk">
+      <Sayfa
+        key={sayfa}
+        ciftler={sayfaCiftleri}
+        sayfa={sayfa}
+        sayfaSayisi={sayfaSayisi}
+        onGeri={() => setCikisSorusu(true)}
+        onSonraki={() => {
+          if (sayfa >= sayfaSayisi - 1) void bitir();
+          else setSayfa(sayfa + 1);
+        }}
+      />
+
+      {/* Android ExitConfirmDialog: "Çıkmak istediğine emin misin?" · Çıkış Yap / Vazgeç */}
+      {cikisSorusu && (
+        <div className="bk-ortu">
+          <div className="bk-kart bk-soru-kutu">
+            <h3>Çıkmak istediğine emin misin?</h3>
+            <div style={{ display: "flex", gap: 10, marginTop: 14 }}>
+              <button className="bk-dugme acik" style={{ flex: 1 }} onClick={() => setCikisSorusu(false)}>
+                Vazgeç
+              </button>
+              <button className="bk-dugme kirmizi" style={{ flex: 1 }} onClick={() => router.push(geriYolu)}>
+                Çıkış Yap
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -154,9 +163,8 @@ function Icerik() {
 type KutuDurumu = "normal" | "secili" | "dogru" | "yanlis";
 
 function Sayfa({
-  baslik, ciftler, sayfa, sayfaSayisi, onGeri, onSonraki,
+  ciftler, sayfa, sayfaSayisi, onGeri, onSonraki,
 }: {
-  baslik: string;
   ciftler: QuizCifti[];
   sayfa: number;
   sayfaSayisi: number;
@@ -186,10 +194,8 @@ function Sayfa({
     const sol = seciliSol;
     setSeciliSol(null);
     if (saglar[r] === ciftler[sol].sag) {
-      sesCal("dogru");
       setKilitli((k) => ({ ...k, [sol]: r }));
     } else {
-      sesCal("yanlis");
       setYanlis([sol, r]);
       // Android: 1400 ms kırmızı kalır, bu sürede tahta kilitli
       zamanlayiciRef.current = setTimeout(() => setYanlis(null), 1400);
@@ -207,48 +213,75 @@ function Sayfa({
 
   return (
     <>
-      <div className="bk-kart-ust">
-        <h1 style={{ fontSize: 18 }}>{baslik}</h1>
-        <button className="bk-metin-dugme" onClick={onGeri}>✕</button>
+      <div className="bk-test bk-quiz">
+        {/* Android: üstte yalnız çıkış görseli, başlık yok */}
+        <div className="bk-test-ust">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <button className="bk-cikis" aria-label="Çık" onClick={onGeri}><img src="/uygulama/cikis.png" alt="" /></button>
+        </div>
+
+        {/* Satırlar kalan yüksekliği paylaşır (Android: Row.weight(1f)) */}
+        <div className="bk-quiz-izgara">
+          {ciftler.map((c, i) => (
+            <div className="bk-quiz-satir" key={i}>
+              <Kutu durum={solDurum(i)} disabled={kilitli[i] !== undefined || yanlis != null} onClick={() => solaBas(i)}>
+                {c.sol}
+              </Kutu>
+              <Kutu durum={sagDurum(i)} disabled={kilitliSaglar.has(i) || seciliSol == null || yanlis != null} onClick={() => sagaBas(i)}>
+                {saglar[i]}
+              </Kutu>
+            </div>
+          ))}
+        </div>
+
+        <p className="bk-soluk" style={{ fontSize: 13, textAlign: "center", margin: "14px 0 0" }}>
+          Sayfa {sayfa + 1}/{sayfaSayisi}
+        </p>
       </div>
 
-      <div className="bk-quiz-izgara">
-        {ciftler.map((c, i) => (
-          <div className="bk-quiz-satir" key={i}>
-            <button
-              className="bk-quiz-kutu"
-              data-durum={solDurum(i)}
-              disabled={kilitli[i] !== undefined || yanlis != null}
-              onClick={() => solaBas(i)}
-            >
-              {c.sol}
-            </button>
-            <button
-              className="bk-quiz-kutu"
-              data-durum={sagDurum(i)}
-              disabled={kilitliSaglar.has(i) || seciliSol == null || yanlis != null}
-              onClick={() => sagaBas(i)}
-            >
-              {saglar[i]}
-            </button>
-          </div>
-        ))}
-      </div>
-
-      <p className="bk-soluk" style={{ fontSize: 13, textAlign: "center", margin: "14px 0" }}>
-        Sayfa {sayfa + 1}/{sayfaSayisi}
-      </p>
-
-      <button
-        className={`bk-dugme tam${kontrolEdildi ? " yesil" : ""}`}
-        disabled={!hepsiDogru}
-        onClick={() => {
-          if (kontrolEdildi) onSonraki();
-          else { sesCal("dogru"); setKontrolEdildi(true); }
-        }}
+      {/* Test ekranıyla aynı alt bant: kontrol edilince yeşil "Doğru" bandı düğmenin arkasından çıkar */}
+      <div
+        className={`bk-alt-bant${kontrolEdildi ? " dogru" : ""}`}
+        data-gorunur={kontrolEdildi ? "true" : undefined}
+        key={kontrolEdildi ? "bant-dogru" : "bant"}
       >
-        {kontrolEdildi ? "Devam Et" : "Kontrol Et"}
-      </button>
+        {kontrolEdildi && <div className="bk-alt-bant-yazi">Doğru</div>}
+        <button
+          className="bk-eylem"
+          data-ton={kontrolEdildi ? "dogru" : undefined}
+          disabled={!hepsiDogru}
+          onClick={() => {
+            if (kontrolEdildi) onSonraki();
+            else { sesCal("dogru"); setKontrolEdildi(true); }
+          }}
+        >
+          {kontrolEdildi ? "Devam Et" : "Kontrol Et"}
+        </button>
+      </div>
     </>
+  );
+}
+
+/** Eşleştirme kutusu — Android `MatchTile`: doğruda zıplama + ışık bandı, yanlışta sarsıntı. */
+function Kutu({
+  durum, disabled, onClick, children,
+}: {
+  durum: KutuDurumu; disabled: boolean; onClick: () => void; children: React.ReactNode;
+}) {
+  const anim = durum === "dogru" ? "dogru" : durum === "yanlis" ? "yanlis" : undefined;
+  return (
+    <button className="bk-quiz-kutu" data-durum={durum} data-anim={anim} disabled={disabled} onClick={onClick}>
+      {children}
+      {anim === "dogru" && (
+        <span className="bk-parilti" aria-hidden>
+          <span className="kayan">
+            <span className="bant" />
+            <span className="ucgen a" />
+            <span className="ucgen b" />
+            <span className="ucgen c" />
+          </span>
+        </span>
+      )}
+    </button>
   );
 }
