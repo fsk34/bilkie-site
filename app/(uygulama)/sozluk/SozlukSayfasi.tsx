@@ -31,7 +31,8 @@ function Icerik({ tur }: { tur: SozlukTuru }) {
   const [secici, setSecici] = useState(false);
   const [sorgu, setSorgu] = useState("");
   const [sonuclar, setSonuclar] = useState<SozlukKelime[] | null>(null);
-  const [tumu, setTumu] = useState(false);
+  // Seçili harfin tüm kelimeleri — günün kelimesinin altında, kaydırılarak (Tümünü Gör yok)
+  const [harfListesi, setHarfListesi] = useState<SozlukKelime[] | null>(null);
 
   useEffect(() => {
     if (sayilar) return;
@@ -43,9 +44,10 @@ function Icerik({ tur }: { tur: SozlukTuru }) {
   useEffect(() => {
     if (!sayilar) return;
     let iptal = false;
-    setKelime(undefined);
-    if ((sayilar[harf] ?? 0) === 0) { setKelime(null); return; }
+    setKelime(undefined); setHarfListesi(null);
+    if ((sayilar[harf] ?? 0) === 0) { setKelime(null); setHarfListesi([]); return; }
     gununKelimesi(tur, harf).then((v) => { if (!iptal) setKelime(v); }).catch(() => { if (!iptal) setKelime(null); });
+    sozlukHarfGetir(tur, harf).then((v) => { if (!iptal) setHarfListesi(v); }).catch(() => { if (!iptal) setHarfListesi([]); });
     return () => { iptal = true; };
   }, [harf, sayilar, tur]);
 
@@ -65,12 +67,10 @@ function Icerik({ tur }: { tur: SozlukTuru }) {
   if (!yukleniyor && !kullanici) {
     return <KesifGirisGerekli tur="sozluk" baslik={s.baslik} aciklama="Sözlüğü kullanmak için giriş yapman gerekiyor." />;
   }
-  if (tumu) return <TumListe tur={tur} harf={harf} onKapat={() => setTumu(false)} />;
-
   const ariyor = sorgu.trim().length > 0;
 
   return (
-    <div className="bk-kesif" data-tur="sozluk">
+    <div className="bk-kesif" data-tur={tur === "turkce" ? "sozluk" : "ingsozluk"}>
       <div className="bk-kesif-ust">
         <Link className="geri" href="/" aria-label="Geri">✕</Link>
         <div>
@@ -112,16 +112,18 @@ function Icerik({ tur }: { tur: SozlukTuru }) {
           </div>
 
           <div className="bk-kesif-kart bk-ady-onizleme">
-            <div className="ust">
-              <h2>Günün Kelimesi • {harf}</h2>
-              <button className="tumu" onClick={() => setTumu(true)}>Tümünü Gör</button>
-            </div>
+            <div className="ust"><h2>Günün Kelimesi • {harf}</h2></div>
             {kelime === undefined ? <UcNokta style={{ padding: "12px 0" }} boyut={8} aralik={6} />
             : kelime === null ? <div className="anlam">Bu harfte kelime bulunamadı.</div>
             : <KelimeGovdesi k={kelime} />}
           </div>
 
-          <div className="bk-ady-ipucu">İpucu: Üstten harf seç ya da arama kutusuna yaz. Kaynak: Vikisözlük (CC BY-SA).</div>
+          <h2 className="bk-sozluk-liste-baslik">{harf} ile başlayan kelimeler{harfListesi ? ` • ${harfListesi.length}` : ""}</h2>
+          {harfListesi == null ? <UcNokta style={{ padding: 18 }} />
+          : harfListesi.length === 0 ? <div className="bk-kesif-bos">Bu harfte kelime bulunamadı.</div>
+          : <div className="bk-ady-liste">{harfListesi.map((k) => <KelimeKarti key={k.id + k.text} k={k} />)}</div>}
+
+          <div className="bk-sozluk-kaynak">Kaynak: Vikisözlük (CC BY-SA)</div>
 
           {secici && (
             <div className="bk-ady-perde" onClick={() => setSecici(false)}>
@@ -159,36 +161,4 @@ function KelimeGovdesi({ k }: { k: SozlukKelime }) {
 
 function KelimeKarti({ k }: { k: SozlukKelime }) {
   return <div className="oge"><KelimeGovdesi k={k} /></div>;
-}
-
-function TumListe({ tur, harf, onKapat }: { tur: SozlukTuru; harf: string; onKapat: () => void }) {
-  const s = SOZLUK[tur];
-  const [liste, setListe] = useState<SozlukKelime[] | null>(null);
-  const [arama, setArama] = useState("");
-
-  useEffect(() => {
-    let iptal = false;
-    setListe(null);
-    sozlukHarfGetir(tur, harf).then((v) => { if (!iptal) setListe(v); }).catch(() => { if (!iptal) setListe([]); });
-    return () => { iptal = true; };
-  }, [tur, harf]);
-
-  const suzulmus = useMemo(() => {
-    const q = arama.trim().toLocaleLowerCase(s.yerel);
-    if (!q || !liste) return liste ?? [];
-    return liste.filter((o) => o.text.toLocaleLowerCase(s.yerel).includes(q) || o.meaning.toLocaleLowerCase("tr").includes(q));
-  }, [liste, arama, s.yerel]);
-
-  return (
-    <div className="bk-kesif" data-tur="sozluk">
-      <div className="bk-kesif-ust">
-        <button className="geri" onClick={onKapat} aria-label="Geri">✕</button>
-        <h1>{s.baslik} • {harf}</h1>
-      </div>
-      <input className="bk-ady-ara" placeholder="Ara (kelime / anlam)" value={arama} onChange={(e) => setArama(e.target.value)} />
-      {liste == null ? <UcNokta style={{ padding: 24 }} />
-      : suzulmus.length === 0 ? <div className="bk-kesif-bos">Sonuç bulunamadı.</div>
-      : <div className="bk-ady-liste">{suzulmus.map((k) => <KelimeKarti key={k.id + k.text} k={k} />)}</div>}
-    </div>
-  );
 }

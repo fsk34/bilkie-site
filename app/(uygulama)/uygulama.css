@@ -2782,7 +2782,11 @@ html[data-bk-oturum="1"] .bk-kok-bekleme { display: block; }
 @media (prefers-reduced-motion: reduce) { .bk-uc-nokta i { animation: none; opacity: .6; } }
 
 /* ------------------------------------------------------------------ sözlük */
-.bk-kesif[data-tur="sozluk"] { background: linear-gradient(180deg, #0c1a3f, #2c335e 55%, #4a538e); }
+/* Ana ekrandaki kutunun rengi; Atasözleri lacivertinden ayrı (Android/iOS ile aynı) */
+.bk-kesif[data-tur="sozluk"]    { background: linear-gradient(180deg, #10496e, #0f5870); }
+.bk-kesif[data-tur="ingsozluk"] { background: linear-gradient(180deg, #2967a5, #346eb5); }
+.bk-sozluk-liste-baslik { font-family: "bk-baslik", system-ui, sans-serif; font-size: 14px; margin: 4px 0 0; color: rgba(255,255,255,.85); }
+.bk-sozluk-kaynak { font-family: "bk-kucukbaslik", system-ui, sans-serif; font-size: 12px; color: rgba(255,255,255,.55); text-align: center; padding: 8px 0 4px; }
 .bk-sozluk-ara { position: relative; }
 .bk-sozluk-ara .temizle {
   position: absolute; right: 10px; top: 50%; transform: translateY(-50%);

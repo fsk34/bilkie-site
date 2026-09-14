@@ -1,6 +1,7 @@
 "use client";
 
 import UcNokta from "./UcNokta";
+import { ayVurgu } from "../lib/ayGorsel";
 
 // Uygulama kabuğu: sol gezinme + içerik + sağ ray.
 // Sağ ray düzeni: üstte sayaçlar (seri / puan / can), altında lig ve günlük görev kartları.
@@ -195,7 +196,8 @@ function GorevKarti({ gorevler }: { gorevler: Gorev[] | null }) {
           <div className="bk-gorev" key={g.id}>
             <div className="bk-gorev-govde">
               <div className="bk-gorev-ad">{g.baslik}</div>
-              <div className="bk-cubuk"><i style={{ width: `${oran}%` }} /></div>
+              {/* Görevler sayfasıyla aynı: dolgu ayın rengi (biten görev de) — eskiden burada sabit yeşildi */}
+              <div className="bk-cubuk"><i style={{ width: `${oran}%`, background: ayVurgu(new Date().getMonth()) }} /></div>
               <div className="bk-gorev-sayi">{g.ilerleme} / {g.hedef}</div>
             </div>
             {g.xp > 0 && <span className="bk-gorev-xp">+{g.xp}</span>}
