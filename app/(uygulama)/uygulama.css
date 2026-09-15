@@ -2414,6 +2414,16 @@
 html[data-bk-oturum="1"] .bk-kok-tanitim:not(.gorunur) { display: none; }
 html[data-bk-oturum="1"] .bk-kok-bekleme { display: block; }
 
+/* /giris ve /kayit: giriş yapmış kullanıcıya form bir an bile görünmesin.
+   data-durum: bilinmiyor (oturum henüz okunmadı) · girili (yönlendirme sürüyor) · misafir.
+   "bilinmiyor"da karar kökteki bayrağın: bayrak varsa üç nokta, yoksa form (misafir
+   boşuna beklemez). Bayrak eskiyse oturum bilinince "misafir" olur, form gelir. */
+.bk-oturum-bekleme { display: none; min-height: 50vh; place-items: center; }
+.bk-oturum-sayfa[data-durum="girili"] .bk-oturum-icerik,
+html[data-bk-oturum="1"] .bk-oturum-sayfa[data-durum="bilinmiyor"] .bk-oturum-icerik { display: none; }
+.bk-oturum-sayfa[data-durum="girili"] .bk-oturum-bekleme,
+html[data-bk-oturum="1"] .bk-oturum-sayfa[data-durum="bilinmiyor"] .bk-oturum-bekleme { display: grid; }
+
 /* Dikey akış: gövde ortada esner, alt bant tam genişlikte altta kalır.
    (Grid + place-items:center yapılırsa alt bant da içeriğine daralıp ortalanır.) */
 .bk-tanitim { display: flex; flex-direction: column; min-height: 100vh; }

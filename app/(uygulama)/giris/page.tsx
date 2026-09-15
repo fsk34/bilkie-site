@@ -18,6 +18,7 @@ import { auth } from "../../lib/firebase";
 import { useOturum } from "../../lib/oturum";
 import { profilOku } from "../../lib/veri";
 import GoogleDugme from "../GoogleDugme";
+import UcNokta from "../UcNokta";
 
 export default function GirisSayfasi() {
   const router = useRouter();
@@ -57,9 +58,15 @@ export default function GirisSayfasi() {
     setSifreGonderiliyor(false);
   }
 
+  // Zaten giriş yapmış kullanıcı (adres çubuğu tamamlaması, yer imi, geri tuşu) forma
+  // değil uygulamaya gider. Yönlendirme bitene kadar form ÇİZİLMEZ; oturum henüz
+  // bilinmezken de kökteki `bk-oturum` bayrağına bakılır (bkz. app/layout.tsx +
+  // uygulama.css) — bayrak varsa ilk boyamadan itibaren form yerine üç nokta görünür.
+  // Yoksa "giriş ekranı gelip sonra kendiliğinden giriş yapıyor" gibi görünüyordu.
   useEffect(() => {
     if (!yukleniyor && kullanici) router.replace("/");
   }, [yukleniyor, kullanici, router]);
+  const durum = yukleniyor ? "bilinmiyor" : kullanici ? "girili" : "misafir";
 
   async function profilKontrol(uid: string): Promise<boolean> {
     const p = await profilOku(uid);
@@ -106,8 +113,13 @@ export default function GirisSayfasi() {
   }
 
   return (
-    <div className="bk" style={{ display: "grid", placeItems: "center", padding: "48px 20px" }}>
-      <div style={{ width: "100%", maxWidth: 400 }}>
+    <div
+      className="bk bk-oturum-sayfa"
+      data-durum={durum}
+      style={{ display: "grid", placeItems: "center", padding: "48px 20px" }}
+    >
+      <div className="bk-oturum-bekleme"><UcNokta /></div>
+      <div className="bk-oturum-icerik" style={{ width: "100%", maxWidth: 400 }}>
         <Link href="/" className="bk-logo" style={{ display: "block", textAlign: "center" }}>
           bilkie
         </Link>

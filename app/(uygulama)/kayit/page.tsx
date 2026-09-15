@@ -37,12 +37,27 @@ import {
   SinifSecimi,
 } from "./parcalar";
 import GoogleDugme from "../GoogleDugme";
+import UcNokta from "../UcNokta";
+import { useOturum } from "../../lib/oturum";
 
 const TOPLAM_ADIM = 5;
 
 export default function KayitSayfasi() {
   const router = useRouter();
   const [adim, setAdim] = useState(1);
+
+  // Sayfa açıldığında ZATEN giriş yapmış olan kullanıcı uygulamaya gider (bkz. /giris).
+  // Karar yalnız oturumun İLK bilinişinde verilir: akışın kendisi de oturum açıyor
+  // (Google adımı, e-posta doğrulama denemesi) — o anlarda yönlendirmek akışı bozar.
+  const { yukleniyor: oturumYukleniyor, kullanici } = useOturum();
+  const ilkKarar = useRef<"girili" | "misafir" | null>(null);
+  if (!oturumYukleniyor && ilkKarar.current === null) {
+    ilkKarar.current = kullanici ? "girili" : "misafir";
+  }
+  const durum = ilkKarar.current ?? "bilinmiyor";
+  useEffect(() => {
+    if (durum === "girili") router.replace("/");
+  }, [durum, router]);
 
   const [eposta, setEposta] = useState("");
   const [sartlar, setSartlar] = useState(false);
@@ -141,8 +156,9 @@ export default function KayitSayfasi() {
   }
 
   return (
-    <div className="bk bk-kayit">
-      <div className="bk-kayit-cerceve">
+    <div className="bk bk-kayit bk-oturum-sayfa" data-durum={durum}>
+      <div className="bk-oturum-bekleme"><UcNokta /></div>
+      <div className="bk-kayit-cerceve bk-oturum-icerik">
         <KayitBasligi adim={adim} toplam={TOPLAM_ADIM} geri={geri} />
 
         {adim === 1 && (

@@ -13,6 +13,7 @@ import { hatirlananlariUnut } from "../../../lib/canli";
 import { onbellegiBosalt } from "../../../lib/onbellek";
 import { useOturum } from "../../../lib/oturum";
 import { profilOku } from "../../../lib/veri";
+import UcNokta from "../../UcNokta";
 import {
   googleKaydiniIptalEt,
   googleKaydiniTamamla,
@@ -109,7 +110,7 @@ export default function GoogleKurulumSayfasi() {
     return (
       <div className="bk bk-kayit">
         <div className="bk-kayit-cerceve">
-          <p className="bk-soluk">{hata ?? "Yükleniyor…"}</p>
+          {hata ? <p className="bk-soluk">{hata}</p> : <UcNokta style={{ minHeight: "50vh" }} />}
         </div>
       </div>
     );
