@@ -1733,3 +1733,20 @@ export async function rozetAylari(uid: string): Promise<number[]> {
   const snap = await get(dbRef(kullaniciDb, rozetYolu(uid)));
   return rozetleriCoz(snap.val());
 }
+
+/* ------------------------------------------------- bölümlü oyun ilerlemesi */
+// Ok Bulmaca ve Resim Yapboz (15 Eyl 2026, yaz kampından Oyunlar'a taşındı).
+// Düğüm: users/{uid}/{oyun} = sıradaki bölüm numarası (Sudoku'nun kalıbı; üç platform aynı).
+
+export type BolumluOyun = "okbulmaca" | "yapboz";
+
+export async function oyunBolumu(uid: string, oyun: BolumluOyun): Promise<number> {
+  try {
+    const snap = await get(dbRef(kullaniciDb, `users/${uid}/${oyun}`));
+    return Math.max(1, sayi(snap.val()) || 1);
+  } catch { return 1; }
+}
+
+export async function oyunBolumuYaz(uid: string, oyun: BolumluOyun, bolum: number): Promise<void> {
+  await set(dbRef(kullaniciDb, `users/${uid}/${oyun}`), bolum);
+}

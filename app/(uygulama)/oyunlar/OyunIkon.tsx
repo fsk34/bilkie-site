@@ -15,7 +15,7 @@ const T2048_RENK = ["#EDC850", "#ED9C3A", "#ED6C3A", "#EDC850"];
 const WORDLE_RENK = ["#538D4E", "#B59F3B", "#538D4E", "#3A3A5C", "#538D4E"];
 
 export default function OyunIkon({ oyun }: { oyun: string }) {
-  const zemin = oyun === "2048" ? "#3A1A00" : oyun === "wordle" ? "#1A2A10" : "#0A2060";
+  const zemin = oyun === "2048" ? "#3A1A00" : oyun === "wordle" ? "#1A2A10" : oyun === "ok" ? "#F3F5FA" : "#0A2060";
   return (
     <svg width={72} height={72} viewBox="0 0 72 72" aria-hidden>
       <rect width={72} height={72} rx={14} fill={zemin} />
@@ -24,6 +24,8 @@ export default function OyunIkon({ oyun }: { oyun: string }) {
       {oyun === "blok" && <Blok />}
       {oyun === "2048" && <T2048 />}
       {oyun === "wordle" && <Wordle />}
+      {oyun === "ok" && <Ok />}
+      {oyun === "yapboz" && <Yapboz />}
     </svg>
   );
 }
@@ -119,6 +121,31 @@ function Wordle() {
       {WORDLE_RENK.map((renk, i) => (
         <rect key={i} x={x0 + i * (k + ara)} y={(72 - k) / 2} width={k} height={k} rx={2} fill={renk} />
       ))}
+    </g>
+  );
+}
+
+/** Ok Bulmaca: açık zemin, noktalı ızgara, kıvrımlı lacivert ok (ArrowBolum görsel dili). */
+function Ok() {
+  return (
+    <g>
+      {[18, 36, 54].map((x) => [18, 36, 54].map((y) => <circle key={`${x}-${y}`} cx={x} cy={y} r={1.6} fill="#BCC3D4" />))}
+      <path d="M18 54 V36 H36 V18 H50" fill="none" stroke="#2B3350" strokeWidth={9} strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M44 9 L58 18 L44 27 Z" fill="#2B3350" />
+    </g>
+  );
+}
+
+/** Resim Yapboz: 3×3 kaydırmalı yapboz, sağ altta boş göz, parçalar gökyüzü-deniz tonunda. */
+function Yapboz() {
+  const k = 16, ara = 2, x0 = (72 - (3 * k + 2 * ara)) / 2;
+  const renk = ["#7EC8E3", "#7EC8E3", "#F6D55C", "#4FA3D1", "#4FA3D1", "#7EC8E3", "#2E6DA4", "#2E6DA4", ""];
+  return (
+    <g>
+      {renk.map((r, i) => r && (
+        <rect key={i} x={x0 + (i % 3) * (k + ara)} y={x0 + Math.floor(i / 3) * (k + ara)} width={k} height={k} rx={3} fill={r} />
+      ))}
+      <rect x={x0 + 2 * (k + ara)} y={x0 + 2 * (k + ara)} width={k} height={k} rx={3} fill="none" stroke="#FFFFFF55" strokeDasharray="3 2" />
     </g>
   );
 }

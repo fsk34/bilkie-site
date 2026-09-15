@@ -2900,3 +2900,59 @@ html[data-bk-oturum="1"] .bk-oturum-sayfa[data-durum="bilinmiyor"] .bk-oturum-be
 .bk-not-soru .dugmeler { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
 .bk-not-soru .bk-not-dugme { background: #eef0f4; color: #1a1a1a; }
 .bk-not-soru .bk-not-dugme:first-child { background: #ffc107; }
+
+/* ------------------------------------------------- bölümlü oyunlar (Ok Bulmaca · Resim Yapboz) */
+/* 15 Eyl 2026: yaz kampından Oyunlar'a taşındı. Seçim ekranı: bölüm kartı + bitmiş bölümler ızgarası. */
+.bk-bolum-kart {
+  width: 100%; max-width: 520px; padding: 18px; border-radius: 20px; box-sizing: border-box;
+  background: var(--oyun-kart); border: 1px solid var(--oyun-cizgi); display: grid; gap: 12px; justify-items: stretch;
+}
+.bk-bolum-kart .ust { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.bk-bolum-kart .ust span { font-family: "bk-baslik", system-ui, sans-serif; font-size: 20px; font-weight: 700; }
+.bk-bolum-kart .ust small { font-size: 12px; color: var(--oyun-soluk); }
+.bk-bolum-kart .cubuk { height: 8px; border-radius: 4px; background: rgba(255,255,255,.12); overflow: hidden; }
+.bk-bolum-kart .cubuk i { display: block; height: 100%; background: #edc22e; border-radius: 4px; }
+.bk-bolum-baslik { width: 100%; max-width: 520px; font-size: 15px; margin: 18px 0 8px; color: var(--oyun-soluk); }
+.bk-bolum-izgara { width: 100%; max-width: 520px; display: grid; grid-template-columns: repeat(auto-fill, minmax(48px, 1fr)); gap: 8px; }
+.bk-bolum-goz {
+  height: 44px; border: 0; border-radius: 12px; cursor: pointer; font-family: "bk-baslik", system-ui, sans-serif; font-size: 14px; font-weight: 700;
+  background: var(--oyun-kart); color: #fff;
+}
+.bk-bolum-goz[data-durum="bitti"] { background: #2e6da4; }
+.bk-bolum-goz[data-durum="sirada"] { background: #edc22e; color: #000; }
+.bk-bolum-goz[data-durum="kilitli"] { opacity: .35; cursor: default; }
+
+/* Ok Bulmaca: açık zemin + noktalı ızgara + lacivert oklar (Android ArrowBolum renkleri) */
+.bk-ok-sahne { background: linear-gradient(180deg, #2b3350, #1e2440); }
+.bk-ok-hak { display: flex; align-items: center; gap: 6px; width: 60px; justify-content: flex-end; font-family: "bk-baslik", system-ui, sans-serif; font-size: 18px; }
+.bk-ok-hak img { width: 22px; height: 22px; }
+.bk-ok-tahta {
+  width: min(520px, calc(100vw - 40px), calc(100vh - 220px)); max-width: 100%;
+  border-radius: 14px; overflow: hidden; background: #f3f5fa; box-shadow: 0 8px 30px rgba(0,0,0,.3);
+  touch-action: manipulation; user-select: none;
+}
+.bk-ok-tahta svg { display: block; }
+.bk-ok { cursor: pointer; transition: transform .48s cubic-bezier(.4, 0, 1, 1); }
+.bk-ok[data-durum="carpti"] { transition: transform .12s ease-out; }
+.bk-ok[data-durum="cikiyor"] { pointer-events: none; }
+@media (hover: hover) { .bk-ok[data-durum="duruyor"]:hover path:nth-child(2), .bk-ok[data-durum="duruyor"]:hover polygon { filter: brightness(1.25); } }
+
+/* Resim Yapboz: parçalar görselin dilimi (background-position), boş gözde soluk hayalet */
+.bk-yapboz-sahne { background: linear-gradient(180deg, #0f2a44, #0c1a3f); }
+.bk-yapboz-hedef { height: 40px; border-radius: 6px; background-size: cover; background-position: center; }
+.bk-yapboz-tahta {
+  --n: 3; position: relative; width: min(520px, calc(100vw - 40px), calc((100vh - 220px) * var(--oran, 1)));
+  max-width: 100%; background: #000; border-radius: 10px; overflow: hidden; touch-action: manipulation; user-select: none;
+  container-type: inline-size;
+}
+.bk-yapboz-tahta .hayalet { position: absolute; inset: 0; background-size: 100% 100%; opacity: .16; }
+.bk-yapboz-tahta .parca {
+  position: absolute; width: calc(100% / var(--n)); height: calc(100% / var(--n)); padding: 0; border: 0; cursor: pointer;
+  background-size: calc(var(--n) * 100%) calc(var(--n) * 100%); box-shadow: inset 0 0 0 1px #000;
+  transition: left .13s ease-out, top .13s ease-out;
+}
+.bk-yapboz-tahta[data-bitti="true"] .parca { box-shadow: none; cursor: default; }
+.bk-yapboz-tahta .parca span {
+  position: absolute; top: 4px; right: 6px; color: #fff; font-family: "bk-main", system-ui, sans-serif; font-weight: 700;
+  font-size: clamp(11px, calc(20cqw / var(--n)), 26px); text-shadow: 0 0 7px rgba(0,0,0,.7);
+}
