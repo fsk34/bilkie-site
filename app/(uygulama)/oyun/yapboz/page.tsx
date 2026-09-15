@@ -156,7 +156,7 @@ export default function Yapboz() {
       <p className="bk-oyun-ipucu" style={{ margin: "0 0 12px" }}>{gorsel?.ad ?? ""} — parçaları boşluğa kaydır.</p>
 
       {!url ? <UcNokta style={{ padding: 60 }} /> : (
-        <div className="bk-yapboz-tahta" data-bitti={kazandi} style={{ aspectRatio: oran, ["--n" as string]: n }}>
+        <div className="bk-yapboz-tahta" data-bitti={kazandi} style={{ aspectRatio: oran, ["--n" as string]: n, ["--oran" as string]: oran }}>
           {!kazandi && <div className="hayalet" style={{ backgroundImage: `url(${url})` }} />}
           {tahta.map((h, p) => {
             if (h === -1 && !kazandi) return null;
