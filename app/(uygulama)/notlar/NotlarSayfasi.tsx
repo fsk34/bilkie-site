@@ -13,7 +13,7 @@ import UcNokta from "../UcNokta";
 import { useOturum } from "../../lib/oturum";
 import {
   bosSayfa, NOT_DERSLER, NOT_KAGITLAR, NOT_KAGIT_RENKLERI, NOT_KALINLIKLAR, NOT_KOORDINAT_OLCEK, NOT_RENKLER, NOT_TABAN_KALINLIK,
-  notDersAdi, notKalinlik, notGorselUrl, notGorselYukle, notKaydet, notlariDinle, notSayfalari, notSil, sayfaBosMu, yeniNotId, yeniNotOzet,
+  notDersAdi, notKalinlik, notGorselHazirla, notGorselUrl, notGorselYukle, notKaydet, notlariDinle, notSayfalari, notSil, sayfaBosMu, yeniNotId, yeniNotOzet,
   type InkOgesi, type NotBlok, type NotKagit, type NotOzet, type NotSayfa,
 } from "../../lib/notlar";
 
@@ -156,6 +156,9 @@ function NotEditor({ uid, acik, kapat }: { uid: string; acik: Acik; kapat: () =>
   const [yineleVar, setYineleVar] = useState(false);
   const zamanlayici = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dosyaGirdi = useRef<HTMLInputElement>(null);
+  // İyimser görsel ekleme: bekleyen yüklemeler; kaydet hepsini bekler
+  const bekleyenYuklemeler = useRef<Set<Promise<void>>>(new Set());
+  const [yukleniyorSayisi, setYukleniyorSayisi] = useState(0);
   // Kaydetme sırasında en güncel değerleri okumak için (setTimeout içinden state eskir)
   const guncel = useRef({ ozet, sayfalar });
   guncel.current = { ozet, sayfalar };
@@ -170,9 +173,10 @@ function NotEditor({ uid, acik, kapat }: { uid: string; acik: Acik; kapat: () =>
   const dolu = () => !!guncel.current.ozet.baslik.trim() || (guncel.current.sayfalar ?? []).some((s) => !sayfaBosMu(s));
 
   const kaydet = useCallback(async (): Promise<boolean> => {
-    const { ozet: o, sayfalar: s } = guncel.current;
-    if (!s) return false;
     setKaydediliyor(true);
+    await Promise.all([...bekleyenYuklemeler.current]);   // yarım görsel yazılmasın
+    const { ozet: o, sayfalar: s } = guncel.current;
+    if (!s) { setKaydediliyor(false); return false; }
     try {
       const g = await notKaydet(uid, o, s);
       setOzet((e) => ({ ...e, olusturma: g.olusturma, guncelleme: g.guncelleme, sayfaSayisi: g.sayfaSayisi, onizleme: g.onizleme }));
@@ -208,14 +212,35 @@ function NotEditor({ uid, acik, kapat }: { uid: string; acik: Acik; kapat: () =>
     }
   }
 
-  async function gorselSec(e: React.ChangeEvent<HTMLInputElement>) {
+  /** Görselin yolunu tüm sayfalarda değiştirir (yeni null ise bloğu kaldırır). */
+  function gorselYoluDegistir(eski: string, yeni: string | null) {
+    setSayfalar((l) => l && l.map((s) => {
+      if (!s.bloklar.some((b) => b.t === "gorsel" && b.yol === eski)) return s;
+      const bloklar = s.bloklar.flatMap((b) => (b.t === "gorsel" && b.yol === eski ? (yeni ? [{ ...b, yol: yeni }] : []) : [b]));
+      return { ...s, bloklar: bloklar.length ? bloklar : [{ t: "metin", v: "" }] };
+    }));
+  }
+
+  // İyimser ekleme: görsel küçülür küçülmez kâğıda basılır, yükleme arkada sürer (Android ile aynı)
+  function gorselSec(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0];
     e.target.value = "";
     if (!f) return;
-    try {
-      const yol = await notGorselYukle(uid, ozet.id, f);
-      sayfayiDegistir(sayfaNo, (s) => ({ ...s, bloklar: [...s.bloklar, { t: "gorsel", yol, boyut: "tam" }, { t: "metin", v: "" }] }));
-    } catch (err) { setHata("Görsel eklenemedi: " + (err instanceof Error ? err.message : String(err))); }
+    const is_ = (async () => {
+      let gecici: string | null = null;
+      try {
+        gecici = await notGorselHazirla(f);
+        const g = gecici;
+        sayfayiDegistir(sayfaNo, (s) => ({ ...s, bloklar: [...s.bloklar, { t: "gorsel", yol: g, boyut: "tam" }, { t: "metin", v: "" }] }));
+        const yol = await notGorselYukle(uid, ozet.id, gecici);
+        gorselYoluDegistir(gecici, yol); degisti();
+      } catch (err) {
+        if (gecici) gorselYoluDegistir(gecici, null);
+        setHata("Görsel eklenemedi: " + (err instanceof Error ? err.message : String(err)));
+      }
+    })();
+    bekleyenYuklemeler.current.add(is_); setYukleniyorSayisi(bekleyenYuklemeler.current.size);
+    is_.finally(() => { bekleyenYuklemeler.current.delete(is_); setYukleniyorSayisi(bekleyenYuklemeler.current.size); });
   }
 
   const sayfa = sayfalar?.[Math.min(sayfaNo, (sayfalar?.length ?? 1) - 1)] ?? null;
@@ -312,6 +337,8 @@ function NotEditor({ uid, acik, kapat }: { uid: string; acik: Acik; kapat: () =>
         )}
       </div>
 
+      {yukleniyorSayisi > 0 && <div className="bk-not-yukleniyor">Görsel yükleniyor…</div>}
+
       <div className="bk-not-govde">
         {sayfa == null ? <UcNokta style={{ padding: 40 }} /> : (
           <Kagit
@@ -378,8 +405,19 @@ function Kagit({ ozet, sayfa, cizimModu, arac, sekil, renk, kalinlik, metinDegis
   ozet: NotOzet; sayfa: NotSayfa; cizimModu: boolean; arac: string; sekil: string; renk: string; kalinlik: number;
   metinDegisti: (bi: number, v: string) => void; gorselBoyut: (bi: number) => void; gorselSil: (bi: number) => void; inkEkle: (o: InkOgesi) => void;
 }) {
+  // Boş kâğıda tıklayınca imleç SON metin bloğunun sonuna gider (Word alışkanlığı); metin
+  // alanlarının/görsellerin kendisine tıklanınca karışılmaz.
+  const kagitRef = useRef<HTMLDivElement>(null);
+  function bosaTiklandi(e: React.MouseEvent) {
+    if (cizimModu) return;
+    const t = e.target as HTMLElement;
+    if (t.closest("textarea, img, button")) return;
+    const alanlar = kagitRef.current?.querySelectorAll<HTMLTextAreaElement>("textarea.blok");
+    const son = alanlar?.[alanlar.length - 1];
+    if (son) { son.focus(); const n = son.value.length; son.setSelectionRange(n, n); }
+  }
   return (
-    <div className="bk-not-kagit" style={kagitStili(ozet)} data-cizim={cizimModu}>
+    <div ref={kagitRef} className="bk-not-kagit" style={kagitStili(ozet)} data-cizim={cizimModu} onClick={bosaTiklandi}>
       <div className="bloklar">
         {sayfa.bloklar.map((b, bi) =>
           b.t === "metin"
@@ -509,6 +547,7 @@ function CizimKatmani({ ink, etkin, arac, sekil, renk, kalinlik, inkEkle }: {
     />
   );
 }
+
 
 
 

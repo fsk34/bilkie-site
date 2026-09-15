@@ -171,8 +171,11 @@ export async function notKaydet(uid: string, not: NotOzet, sayfalar: NotSayfa[])
   };
   const sayfaMap: Record<string, unknown> = {};
   sayfalar.forEach((p, i) => {
+    // Yüklemesi bitmemiş (geçici yollu) görsel DB'ye yazılmaz — editör zaten yüklemeleri bekler, bu emniyet
     sayfaMap[String(i)] = {
-      bloklar: p.bloklar.map((b) => (b.t === "metin" ? { t: "metin", v: b.v } : { t: "gorsel", yol: b.yol, boyut: b.boyut })),
+      bloklar: p.bloklar
+        .filter((b) => !(b.t === "gorsel" && b.yol.startsWith(YEREL_ONEK)))
+        .map((b) => (b.t === "metin" ? { t: "metin", v: b.v } : { t: "gorsel", yol: b.yol, boyut: b.boyut })),
       ink: p.ink.map((o) => ({ ...(o.a ? { a: o.a } : {}), ...(o.s ? { s: o.s } : {}), ...(o.k ? { k: o.k } : {}), r: o.r, n: o.n })),
     };
   });
@@ -191,8 +194,15 @@ export async function notSil(uid: string, notId: string): Promise<void> {
 
 // ---------------------------------------------------------------- görsel
 const urlOnbellek = new Map<string, string>();
+/** Bu oturumda yüklenen görsellerin yerel object URL'si: ekranda ANINDA gösterilir, ağdan geri
+ *  indirilmez (Android ile aynı; "görsel yükleyince yavaş" geri bildirimi). */
+const yerelUrl = new Map<string, string>();
+const bekleyenBlob = new Map<string, Blob>();
+export const YEREL_ONEK = "yerel:";
 
 export async function notGorselUrl(yol: string): Promise<string | null> {
+  const y = yerelUrl.get(yol);
+  if (y) return y;
   const c = urlOnbellek.get(yol);
   if (c) return c;
   try {
@@ -202,11 +212,27 @@ export async function notGorselUrl(yol: string): Promise<string | null> {
   } catch { return null; }
 }
 
-/** Seçilen dosyayı küçültüp (≤1280px, JPEG %82) yükler; DB'ye yazılacak YOLU döner. */
-export async function notGorselYukle(uid: string, notId: string, dosya: File): Promise<string> {
+/**
+ * İYİMSER EKLEME, 1. adım: dosyayı küçült (≤1280px, JPEG %82), yerel URL'yi önbelleğe koy ve GEÇİCİ
+ * bir yol döndür — kâğıda hemen basılır, kullanıcı yüklemeyi beklemez.
+ */
+export async function notGorselHazirla(dosya: File): Promise<string> {
   const blob = await kucult(dosya);
-  const yol = `notlar/${uid}/${notId}/${Date.now()}.jpg`;
+  const gecici = `${YEREL_ONEK}${Date.now()}`;
+  yerelUrl.set(gecici, URL.createObjectURL(blob));
+  bekleyenBlob.set(gecici, blob);
+  return gecici;
+}
+
+/** 2. adım: Storage'a yükle; DB'ye yazılacak GERÇEK yolu döndürür (yerel URL o yola taşınır). */
+export async function notGorselYukle(uid: string, notId: string, gecici: string): Promise<string> {
+  const blob = bekleyenBlob.get(gecici);
+  if (!blob) throw new Error("Görsel bulunamadı");
+  const yol = `notlar/${uid}/${notId}/${gecici.slice(YEREL_ONEK.length)}.jpg`;
   await uploadBytes(storageRef(storage, yol), blob, { contentType: "image/jpeg" });
+  const u = yerelUrl.get(gecici);
+  if (u) yerelUrl.set(yol, u);
+  bekleyenBlob.delete(gecici);
   return yol;
 }
 

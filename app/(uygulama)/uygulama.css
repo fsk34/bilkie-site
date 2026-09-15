@@ -2853,6 +2853,8 @@ html[data-bk-oturum="1"] .bk-oturum-sayfa[data-durum="bilinmiyor"] .bk-oturum-be
 .bk-not-menu button { border: 0; background: none; text-align: left; padding: 9px 12px; border-radius: 8px; color: #1a1a1a; font-size: 14px; cursor: pointer; }
 .bk-not-menu button:hover { background: #eef0f4; }
 .bk-not-govde { flex: 1; min-height: 0; overflow-y: auto; }
+.bk-not-yukleniyor { text-align: center; font-size: 13px; color: rgba(255,255,255,.85); margin: -4px 0; }
+.bk-not-kagit[data-cizim="false"] { cursor: text; }
 .bk-not-sayfabar { display: flex; align-items: center; gap: 8px; color: #fff; font-size: 13px; }
 .bk-not-araclar { display: grid; gap: 6px; background: rgba(0,0,0,.18); border-radius: 12px; padding: 6px 8px; }
 /* Kâğıdın ÜSTÜNDE ve SARILIR: masaüstünde yatay kaydırma olmadığı için sağdaki araçlara
