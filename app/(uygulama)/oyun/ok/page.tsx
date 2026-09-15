@@ -23,7 +23,7 @@ type Bolum = { satir: number; sutun: number; oklar: { hucreler: Hucre[] }[] };
 const BOLUMLER = (veri as unknown as { bolumler: Bolum[] }).bolumler;
 const OK_BOLUM_SAYISI = BOLUMLER.length;
 
-const LACIVERT = "#2B3350", KIRMIZI = "#E0483F", ZEMIN = "#F3F5FA", NOKTA = "#BCC3D4";
+const LACIVERT = "#2B3350", KIRMIZI = "#E0483F", NOKTA = "#BCC3D4";
 const HAK = 3;
 
 type Ok = { id: number; hucreler: Hucre[]; yon: Hucre; durum: "duruyor" | "cikiyor" | "cikti" | "carpti" };
@@ -41,6 +41,10 @@ function oklariKur(b: Bolum): Ok[] {
 /** Şaftlar düz, köşeler yuvarlak: hücre merkezlerinden geçen SVG yolu (birim = hücre). */
 function okYolu(h: Hucre[]): string {
   const p = h.map(([r, c]) => [c + 0.5, r + 0.5] as [number, number]);
+  if (p.length >= 2) {   // şaft ok başının tabanında bitsin (baş merkezden 0,08 ileride)
+    const [dr, dc] = yonu(h); const son = p[p.length - 1];
+    p[p.length - 1] = [son[0] + dc * 0.08, son[1] + dr * 0.08];
+  }
   if (p.length === 1) return `M${p[0][0]} ${p[0][1]} l0.001 0`;
   let d = `M${p[0][0]} ${p[0][1]}`;
   const R = 0.28;
@@ -143,7 +147,7 @@ export default function OkBulmaca() {
       <div className="bk bk-oyun-sahne bk-ok-sahne">
         <div className="bk-oyun-ust">
           <button className="bk-oyun-geri" aria-label="Geri" onClick={() => router.push("/oyunlar")}>‹</button>
-          <div className="bk-oyun-ad" style={{ color: "#fff" }}>Ok Bulmaca</div>
+          <div className="bk-oyun-ad">Ok Bulmaca</div>
           <span style={{ width: 40 }} />
         </div>
         <p className="bk-oyun-ipucu" style={{ marginTop: 0 }}>Ucu açık oka dokun, tahtadan çıksın. Önü kapalıysa hakkın gider!</p>
@@ -171,7 +175,7 @@ export default function OkBulmaca() {
     <div className="bk bk-oyun-sahne bk-ok-sahne">
       <div className="bk-oyun-ust">
         <button className="bk-oyun-geri" aria-label="Geri" onClick={() => setCikisSor(true)}>‹</button>
-        <div className="bk-oyun-ad" style={{ color: "#fff", fontSize: 22 }}>Bölüm {bolumNo}</div>
+        <div className="bk-oyun-ad" style={{ fontSize: 22 }}>Bölüm {bolumNo}</div>
         <div className="bk-ok-hak" aria-label={`${hak} hak`}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/uygulama/hakicon.svg" alt="" /><b>{hak}</b>
@@ -181,20 +185,26 @@ export default function OkBulmaca() {
 
       <div className="bk-ok-tahta" style={{ aspectRatio: `${C} / ${R}` }}>
         <svg viewBox={`0 0 ${C} ${R}`} width="100%" height="100%">
-          <rect width={C} height={R} fill={ZEMIN} rx={0.3} />
-          {Array.from({ length: R }, (_, r) => Array.from({ length: C }, (_, c) => (
-            <circle key={`${r}-${c}`} cx={c + 0.5} cy={r + 0.5} r={0.045} fill={NOKTA} />
-          )))}
+          <rect width={C} height={R} fill="#FFFFFF" rx={0.3} />
+          {/* Noktalar yalnız BOŞ hücrelerde (Android görünümü); ok çıkınca hücre boşalır, nokta belirir */}
+          {(() => {
+            const dolu = new Set<string>();
+            for (const o of oklar) if (o.durum !== "cikti") for (const [r, c] of o.hucreler) dolu.add(`${r},${c}`);
+            return Array.from({ length: R }, (_, r) => Array.from({ length: C }, (_, c) =>
+              dolu.has(`${r},${c}`) ? null : <circle key={`${r}-${c}`} cx={c + 0.5} cy={r + 0.5} r={0.05} fill={NOKTA} />
+            ));
+          })()}
           {oklar.filter((o) => o.durum !== "cikti").map((o) => {
             const [hr, hc] = o.hucreler[o.hucreler.length - 1];
             const [dr, dc] = o.yon;
             const m = o.durum === "cikiyor" ? cikisMesafesi(o) : o.durum === "carpti" ? 0.18 : 0;
             const renk = o.durum === "carpti" ? KIRMIZI : LACIVERT;
-            // Ok başı: baş hücrenin yön tarafındaki kenara oturan üçgen
-            const bx = hc + 0.5 + dc * 0.5, by = hr + 0.5 + dr * 0.5;   // uç
-            const px = -dr, py = dc;                                     // dik yön
-            const ax = bx - dc * 0.42 + px * 0.42, ay = by - dr * 0.42 + py * 0.42;
-            const cx = bx - dc * 0.42 - px * 0.42, cy = by - dr * 0.42 - py * 0.42;
+            // İnce şaft (0,11 hücre) + küçük üçgen ok başı (Android ArrowBolum ölçüleri):
+            // uç hücre kenarına 0,08 kala, taban uçtan 0,34 geride, yarım genişlik 0,2
+            const tx = hc + 0.5 + dc * 0.42, ty = hr + 0.5 + dr * 0.42;      // uç
+            const px = -dr, py = dc;                                          // dik yön
+            const kx = tx - dc * 0.34, ky = ty - dr * 0.34;                   // taban orta
+            const ax = kx + px * 0.2, ay = ky + py * 0.2, cx = kx - px * 0.2, cy = ky - py * 0.2;
             return (
               <g
                 key={o.id}
@@ -204,9 +214,9 @@ export default function OkBulmaca() {
                 onClick={() => dokun(o.id)}
               >
                 {/* geniş görünmez vuruş alanı: parmakla kolay tutulsun */}
-                <path d={okYolu(o.hucreler)} fill="none" stroke="transparent" strokeWidth={0.95} strokeLinecap="round" strokeLinejoin="round" />
-                <path d={okYolu(o.hucreler)} fill="none" stroke={renk} strokeWidth={0.5} strokeLinecap="round" strokeLinejoin="round" />
-                <polygon points={`${bx},${by} ${ax},${ay} ${cx},${cy}`} fill={renk} />
+                <path d={okYolu(o.hucreler)} fill="none" stroke="transparent" strokeWidth={0.9} strokeLinecap="round" strokeLinejoin="round" />
+                <path d={okYolu(o.hucreler)} fill="none" stroke={renk} strokeWidth={0.11} strokeLinecap="round" strokeLinejoin="round" />
+                <polygon points={`${tx},${ty} ${ax},${ay} ${cx},${cy}`} fill={renk} />
               </g>
             );
           })}

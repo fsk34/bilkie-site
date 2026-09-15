@@ -2925,12 +2925,22 @@ html[data-bk-oturum="1"] .bk-oturum-sayfa[data-durum="bilinmiyor"] .bk-oturum-be
 .bk-bolum-goz[data-durum="kilitli"] { opacity: .35; cursor: default; }
 
 /* Ok Bulmaca: açık zemin + noktalı ızgara + lacivert oklar (Android ArrowBolum renkleri) */
-.bk-ok-sahne { background: linear-gradient(180deg, #2b3350, #1e2440); }
-.bk-ok-hak { display: flex; align-items: center; gap: 6px; width: 60px; justify-content: flex-end; font-family: "bk-baslik", system-ui, sans-serif; font-size: 18px; }
+/* Android ArrowBolum görünümü: açık zemin, beyaz tahta, ince lacivert oklar */
+.bk-ok-sahne { background: #f3f5fa; color: #2b3350; }
+.bk-ok-sahne .bk-oyun-ad { color: #2b3350; }
+.bk-ok-sahne .bk-oyun-geri { background: #2b3350; }
+.bk-ok-sahne .bk-oyun-ipucu { color: #4a5478; }
+.bk-ok-sahne .bk-bolum-kart { background: #fff; border-color: #e1e5f0; color: #2b3350; box-shadow: 0 6px 20px rgba(43,51,80,.08); }
+.bk-ok-sahne .bk-bolum-kart .ust small, .bk-ok-sahne .bk-bolum-baslik { color: #6a7aaa; }
+.bk-ok-sahne .bk-bolum-kart .cubuk { background: #e6e9f2; }
+.bk-ok-sahne .bk-bolum-goz { background: #e6e9f2; color: #2b3350; }
+.bk-ok-sahne .bk-bolum-goz[data-durum="bitti"] { background: #2b3350; color: #fff; }
+.bk-ok-sahne .bk-bolum-goz[data-durum="sirada"] { background: #edc22e; color: #000; }
+.bk-ok-hak { display: flex; align-items: center; gap: 6px; width: 60px; justify-content: flex-end; font-family: "bk-baslik", system-ui, sans-serif; font-size: 18px; color: #2b3350; }
 .bk-ok-hak img { width: 22px; height: 22px; }
 .bk-ok-tahta {
   width: min(520px, calc(100vw - 40px), calc(100vh - 220px)); max-width: 100%;
-  border-radius: 14px; overflow: hidden; background: #f3f5fa; box-shadow: 0 8px 30px rgba(0,0,0,.3);
+  border-radius: 14px; overflow: hidden; background: #fff; box-shadow: 0 6px 24px rgba(43,51,80,.10);
   touch-action: manipulation; user-select: none;
 }
 .bk-ok-tahta svg { display: block; }
