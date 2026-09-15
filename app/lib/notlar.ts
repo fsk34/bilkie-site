@@ -47,8 +47,17 @@ export type NotOzet = {
 
 export type NotBlok = { t: "metin"; v: string } | { t: "gorsel"; yol: string; boyut: "kucuk" | "orta" | "tam" };
 
-/** Fırça: `a` dolu, `n` = x,y,x,y,… ; şekil: `s` dolu, `n` = x0,y0,x1,y1. */
-export type InkOgesi = { a?: string; s?: string; r: string; n: number[] };
+/** Fırça: `a` dolu, `n` = x,y,x,y,… ; şekil: `s` dolu, `n` = x0,y0,x1,y1.
+ *  `k` = kalınlık (px/dp/pt, üç platformda aynı sayı); yoksa aracın tabanı (bkz. NOT_TABAN_KALINLIK). */
+export type InkOgesi = { a?: string; s?: string; r: string; n: number[]; k?: number };
+
+/** Araç taban kalınlıkları (Benim Hocam'daki CSS px'ler); şekiller 2,5. */
+export const NOT_TABAN_KALINLIK: Record<string, number> = { kalem: 2.5, keceli: 6.5, fosforlu: 16, silgi: 26, sekil: 2.5 };
+/** Kalınlık seçenekleri: aracın tabanına çarpan. */
+export const NOT_KALINLIKLAR = [["ince", "İnce", 0.5], ["orta", "Orta", 1], ["kalin", "Kalın", 2]] as const;
+export function notKalinlik(o: InkOgesi): number {
+  return o.k ?? NOT_TABAN_KALINLIK[o.s ? "sekil" : (o.a ?? "kalem")] ?? 2.5;
+}
 
 export type NotSayfa = { bloklar: NotBlok[]; ink: InkOgesi[] };
 
@@ -121,6 +130,7 @@ function toSayfa(snap: DataSnapshot): NotSayfa {
     const o: InkOgesi = { r: s(i, "r") || NOT_RENKLER[0], n: pts };
     if (s(i, "a")) o.a = s(i, "a");
     if (s(i, "s")) o.s = s(i, "s");
+    if (n(i, "k") > 0) o.k = n(i, "k");
     ink.push(o);
   });
   return { bloklar, ink };
@@ -163,7 +173,7 @@ export async function notKaydet(uid: string, not: NotOzet, sayfalar: NotSayfa[])
   sayfalar.forEach((p, i) => {
     sayfaMap[String(i)] = {
       bloklar: p.bloklar.map((b) => (b.t === "metin" ? { t: "metin", v: b.v } : { t: "gorsel", yol: b.yol, boyut: b.boyut })),
-      ink: p.ink.map((o) => ({ ...(o.a ? { a: o.a } : {}), ...(o.s ? { s: o.s } : {}), r: o.r, n: o.n })),
+      ink: p.ink.map((o) => ({ ...(o.a ? { a: o.a } : {}), ...(o.s ? { s: o.s } : {}), ...(o.k ? { k: o.k } : {}), r: o.r, n: o.n })),
     };
   });
   await update(kullanici(uid), { [`notlar/${not.id}`]: ozet, [`notSayfalari/${not.id}`]: sayfaMap });

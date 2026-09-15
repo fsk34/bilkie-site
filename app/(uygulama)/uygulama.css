@@ -2866,6 +2866,9 @@ html[data-bk-oturum="1"] .bk-oturum-sayfa[data-durum="bilinmiyor"] .bk-oturum-be
 .bk-not-araclar .renkler { display: flex; gap: 10px; align-items: center; }
 .bk-not-araclar .renk { width: 26px; height: 26px; border-radius: 50%; border: 1px solid rgba(255,255,255,.4); cursor: pointer; padding: 0; }
 .bk-not-araclar .renk[data-secili="true"] { border: 3px solid #fff; }
+.bk-not-araclar .kalinliklar { display: flex; gap: 4px; margin-left: auto; }
+.bk-not-araclar .kalinlik { width: 34px; height: 30px; padding: 0; display: grid; place-items: center; }
+.bk-not-araclar .kalinlik i { display: block; border-radius: 50%; background: currentColor; }
 .bk-not-araclar .renk.kagit { width: 24px; height: 24px; border-color: rgba(0,0,0,.2); }
 .bk-not-araclar .renk.kagit[data-secili="true"] { border: 3px solid #fff; }
 

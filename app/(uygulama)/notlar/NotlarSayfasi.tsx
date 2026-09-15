@@ -12,8 +12,8 @@ import { KesifGirisGerekli } from "../kesif/ortak";
 import UcNokta from "../UcNokta";
 import { useOturum } from "../../lib/oturum";
 import {
-  bosSayfa, NOT_DERSLER, NOT_KAGITLAR, NOT_KAGIT_RENKLERI, NOT_KOORDINAT_OLCEK, NOT_RENKLER,
-  notDersAdi, notGorselUrl, notGorselYukle, notKaydet, notlariDinle, notSayfalari, notSil, sayfaBosMu, yeniNotId, yeniNotOzet,
+  bosSayfa, NOT_DERSLER, NOT_KAGITLAR, NOT_KAGIT_RENKLERI, NOT_KALINLIKLAR, NOT_KOORDINAT_OLCEK, NOT_RENKLER, NOT_TABAN_KALINLIK,
+  notDersAdi, notKalinlik, notGorselUrl, notGorselYukle, notKaydet, notlariDinle, notSayfalari, notSil, sayfaBosMu, yeniNotId, yeniNotOzet,
   type InkOgesi, type NotBlok, type NotKagit, type NotOzet, type NotSayfa,
 } from "../../lib/notlar";
 
@@ -124,6 +124,7 @@ function NotEditor({ uid, acik, kapat }: { uid: string; acik: Acik; kapat: () =>
   const [arac, setArac] = useState("kalem");       // kalem|keceli|fosforlu|silgi|sekil
   const [sekil, setSekil] = useState("cizgi");
   const [renk, setRenk] = useState(NOT_RENKLER[0]);
+  const [kalinlik, setKalinlik] = useState<(typeof NOT_KALINLIKLAR)[number][0]>("orta");
   const [kaydedildi, setKaydedildi] = useState(!acik.taslak);
   const [kaydediliyor, setKaydediliyor] = useState(false);
   const [cikisSorusu, setCikisSorusu] = useState(false);
@@ -235,6 +236,13 @@ function NotEditor({ uid, acik, kapat }: { uid: string; acik: Acik; kapat: () =>
         </div>
         <div className="renkler">
           {NOT_RENKLER.map((r) => <button key={r} className="renk" style={{ background: r }} data-secili={renk === r} onClick={() => setRenk(r)} aria-label={r} />)}
+          <span className="kalinliklar">
+            {NOT_KALINLIKLAR.map(([k, ad, carpan]) => (
+              <button key={k} className="bk-not-cip kalinlik" data-secili={kalinlik === k} onClick={() => setKalinlik(k)} title={ad} aria-label={ad}>
+                <i style={{ width: 6 + carpan * 5, height: 6 + carpan * 5 }} />
+              </button>
+            ))}
+          </span>
         </div>
         {kagitAcik && (
           <div className="serit kagit">
@@ -250,6 +258,7 @@ function NotEditor({ uid, acik, kapat }: { uid: string; acik: Acik; kapat: () =>
         {sayfa == null ? <UcNokta style={{ padding: 40 }} /> : (
           <Kagit
             ozet={ozet} sayfa={sayfa} cizimModu={cizimModu} arac={arac} sekil={sekil} renk={renk}
+            kalinlik={NOT_TABAN_KALINLIK[arac] * (NOT_KALINLIKLAR.find((k) => k[0] === kalinlik)?.[2] ?? 1)}
             metinDegisti={(bi, v) => sayfayiDegistir(sayfaNo, (s) => ({ ...s, bloklar: s.bloklar.map((b, k) => (k === bi ? { t: "metin", v } : b)) }))}
             gorselBoyut={(bi) => sayfayiDegistir(sayfaNo, (s) => ({ ...s, bloklar: s.bloklar.map((b, k) =>
               k === bi && b.t === "gorsel" ? { ...b, boyut: b.boyut === "tam" ? "orta" : b.boyut === "orta" ? "kucuk" : "tam" } : b) }))}
@@ -306,8 +315,8 @@ function kagitStili(ozet: NotOzet): React.CSSProperties {
   return s;
 }
 
-function Kagit({ ozet, sayfa, cizimModu, arac, sekil, renk, metinDegisti, gorselBoyut, gorselSil, inkEkle }: {
-  ozet: NotOzet; sayfa: NotSayfa; cizimModu: boolean; arac: string; sekil: string; renk: string;
+function Kagit({ ozet, sayfa, cizimModu, arac, sekil, renk, kalinlik, metinDegisti, gorselBoyut, gorselSil, inkEkle }: {
+  ozet: NotOzet; sayfa: NotSayfa; cizimModu: boolean; arac: string; sekil: string; renk: string; kalinlik: number;
   metinDegisti: (bi: number, v: string) => void; gorselBoyut: (bi: number) => void; gorselSil: (bi: number) => void; inkEkle: (o: InkOgesi) => void;
 }) {
   return (
@@ -319,7 +328,7 @@ function Kagit({ ozet, sayfa, cizimModu, arac, sekil, renk, metinDegisti, gorsel
             : <GorselBlok key={bi + b.yol} b={b} tikla={() => gorselBoyut(bi)} sil={() => gorselSil(bi)} />
         )}
       </div>
-      <CizimKatmani ink={sayfa.ink} etkin={cizimModu} arac={arac} sekil={sekil} renk={renk} inkEkle={inkEkle} />
+      <CizimKatmani ink={sayfa.ink} etkin={cizimModu} arac={arac} sekil={sekil} renk={renk} kalinlik={kalinlik} inkEkle={inkEkle} />
     </div>
   );
 }
@@ -343,31 +352,32 @@ function GorselBlok({ b, tikla, sil }: { b: Extract<NotBlok, { t: "gorsel" }>; t
   );
 }
 
-/** Kalınlıklar CSS px (Android dp / iOS pt ile aynı sayılar): kalem 2,5 · keçeli 6,5 · fosforlu 16 · silgi 26. */
+/** Kalınlık `o.k` CSS px (Android dp / iOS pt ile aynı sayı); yoksa aracın tabanı. */
 function cizOge(c: CanvasRenderingContext2D, o: InkOgesi, W: number, dpr: number) {
-  const k = W / NOT_KOORDINAT_OLCEK, n = o.n;
+  const k = W / NOT_KOORDINAT_OLCEK, n = o.n, kal = notKalinlik(o) * dpr;
   if (n.length < 2) return;
   c.lineCap = "round"; c.lineJoin = "round";
   if (o.s) {
     if (n.length < 4) return;
     const x0 = n[0] * k, y0 = n[1] * k, x1 = n[2] * k, y1 = n[3] * k;
-    c.globalCompositeOperation = "source-over"; c.globalAlpha = 1; c.strokeStyle = o.r; c.lineWidth = 2.5 * dpr;
+    c.globalCompositeOperation = "source-over"; c.globalAlpha = 1; c.strokeStyle = o.r; c.lineWidth = kal;
     c.beginPath();
     if (o.s === "dikdortgen") { c.strokeRect(Math.min(x0, x1), Math.min(y0, y1), Math.abs(x1 - x0), Math.abs(y1 - y0)); return; }
     if (o.s === "cizgi") { c.moveTo(x0, y0); c.lineTo(x1, y1); }
     else if (o.s === "elips") c.ellipse((x0 + x1) / 2, (y0 + y1) / 2, Math.abs(x1 - x0) / 2, Math.abs(y1 - y0) / 2, 0, 0, Math.PI * 2);
     else if (o.s === "ok") {
       c.moveTo(x0, y0); c.lineTo(x1, y1);
-      const a = Math.atan2(y1 - y0, x1 - x0), h = 13 * dpr;
+      const a = Math.atan2(y1 - y0, x1 - x0), h = (10 + kal / dpr * 1.2) * dpr;
       c.moveTo(x1, y1); c.lineTo(x1 - h * Math.cos(a - 0.42), y1 - h * Math.sin(a - 0.42));
       c.moveTo(x1, y1); c.lineTo(x1 - h * Math.cos(a + 0.42), y1 - h * Math.sin(a + 0.42));
     }
     c.stroke();
     return;
   }
-  if (o.a === "silgi") { c.globalCompositeOperation = "destination-out"; c.strokeStyle = "#000"; c.globalAlpha = 1; c.lineWidth = 26 * dpr; }
-  else if (o.a === "fosforlu") { c.globalCompositeOperation = "source-over"; c.strokeStyle = o.r; c.globalAlpha = 0.3; c.lineWidth = 16 * dpr; }
-  else { c.globalCompositeOperation = "source-over"; c.strokeStyle = o.r; c.globalAlpha = 1; c.lineWidth = (o.a === "keceli" ? 6.5 : 2.5) * dpr; }
+  c.lineWidth = kal;
+  if (o.a === "silgi") { c.globalCompositeOperation = "destination-out"; c.strokeStyle = "#000"; c.globalAlpha = 1; }
+  else if (o.a === "fosforlu") { c.globalCompositeOperation = "source-over"; c.strokeStyle = o.r; c.globalAlpha = 0.3; }
+  else { c.globalCompositeOperation = "source-over"; c.strokeStyle = o.r; c.globalAlpha = 1; }
   c.beginPath();
   c.moveTo(n[0] * k, n[1] * k);
   if (n.length === 2) c.lineTo(n[0] * k + 0.1, n[1] * k + 0.1);
@@ -376,8 +386,8 @@ function cizOge(c: CanvasRenderingContext2D, o: InkOgesi, W: number, dpr: number
 }
 
 /** Çizim katmanı: koordinatlar sayfa genişliği = NOT_KOORDINAT_OLCEK birim (x de y de). */
-function CizimKatmani({ ink, etkin, arac, sekil, renk, inkEkle }: {
-  ink: InkOgesi[]; etkin: boolean; arac: string; sekil: string; renk: string; inkEkle: (o: InkOgesi) => void;
+function CizimKatmani({ ink, etkin, arac, sekil, renk, kalinlik, inkEkle }: {
+  ink: InkOgesi[]; etkin: boolean; arac: string; sekil: string; renk: string; kalinlik: number; inkEkle: (o: InkOgesi) => void;
 }) {
   const ref = useRef<HTMLCanvasElement>(null);
   const taslak = useRef<InkOgesi | null>(null);
@@ -413,7 +423,7 @@ function CizimKatmani({ ink, etkin, arac, sekil, renk, inkEkle }: {
         if (!etkin) return;
         e.preventDefault(); ref.current!.setPointerCapture(e.pointerId);
         const [x, y] = konum(e);
-        taslak.current = arac === "sekil" ? { s: sekil, r: renk, n: [x, y, x, y] } : { a: arac, r: renk, n: [x, y] };
+        taslak.current = arac === "sekil" ? { s: sekil, r: renk, n: [x, y, x, y], k: kalinlik } : { a: arac, r: renk, n: [x, y], k: kalinlik };
         ciz();
       }}
       onPointerMove={(e) => {
@@ -427,5 +437,6 @@ function CizimKatmani({ ink, etkin, arac, sekil, renk, inkEkle }: {
     />
   );
 }
+
 
 
