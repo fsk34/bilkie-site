@@ -2811,3 +2811,85 @@ html[data-bk-oturum="1"] .bk-oturum-sayfa[data-durum="bilinmiyor"] .bk-oturum-be
 .bk-sozluk-ornek { font-family: "bk-kucukbaslik", system-ui, sans-serif; font-size: 12px; font-style: italic; color: rgba(255,255,255,.65); margin-top: 6px; line-height: 1.5; }
 .bk-sozluk-ornek.tr { font-style: normal; color: rgba(255,255,255,.55); }
 .bk-ady-liste .oge .bk-sozluk-kelime { font-family: "bk-baslik", system-ui, sans-serif; font-size: 14px; }
+
+/* ------------------------------------------------------------------ notlar */
+/* Android NotlarScreen.kt / iOS NotlarScreen.swift ile aynı düzen: liste (Yeni Not + arama +
+   ders süzgeci + kartlar) ve editör (üst satır · kâğıt · sayfa çubuğu · araç çubuğu). */
+.bk-kesif-sahne > .bk-notlar { max-width: 720px; }
+.bk-not-yeni {
+  width: 100%; height: 50px; border: 0; border-radius: 16px; background: #ffc107; color: #1f1f3a;
+  font-family: "bk-baslik", system-ui, sans-serif; font-size: 16px; cursor: pointer;
+}
+.bk-not-suzgec { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; }
+.bk-not-suzgec::-webkit-scrollbar { display: none; }
+.bk-not-suzgec .bk-kesif-cip { padding: 7px 12px; border-radius: 12px; }
+.bk-not-kart { text-align: left; cursor: pointer; color: #fff; display: grid; gap: 4px; }
+.bk-not-kart .ust { display: flex; align-items: center; gap: 8px; }
+.bk-not-kart .ust b { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: "bk-baslik", system-ui, sans-serif; font-size: 15px; }
+.bk-not-kart .etiket { font-size: 11px; background: rgba(255,255,255,.16); border-radius: 8px; padding: 3px 8px; }
+.bk-not-kart .onizleme { font-size: 13px; color: rgba(255,255,255,.8); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.bk-not-kart .alt { font-size: 11px; color: rgba(255,255,255,.55); }
+
+.bk-not-editor { gap: 8px; }
+.bk-not-ust { display: flex; align-items: center; gap: 8px; }
+.bk-not-ust .geri {
+  width: 34px; height: 34px; flex: 0 0 34px; display: grid; place-items: center; border-radius: 12px;
+  background: rgba(255,255,255,.10); border: 2px solid rgba(255,255,255,.14); color: #fff; font-size: 16px; cursor: pointer;
+}
+.bk-not-ust .baslik {
+  flex: 1; min-width: 0; background: transparent; border: 0; color: #fff; font-family: "bk-baslik", system-ui, sans-serif; font-size: 17px; outline: none;
+}
+.bk-not-ust .baslik::placeholder { color: rgba(255,255,255,.5); }
+.bk-not-dugme {
+  border: 0; border-radius: 10px; padding: 7px 10px; background: rgba(255,255,255,.14); color: #fff;
+  font-family: "bk-kucukbaslik", system-ui, sans-serif; font-size: 13px; cursor: pointer; white-space: nowrap;
+}
+.bk-not-dugme[disabled] { background: rgba(255,255,255,.06); color: rgba(255,255,255,.4); cursor: default; }
+.bk-not-dugme.vurgu { background: #ffc107; color: #1f1f3a; font-family: "bk-baslik", system-ui, sans-serif; }
+.bk-not-menu {
+  position: absolute; right: 0; top: calc(100% + 6px); z-index: 5; display: grid; min-width: 160px;
+  background: #fff; border-radius: 12px; padding: 6px; box-shadow: 0 8px 24px rgba(0,0,0,.25);
+}
+.bk-not-menu button { border: 0; background: none; text-align: left; padding: 9px 12px; border-radius: 8px; color: #1a1a1a; font-size: 14px; cursor: pointer; }
+.bk-not-menu button:hover { background: #eef0f4; }
+.bk-not-govde { flex: 1; min-height: 0; overflow-y: auto; }
+.bk-not-sayfabar { display: flex; align-items: center; gap: 8px; color: #fff; font-size: 13px; }
+.bk-not-araclar { display: grid; gap: 6px; background: rgba(0,0,0,.18); border-radius: 12px; padding: 6px 8px; }
+.bk-not-araclar .serit { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; align-items: center; }
+.bk-not-araclar .serit::-webkit-scrollbar { display: none; }
+.bk-not-cip {
+  border: 0; border-radius: 10px; padding: 7px 10px; background: rgba(255,255,255,.14); color: #fff;
+  font-family: "bk-kucukbaslik", system-ui, sans-serif; font-size: 13px; cursor: pointer; white-space: nowrap;
+}
+.bk-not-cip[data-secili="true"] { background: #ffc107; color: #1f1f3a; font-family: "bk-baslik", system-ui, sans-serif; }
+.bk-not-araclar .renkler { display: flex; gap: 10px; align-items: center; }
+.bk-not-araclar .renk { width: 26px; height: 26px; border-radius: 50%; border: 1px solid rgba(255,255,255,.4); cursor: pointer; padding: 0; }
+.bk-not-araclar .renk[data-secili="true"] { border: 3px solid #fff; }
+.bk-not-araclar .renk.kagit { width: 24px; height: 24px; border-color: rgba(0,0,0,.2); }
+.bk-not-araclar .renk.kagit[data-secili="true"] { border: 3px solid #fff; }
+
+/* Kâğıt: zemin CSS (kareli/çizgili) → bloklar → üstte çizim kanvası; min. boy A4'e yakın (1,35 × genişlik) */
+.bk-not-kagit {
+  position: relative; border-radius: 10px; overflow: hidden; min-height: calc(min(100%, 680px) * 1.35);
+  aspect-ratio: auto; touch-action: pan-y;
+}
+.bk-not-kagit[data-cizim="true"] { touch-action: none; }
+.bk-not-kagit .bloklar { padding: 16px 14px; display: flex; flex-direction: column; min-height: inherit; }
+.bk-not-kagit .blok {
+  width: 100%; box-sizing: border-box; border: 0; background: transparent; resize: none; outline: none; overflow: hidden;
+  color: #1f2937; font-family: "bk-main", system-ui, sans-serif; font-size: 15px; line-height: 22px; min-height: 44px; padding: 0;
+}
+.bk-not-kagit .blok::placeholder { color: rgba(31,41,55,.35); }
+.bk-not-kagit .gorsel { position: relative; margin: 6px 0; border-radius: 8px; overflow: hidden; background: rgba(0,0,0,.05); }
+.bk-not-kagit .gorsel img { display: block; width: 100%; cursor: pointer; }
+.bk-not-kagit .gorsel .bekle { height: 120px; display: grid; place-items: center; color: #888; }
+.bk-not-kagit .gorsel .sil {
+  position: absolute; top: 6px; right: 6px; width: 26px; height: 26px; border-radius: 50%; border: 0;
+  background: rgba(0,0,0,.55); color: #fff; cursor: pointer; font-size: 13px;
+}
+.bk-not-kagit .cizim { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.bk-not-kagit[data-cizim="true"] .cizim { pointer-events: auto; cursor: crosshair; }
+.bk-not-soru p { color: #444; font-size: 14px; margin: 8px 0 14px; }
+.bk-not-soru .dugmeler { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
+.bk-not-soru .bk-not-dugme { background: #eef0f4; color: #1a1a1a; }
+.bk-not-soru .bk-not-dugme:first-child { background: #ffc107; }
