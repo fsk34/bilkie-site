@@ -2859,7 +2859,8 @@ html[data-bk-oturum="1"] .bk-oturum-sayfa[data-durum="bilinmiyor"] .bk-oturum-be
    (Görsel, Kâğıt) ulaşılamıyordu — kullanıcı geri bildirimi 15 Eyl. */
 .bk-not-araclar .serit { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 .bk-not-cip {
-  border: 0; border-radius: 10px; padding: 7px 10px; background: rgba(255,255,255,.14); color: #fff;
+  display: inline-flex; align-items: center; gap: 5px;
+  border: 0; border-radius: 10px; padding: 6px 10px; background: rgba(255,255,255,.14); color: #fff;
   font-family: "bk-kucukbaslik", system-ui, sans-serif; font-size: 13px; cursor: pointer; white-space: nowrap;
 }
 .bk-not-cip[data-secili="true"] { background: #ffc107; color: #1f1f3a; font-family: "bk-baslik", system-ui, sans-serif; }

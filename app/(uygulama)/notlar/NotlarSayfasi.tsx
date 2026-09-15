@@ -18,7 +18,25 @@ import {
 } from "../../lib/notlar";
 
 const ARACLAR = [["kalem", "Kalem"], ["keceli", "Keçeli"], ["fosforlu", "Fosforlu"], ["silgi", "Silgi"]] as const;
-const SEKILLER = [["cizgi", "Çizgi"], ["dikdortgen", "Kutu"], ["elips", "Elips"], ["ok", "Ok"]] as const;
+const SEKILLER = [["cizgi", "Çizgi"], ["dikdortgen", "Kutu"], ["elips", "Daire"], ["ok", "Ok"]] as const;
+
+/** Araç ikonları — tek renk çizgi (currentColor), 20px. Çocuk için ikon + kısa ad birlikte en net. */
+const IKON: Record<string, React.ReactNode> = {
+  yaz: <><rect x="3" y="7" width="18" height="11" rx="2" /><path d="M7 11h.01M11 11h.01M15 11h.01M8 15h8" /></>,
+  kalem: <><path d="M4 20l4-1 10-10-3-3L5 16z" /><path d="M13 7l3 3" /></>,
+  keceli: <><path d="M5 19l3-1 9-9-2-2-9 9z" /><path d="M14 6l3 3M4 21h5" /></>,
+  fosforlu: <><path d="M6 17l9-9 3 3-9 9H6z" /><path d="M14 8l3 3M3 21h18" /></>,
+  silgi: <><path d="M7 20l-4-4 9-9 6 6-7 7z" /><path d="M9 11l6 6M7 20h13" /></>,
+  cizgi: <path d="M5 19L19 5" />,
+  dikdortgen: <rect x="4" y="6" width="16" height="12" rx="1.5" />,
+  elips: <circle cx="12" cy="12" r="7.5" />,
+  ok: <><path d="M5 19L19 5" /><path d="M11 5h8v8" /></>,
+  gorsel: <><rect x="3" y="5" width="18" height="14" rx="2" /><circle cx="9" cy="10" r="1.5" /><path d="M21 16l-5-5-7 7" /></>,
+  kagit: <><path d="M7 3h7l5 5v13H7z" /><path d="M14 3v5h5M10 13h6M10 17h6" /></>,
+};
+function Ikon({ ad }: { ad: string }) {
+  return <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>{IKON[ad]}</svg>;
+}
 
 function tarih(ts: number): string {
   if (!ts) return "";
@@ -133,6 +151,9 @@ function NotEditor({ uid, acik, kapat }: { uid: string; acik: Acik; kapat: () =>
   const [dersAcik, setDersAcik] = useState(false);
   const [hata, setHata] = useState<string | null>(null);
   const degisiklik = useRef(0);
+  // Yinele yığını (sayfa başına): geri alınan çizgiler; yeni çizgi gelince boşalır
+  const yinele = useRef<Record<number, InkOgesi[]>>({});
+  const [yineleVar, setYineleVar] = useState(false);
   const zamanlayici = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dosyaGirdi = useRef<HTMLInputElement>(null);
   // Kaydetme sırasında en güncel değerleri okumak için (setTimeout içinden state eskir)
@@ -200,6 +221,43 @@ function NotEditor({ uid, acik, kapat }: { uid: string; acik: Acik; kapat: () =>
   const sayfa = sayfalar?.[Math.min(sayfaNo, (sayfalar?.length ?? 1) - 1)] ?? null;
   const sayfaSayisi = Math.max(1, sayfalar?.length ?? 1);
 
+  const geriAl = useCallback(() => {
+    const s = guncel.current.sayfalar?.[sayfaNo];
+    if (!s || s.ink.length === 0) return;
+    const son = s.ink[s.ink.length - 1];
+    (yinele.current[sayfaNo] ??= []).push(son); setYineleVar(true);
+    sayfayiDegistir(sayfaNo, (p) => ({ ...p, ink: p.ink.slice(0, -1) }));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sayfaNo]);
+  const yeniden = useCallback(() => {
+    const y = yinele.current[sayfaNo];
+    if (!y || y.length === 0) return;
+    const o = y.pop()!; setYineleVar(y.length > 0);
+    sayfayiDegistir(sayfaNo, (p) => ({ ...p, ink: [...p.ink, o] }));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sayfaNo]);
+  const inkEkle = useCallback((o: InkOgesi) => {
+    yinele.current[sayfaNo] = []; setYineleVar(false);
+    sayfayiDegistir(sayfaNo, (p) => ({ ...p, ink: [...p.ink, o] }));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sayfaNo]);
+
+  // Klavye: Ctrl/⌘+Z geri al · Ctrl/⌘+Shift+Z ya da Ctrl+Y yinele. Yazı alanındayken tarayıcının
+  // kendi metin geri alması çalışsın diye karışılmaz.
+  useEffect(() => {
+    const f = (e: KeyboardEvent) => {
+      if (!(e.ctrlKey || e.metaKey)) return;
+      const t = e.target as HTMLElement | null;
+      if (t && (t.tagName === "TEXTAREA" || t.tagName === "INPUT")) return;
+      const k = e.key.toLowerCase();
+      if (k === "z" && e.shiftKey) { e.preventDefault(); yeniden(); }
+      else if (k === "z") { e.preventDefault(); geriAl(); }
+      else if (k === "y") { e.preventDefault(); yeniden(); }
+    };
+    window.addEventListener("keydown", f);
+    return () => window.removeEventListener("keydown", f);
+  }, [geriAl, yeniden]);
+
   return (
     <div className="bk-kesif bk-notlar bk-not-editor" data-tur="turkiye">
       <div className="bk-not-ust">
@@ -227,11 +285,11 @@ function NotEditor({ uid, acik, kapat }: { uid: string; acik: Acik; kapat: () =>
 
       <div className="bk-not-araclar">
         <div className="serit">
-          <button className="bk-not-cip" data-secili={!cizimModu} onClick={() => setCizimModu(false)}>⌨️ Yaz</button>
-          {ARACLAR.map(([k, ad]) => <button key={k} className="bk-not-cip" data-secili={cizimModu && arac === k} onClick={() => { setCizimModu(true); setArac(k); }}>{ad}</button>)}
-          {SEKILLER.map(([k, ad]) => <button key={k} className="bk-not-cip" data-secili={cizimModu && arac === "sekil" && sekil === k} onClick={() => { setCizimModu(true); setArac("sekil"); setSekil(k); }}>{ad}</button>)}
-          <button className="bk-not-cip" onClick={() => dosyaGirdi.current?.click()}>🖼️ Görsel</button>
-          <button className="bk-not-cip" onClick={() => setKagitAcik((v) => !v)}>📄 Kâğıt</button>
+          <button className="bk-not-cip" data-secili={!cizimModu} onClick={() => setCizimModu(false)}><Ikon ad="yaz" />Yaz</button>
+          {ARACLAR.map(([k, ad]) => <button key={k} className="bk-not-cip" data-secili={cizimModu && arac === k} onClick={() => { setCizimModu(true); setArac(k); }}><Ikon ad={k} />{ad}</button>)}
+          {SEKILLER.map(([k, ad]) => <button key={k} className="bk-not-cip" data-secili={cizimModu && arac === "sekil" && sekil === k} title="Shift basılıyken: tam daire / kare / 45°" onClick={() => { setCizimModu(true); setArac("sekil"); setSekil(k); }}><Ikon ad={k} />{ad}</button>)}
+          <button className="bk-not-cip" onClick={() => dosyaGirdi.current?.click()}><Ikon ad="gorsel" />Görsel</button>
+          <button className="bk-not-cip" onClick={() => setKagitAcik((v) => !v)}><Ikon ad="kagit" />Kâğıt</button>
           <input ref={dosyaGirdi} type="file" accept="image/*" hidden onChange={gorselSec} />
         </div>
         <div className="renkler">
@@ -263,7 +321,7 @@ function NotEditor({ uid, acik, kapat }: { uid: string; acik: Acik; kapat: () =>
             gorselBoyut={(bi) => sayfayiDegistir(sayfaNo, (s) => ({ ...s, bloklar: s.bloklar.map((b, k) =>
               k === bi && b.t === "gorsel" ? { ...b, boyut: b.boyut === "tam" ? "orta" : b.boyut === "orta" ? "kucuk" : "tam" } : b) }))}
             gorselSil={(bi) => sayfayiDegistir(sayfaNo, (s) => { const l = s.bloklar.filter((_, k) => k !== bi); return { ...s, bloklar: l.length ? l : [{ t: "metin", v: "" }] }; })}
-            inkEkle={(o) => sayfayiDegistir(sayfaNo, (s) => ({ ...s, ink: [...s.ink, o] }))}
+            inkEkle={inkEkle}
           />
         )}
       </div>
@@ -274,7 +332,8 @@ function NotEditor({ uid, acik, kapat }: { uid: string; acik: Acik; kapat: () =>
         <button className="bk-not-dugme" disabled={sayfaNo >= sayfaSayisi - 1} onClick={() => setSayfaNo((n) => n + 1)}>›</button>
         <button className="bk-not-dugme" onClick={() => { setSayfalar((l) => [...(l ?? []), bosSayfa()]); setSayfaNo(sayfaSayisi); degisti(); }}>+ Sayfa</button>
         <span style={{ flex: 1 }} />
-        <button className="bk-not-dugme" disabled={!sayfa?.ink.length} onClick={() => sayfayiDegistir(sayfaNo, (s) => ({ ...s, ink: s.ink.slice(0, -1) }))}>↶ Geri al</button>
+        <button className="bk-not-dugme" disabled={!sayfa?.ink.length} onClick={geriAl} title="Ctrl+Z">↶ Geri al</button>
+        <button className="bk-not-dugme" disabled={!yineleVar} onClick={yeniden} title="Ctrl+Shift+Z">↷ Yinele</button>
         {sayfaSayisi > 1 && (
           <button className="bk-not-dugme" onClick={() => { setSayfalar((l) => (l ?? []).filter((_, k) => k !== sayfaNo)); setSayfaNo((n) => Math.max(0, Math.min(n, sayfaSayisi - 2))); degisti(); }}>Sayfayı sil</button>
         )}
@@ -428,8 +487,21 @@ function CizimKatmani({ ink, etkin, arac, sekil, renk, kalinlik, inkEkle }: {
       }}
       onPointerMove={(e) => {
         const t = taslak.current; if (!t) return;
-        const [x, y] = konum(e);
-        if (t.s) { t.n[2] = x; t.n[3] = y; } else t.n.push(x, y);
+        let [x, y] = konum(e);
+        if (t.s) {
+          if (e.shiftKey) {
+            // Shift: kutu → kare, daire → tam daire, çizgi/ok → 45°'nin katları
+            const dx = x - t.n[0], dy = y - t.n[1];
+            if (t.s === "dikdortgen" || t.s === "elips") {
+              const b = Math.max(Math.abs(dx), Math.abs(dy));
+              x = t.n[0] + Math.sign(dx || 1) * b; y = t.n[1] + Math.sign(dy || 1) * b;
+            } else {
+              const u = Math.hypot(dx, dy), a = Math.round(Math.atan2(dy, dx) / (Math.PI / 4)) * (Math.PI / 4);
+              x = Math.round(t.n[0] + u * Math.cos(a)); y = Math.round(t.n[1] + u * Math.sin(a));
+            }
+          }
+          t.n[2] = x; t.n[3] = y;
+        } else t.n.push(x, y);
         ciz();
       }}
       onPointerUp={() => { const t = taslak.current; taslak.current = null; if (t && t.n.length >= 2) inkEkle(t); else ciz(); }}
@@ -437,6 +509,7 @@ function CizimKatmani({ ink, etkin, arac, sekil, renk, kalinlik, inkEkle }: {
     />
   );
 }
+
 
 
 
