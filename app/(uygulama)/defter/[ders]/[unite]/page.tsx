@@ -7,9 +7,9 @@
 import Link from "next/link";
 import Perde from "../../../Perde";
 import SonucAkisi, { type SeriArgs } from "../../../sonuc/SonucAkisi";
-import type { GorevDegisimi } from "../../../../lib/gorevYaz";
+import { gorevOlayiUygula, type GorevDegisimi } from "../../../../lib/gorevYaz";
 import { useParams } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { dersBul } from "../../../dersler";
 import { useOturum } from "../../../../lib/oturum";
 import { uniteler } from "../../../../lib/katalog";
@@ -76,6 +76,23 @@ export default function DefterOkuyucuSayfasi() {
     defterSayfaYaz(kullanici.uid, sinif, dersKey, uniteKey, indeks + 1).catch(() => {});
   }, [indeks, durum, kullanici, sinif, dersKey, uniteKey, sayfalar.length]);
 
+  // "N konu defteri sayfası tamamla" görevi (notebook_pages): bir sayfa, ileri geçilince
+  // (son sayfa ise "Devam Et" ile) tamamlanmış sayılır; aynı oturumda aynı sayfa bir kez.
+  // Görev değişimleri okumayı bölmesin diye biriktirilir, bitiş özetine katılır.
+  const tamamlananSayfalar = useRef<Set<number>>(new Set());
+  const sayfaGorevleri = useRef<GorevDegisimi[]>([]);
+  const sayfaTamamla = useCallback(async (i: number) => {
+    if (!kullanici || i < 0 || tamamlananSayfalar.current.has(i)) return;
+    tamamlananSayfalar.current.add(i);
+    try {
+      const d = await gorevOlayiUygula(kullanici.uid, { tip: "defter_sayfa", sinif, sayfaFarki: 1 });
+      sayfaGorevleri.current = gorevBirlestir(sayfaGorevleri.current, d);
+    } catch { /* görev yazımı okumayı bozmasın */ }
+  }, [kullanici, sinif]);
+  useEffect(() => {
+    if (durum === "okuma" && indeks > 0) void sayfaTamamla(indeks - 1);
+  }, [indeks, durum, sayfaTamamla]);
+
   const bitir = useCallback(async () => {
     if (kaydediliyor) return;
     setKaydediliyor(true);
@@ -92,16 +109,16 @@ export default function DefterOkuyucuSayfasi() {
           await enUzunSeriGuncelle(kullanici.uid, sinif, sonuc.seri.sayi);
         }
       }
-      // Başarımlar + görevler YALNIZCA ilk tamamlamada (Android: firstTimeDone bloğu)
-      if (sonuc.ilkKez) {
-        setGorevDegisimleri(await defterBittiIsle(kullanici.uid, sinif, dersKey, uniteKey));
-      }
+      await sayfaTamamla(sayfalar.length - 1);
+      // Başarımlar + defter-bitti görevi YALNIZCA ilk tamamlamada (Android: firstTimeDone bloğu)
+      const bitti = sonuc.ilkKez ? await defterBittiIsle(kullanici.uid, sinif, dersKey, uniteKey) : [];
+      setGorevDegisimleri(gorevBirlestir(sayfaGorevleri.current, bitti));
     } catch {
       /* yazma hatası okumayı bozmasın */
     }
     setDurum("bitti");
     setKaydediliyor(false);
-  }, [kaydediliyor, kullanici, sinif, dersKey, uniteKey, sayfalar.length]);
+  }, [kaydediliyor, kullanici, sinif, dersKey, uniteKey, sayfalar.length, sayfaTamamla]);
 
   /* --------------------------------------------------------------- ekranlar */
 
@@ -210,6 +227,16 @@ export default function DefterOkuyucuSayfasi() {
       </div>
     </div>
   );
+}
+
+/** Aynı görevin ardışık değişimlerini birleştirir: ilk `onceki`, son `yeni`/`tamamlandi`. */
+function gorevBirlestir(eski: GorevDegisimi[], yeni: GorevDegisimi[]): GorevDegisimi[] {
+  const sonuc = [...eski];
+  for (const d of yeni) {
+    const k = sonuc.findIndex((x) => x.id === d.id);
+    if (k < 0) sonuc.push(d); else sonuc[k] = { ...d, onceki: sonuc[k].onceki, yeniBitti: sonuc[k].yeniBitti || d.yeniBitti };
+  }
+  return sonuc;
 }
 
 /* ------------------------------------------------------------------ bloklar */
