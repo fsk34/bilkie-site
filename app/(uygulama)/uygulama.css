@@ -2855,8 +2855,9 @@ html[data-bk-oturum="1"] .bk-oturum-sayfa[data-durum="bilinmiyor"] .bk-oturum-be
 .bk-not-govde { flex: 1; min-height: 0; overflow-y: auto; }
 .bk-not-sayfabar { display: flex; align-items: center; gap: 8px; color: #fff; font-size: 13px; }
 .bk-not-araclar { display: grid; gap: 6px; background: rgba(0,0,0,.18); border-radius: 12px; padding: 6px 8px; }
-.bk-not-araclar .serit { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; align-items: center; }
-.bk-not-araclar .serit::-webkit-scrollbar { display: none; }
+/* Kâğıdın ÜSTÜNDE ve SARILIR: masaüstünde yatay kaydırma olmadığı için sağdaki araçlara
+   (Görsel, Kâğıt) ulaşılamıyordu — kullanıcı geri bildirimi 15 Eyl. */
+.bk-not-araclar .serit { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 .bk-not-cip {
   border: 0; border-radius: 10px; padding: 7px 10px; background: rgba(255,255,255,.14); color: #fff;
   font-family: "bk-kucukbaslik", system-ui, sans-serif; font-size: 13px; cursor: pointer; white-space: nowrap;

@@ -224,6 +224,28 @@ function NotEditor({ uid, acik, kapat }: { uid: string; acik: Acik; kapat: () =>
           : <button className="bk-not-dugme" onClick={() => setSilSorusu(true)} aria-label="Sil">🗑</button>}
       </div>
 
+      <div className="bk-not-araclar">
+        <div className="serit">
+          <button className="bk-not-cip" data-secili={!cizimModu} onClick={() => setCizimModu(false)}>⌨️ Yaz</button>
+          {ARACLAR.map(([k, ad]) => <button key={k} className="bk-not-cip" data-secili={cizimModu && arac === k} onClick={() => { setCizimModu(true); setArac(k); }}>{ad}</button>)}
+          {SEKILLER.map(([k, ad]) => <button key={k} className="bk-not-cip" data-secili={cizimModu && arac === "sekil" && sekil === k} onClick={() => { setCizimModu(true); setArac("sekil"); setSekil(k); }}>{ad}</button>)}
+          <button className="bk-not-cip" onClick={() => dosyaGirdi.current?.click()}>🖼️ Görsel</button>
+          <button className="bk-not-cip" onClick={() => setKagitAcik((v) => !v)}>📄 Kâğıt</button>
+          <input ref={dosyaGirdi} type="file" accept="image/*" hidden onChange={gorselSec} />
+        </div>
+        <div className="renkler">
+          {NOT_RENKLER.map((r) => <button key={r} className="renk" style={{ background: r }} data-secili={renk === r} onClick={() => setRenk(r)} aria-label={r} />)}
+        </div>
+        {kagitAcik && (
+          <div className="serit kagit">
+            {NOT_KAGITLAR.map((k) => <button key={k} className="bk-not-cip" data-secili={ozet.kagit === k} onClick={() => ozetDegistir((o) => ({ ...o, kagit: k as NotKagit }))}>{k === "kareli" ? "Kareli" : k === "cizgili" ? "Çizgili" : "Düz"}</button>)}
+            <span className="renkler" style={{ marginLeft: "auto" }}>
+              {NOT_KAGIT_RENKLERI.map((r) => <button key={r} className="renk kagit" style={{ background: r }} data-secili={ozet.kagitRenk.toUpperCase() === r} onClick={() => ozetDegistir((o) => ({ ...o, kagitRenk: r }))} aria-label={r} />)}
+            </span>
+          </div>
+        )}
+      </div>
+
       <div className="bk-not-govde">
         {sayfa == null ? <UcNokta style={{ padding: 40 }} /> : (
           <Kagit
@@ -246,27 +268,6 @@ function NotEditor({ uid, acik, kapat }: { uid: string; acik: Acik; kapat: () =>
         <button className="bk-not-dugme" disabled={!sayfa?.ink.length} onClick={() => sayfayiDegistir(sayfaNo, (s) => ({ ...s, ink: s.ink.slice(0, -1) }))}>↶ Geri al</button>
         {sayfaSayisi > 1 && (
           <button className="bk-not-dugme" onClick={() => { setSayfalar((l) => (l ?? []).filter((_, k) => k !== sayfaNo)); setSayfaNo((n) => Math.max(0, Math.min(n, sayfaSayisi - 2))); degisti(); }}>Sayfayı sil</button>
-        )}
-      </div>
-
-      <div className="bk-not-araclar">
-        <div className="serit">
-          <button className="bk-not-cip" data-secili={!cizimModu} onClick={() => setCizimModu(false)}>⌨️ Yaz</button>
-          {ARACLAR.map(([k, ad]) => <button key={k} className="bk-not-cip" data-secili={cizimModu && arac === k} onClick={() => { setCizimModu(true); setArac(k); }}>{ad}</button>)}
-          {SEKILLER.map(([k, ad]) => <button key={k} className="bk-not-cip" data-secili={cizimModu && arac === "sekil" && sekil === k} onClick={() => { setCizimModu(true); setArac("sekil"); setSekil(k); }}>{ad}</button>)}
-          <button className="bk-not-cip" onClick={() => dosyaGirdi.current?.click()}>🖼️ Görsel</button>
-          <button className="bk-not-cip" onClick={() => setKagitAcik((v) => !v)}>📄 Kâğıt</button>
-          <input ref={dosyaGirdi} type="file" accept="image/*" hidden onChange={gorselSec} />
-        </div>
-        <div className="renkler">
-          {NOT_RENKLER.map((r) => <button key={r} className="renk" style={{ background: r }} data-secili={renk === r} onClick={() => setRenk(r)} aria-label={r} />)}
-        </div>
-        {kagitAcik && (
-          <div className="serit kagit">
-            {NOT_KAGITLAR.map((k) => <button key={k} className="bk-not-cip" data-secili={ozet.kagit === k} onClick={() => ozetDegistir((o) => ({ ...o, kagit: k as NotKagit }))}>{k === "kareli" ? "Kareli" : k === "cizgili" ? "Çizgili" : "Düz"}</button>)}
-            <span style={{ flex: 1 }} />
-            {NOT_KAGIT_RENKLERI.map((r) => <button key={r} className="renk kagit" style={{ background: r }} data-secili={ozet.kagitRenk.toUpperCase() === r} onClick={() => ozetDegistir((o) => ({ ...o, kagitRenk: r }))} aria-label={r} />)}
-          </div>
         )}
       </div>
 
@@ -426,4 +427,5 @@ function CizimKatmani({ ink, etkin, arac, sekil, renk, inkEkle }: {
     />
   );
 }
+
 
