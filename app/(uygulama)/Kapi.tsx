@@ -11,6 +11,7 @@
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { sesleriHazirla } from "./ses";
+import UcNokta from "./UcNokta";
 import { useOturum } from "../lib/oturum";
 
 /** Giriş gerektirmeyen yollar — kapının kendisi bunları kilitlemez. */
@@ -34,26 +35,14 @@ export default function Kapi({ children }: { children: React.ReactNode }) {
 
   if (acik) return <>{children}</>;
 
-  // Oturum henüz bilinmiyor ya da yönlendirme sürüyor: içeriği çizme.
+  // Oturum henüz bilinmiyor ya da yönlendirme sürüyor: içeriği çizme (üç nokta — 15 Eyl kararı).
   if (yukleniyor || !kullanici) {
     return (
-      <div className="bk">
-        <div style={{ maxWidth: 720, margin: "0 auto", padding: "28px 24px" }}>
-          <Bekleyen />
-        </div>
+      <div className="bk" style={{ minHeight: "100vh", display: "grid", placeItems: "center" }}>
+        <UcNokta />
       </div>
     );
   }
 
   return <>{children}</>;
-}
-
-function Bekleyen() {
-  return (
-    <div className="bk-bekleme" aria-hidden>
-      {[0, 1, 2].map((i) => (
-        <span key={i} style={{ height: 96, animationDelay: `${i * 90}ms` }} />
-      ))}
-    </div>
-  );
 }

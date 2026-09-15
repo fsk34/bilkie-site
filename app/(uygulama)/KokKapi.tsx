@@ -13,6 +13,7 @@
 
 import { useEffect } from "react";
 import { useOturum } from "../lib/oturum";
+import UcNokta from "./UcNokta";
 
 export default function KokKapi({
   tanitim,
@@ -34,14 +35,8 @@ export default function KokKapi({
       <>
         <div className="bk-kok-tanitim">{tanitim}</div>
         <div className="bk-kok-bekleme">
-          <div className="bk">
-            <div style={{ maxWidth: 720, margin: "0 auto", padding: "28px 24px" }}>
-              <div className="bk-bekleme" aria-hidden>
-                {[0, 1, 2].map((i) => (
-                  <span key={i} style={{ height: 96, animationDelay: `${i * 90}ms` }} />
-                ))}
-              </div>
-            </div>
+          <div className="bk" style={{ minHeight: "100vh", display: "grid", placeItems: "center" }}>
+            <UcNokta />
           </div>
         </div>
       </>
