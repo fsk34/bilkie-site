@@ -2944,8 +2944,8 @@ html[data-bk-oturum="1"] .bk-oturum-sayfa[data-durum="bilinmiyor"] .bk-oturum-be
   touch-action: manipulation; user-select: none;
 }
 .bk-ok-tahta svg { display: block; }
-.bk-ok { cursor: pointer; transition: transform .48s cubic-bezier(.4, 0, 1, 1); }
-.bk-ok[data-durum="carpti"] { transition: transform .12s ease-out; }
+.bk-ok { cursor: pointer; transition: transform .23s ease-out; }
+.bk-ok[data-durum="carpti"] { transition: transform .09s ease-out; }
 .bk-ok[data-durum="cikiyor"] { pointer-events: none; }
 @media (hover: hover) { .bk-ok[data-durum="duruyor"]:hover path:nth-child(2), .bk-ok[data-durum="duruyor"]:hover polygon { filter: brightness(1.25); } }
 

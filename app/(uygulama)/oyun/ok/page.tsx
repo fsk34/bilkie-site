@@ -38,13 +38,11 @@ function oklariKur(b: Bolum): Ok[] {
   return b.oklar.map((o, i) => ({ id: i, hucreler: o.hucreler, yon: yonu(o.hucreler), durum: "duruyor" }));
 }
 
-/** Şaftlar düz, köşeler yuvarlak: hücre merkezlerinden geçen SVG yolu (birim = hücre). */
-function okYolu(h: Hucre[]): string {
-  const p = h.map(([r, c]) => [c + 0.5, r + 0.5] as [number, number]);
-  if (p.length >= 2) {   // şaft ok başının tabanında bitsin (baş merkezden 0,08 ileride)
-    const [dr, dc] = yonu(h); const son = p[p.length - 1];
-    p[p.length - 1] = [son[0] + dc * 0.08, son[1] + dr * 0.08];
-  }
+type Nokta = [number, number];
+
+/** Şaftlar düz, köşeler yuvarlak (R=0,28 hücre): nokta listesinden SVG yolu (birim = hücre). */
+function yolCiz(p: Nokta[]): string {
+  if (p.length === 0) return "";
   if (p.length === 1) return `M${p[0][0]} ${p[0][1]} l0.001 0`;
   let d = `M${p[0][0]} ${p[0][1]}`;
   const R = 0.28;
@@ -52,13 +50,43 @@ function okYolu(h: Hucre[]): string {
     const [x, y] = p[i];
     if (i < p.length - 1) {
       const [px, py] = p[i - 1], [nx, ny] = p[i + 1];
-      // köşeye R kala dur, yayla dön
+      const donuyor = Math.sign(x - px) !== Math.sign(nx - x) || Math.sign(y - py) !== Math.sign(ny - y);
+      if (!donuyor) continue;                     // düz devam: ara nokta gereksiz
       const ax = x - Math.sign(x - px) * R, ay = y - Math.sign(y - py) * R;
       const bx = x + Math.sign(nx - x) * R, by = y + Math.sign(ny - y) * R;
       d += ` L${ax} ${ay} Q${x} ${y} ${bx} ${by}`;
     } else d += ` L${x} ${y}`;
   }
   return d;
+}
+
+/**
+ * Yılan: okun kontrol çizgisi = gövde hücre merkezleri + baş yönünde düz uzantı (tahta dışına).
+ * `s` ilerledikçe gövde bu çizgi boyunca kayar (Android ArrowBolum "slither"): pencere [s, s+L].
+ * Dönen: pencerenin noktaları (köşeler dahil) + baş yönü.
+ */
+function yilanPenceresi(hucreler: Hucre[], yon: Hucre, s: number, uzanti: number): { p: Nokta[]; yon: Hucre } {
+  const ctrl: Nokta[] = hucreler.map(([r, c]) => [c + 0.5, r + 0.5]);
+  const [hr, hc] = hucreler[hucreler.length - 1];
+  for (let k = 1; k <= uzanti; k++) ctrl.push([hc + 0.5 + yon[1] * k, hr + 0.5 + yon[0] * k]);
+  const L = hucreler.length - 1 + 0.08;                 // gövde uzunluğu (şaft başın tabanına kadar)
+  const bas = s + L;
+  const p: Nokta[] = [];
+  let birikim = 0, sonYon: Hucre = yon;
+  for (let i = 0; i < ctrl.length - 1; i++) {
+    const [x0, y0] = ctrl[i], [x1, y1] = ctrl[i + 1];
+    const seg = Math.abs(x1 - x0) + Math.abs(y1 - y0);
+    const a = birikim, b = birikim + seg;
+    const ara = (t: number): Nokta => [x0 + (x1 - x0) * ((t - a) / seg), y0 + (y1 - y0) * ((t - a) / seg)];
+    if (b > s && a < bas) {
+      if (p.length === 0) p.push(ara(Math.max(a, s)));
+      if (b <= bas) p.push([x1, y1]); else p.push(ara(bas));
+      sonYon = [Math.sign(y1 - y0), Math.sign(x1 - x0)];
+    }
+    birikim = b;
+    if (birikim >= bas) break;
+  }
+  return { p, yon: sonYon };
 }
 
 export default function OkBulmaca() {
@@ -73,6 +101,10 @@ export default function OkBulmaca() {
   const [hakBitti, setHakBitti] = useState(false);
   const [cikisSor, setCikisSor] = useState(false);
   const zamanlayicilar = useRef<ReturnType<typeof setTimeout>[]>([]);
+  // Çıkan okların yol boyunca ilerlemesi (hücre birimi); rAF ile güncellenir
+  const [cikis, setCikis] = useState<Record<number, number>>({});
+  const cikisRef = useRef<Record<number, { basla: number; sure: number; mesafe: number }>>({});
+  const rafRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (yukleniyor) return;
@@ -81,13 +113,13 @@ export default function OkBulmaca() {
     oyunBolumu(kullanici.uid, "okbulmaca").then((b) => { if (!iptal) { setIlerleme(b); setAsama("secim"); } });
     return () => { iptal = true; };
   }, [kullanici, yukleniyor, router]);
-  useEffect(() => () => zamanlayicilar.current.forEach(clearTimeout), []);
+  useEffect(() => () => { zamanlayicilar.current.forEach(clearTimeout); if (rafRef.current != null) cancelAnimationFrame(rafRef.current); }, []);
 
   const bolum = BOLUMLER[Math.min(bolumNo, OK_BOLUM_SAYISI) - 1];
 
   const basla = useCallback((no: number) => {
     const n = Math.min(Math.max(1, no), OK_BOLUM_SAYISI);
-    setBolumNo(n); setOklar(oklariKur(BOLUMLER[n - 1])); setHak(HAK);
+    setBolumNo(n); setOklar(oklariKur(BOLUMLER[n - 1])); setHak(HAK); setCikis({}); cikisRef.current = {};
     setKazandi(false); setHakBitti(false); setAsama("oyun");
   }, []);
 
@@ -103,28 +135,51 @@ export default function OkBulmaca() {
     }
   }, [bolum]);
 
+  // Kayma mesafesi: ok kenardan tamamen çıkana kadar (hücre birimi)
+  const cikisMesafesi = useMemo(() => (a: Ok) => {
+    const [r, c] = a.hucreler[a.hucreler.length - 1];
+    const kenar = a.yon[0] > 0 ? bolum.satir - r : a.yon[0] < 0 ? r + 1 : a.yon[1] > 0 ? bolum.sutun - c : c + 1;
+    return kenar + a.hucreler.length + 1;
+  }, [bolum]);
+
   const dokun = useCallback((id: number) => {
     if (kazandi || hakBitti) return;
     const a = oklar.find((o) => o.id === id);
     if (!a || a.durum !== "duruyor") return;
     if (onuAcik(a, oklar)) {
       sesCal("t2048_kaydirma", 0.5);
-      const sonraki = oklar.map((o) => (o.id === id ? { ...o, durum: "cikiyor" as const } : o));
-      setOklar(sonraki);
-      zamanlayicilar.current.push(setTimeout(() => {
-        setOklar((l) => {
-          const yeni = l.map((o) => (o.id === id ? { ...o, durum: "cikti" as const } : o));
-          if (yeni.every((o) => o.durum === "cikti")) { setKazandi(true); sesCal("levelcompleted"); }
-          return yeni;
-        });
-      }, 480));
+      setOklar((l) => l.map((o) => (o.id === id ? { ...o, durum: "cikiyor" as const } : o)));
+      // Yılan gibi kendi yolunu izleyerek çıkar (Android: 430 ms, FastOutLinear); uzun yol biraz daha sürer
+      const mesafe = cikisMesafesi(a);
+      cikisRef.current[id] = { basla: performance.now(), sure: 430 + mesafe * 12, mesafe };
+      const adim = () => {
+        const simdi = performance.now();
+        const yeni: Record<number, number> = {};
+        const bitenler: number[] = [];
+        for (const [k, v] of Object.entries(cikisRef.current)) {
+          const t = Math.min(1, (simdi - v.basla) / v.sure);
+          yeni[Number(k)] = v.mesafe * t * t;          // hızlanarak (ease-in)
+          if (t >= 1) bitenler.push(Number(k));
+        }
+        setCikis(yeni);
+        for (const k of bitenler) delete cikisRef.current[k];
+        if (bitenler.length) {
+          setOklar((l) => {
+            const son = l.map((o) => (bitenler.includes(o.id) ? { ...o, durum: "cikti" as const } : o));
+            if (son.every((o) => o.durum === "cikti")) { setKazandi(true); sesCal("levelcompleted"); }
+            return son;
+          });
+        }
+        rafRef.current = Object.keys(cikisRef.current).length ? requestAnimationFrame(adim) : null;
+      };
+      if (rafRef.current == null) rafRef.current = requestAnimationFrame(adim);
     } else {
       sesCal("yanlis", 0.6);
       setOklar((l) => l.map((o) => (o.id === id ? { ...o, durum: "carpti" as const } : o)));
       zamanlayicilar.current.push(setTimeout(() => setOklar((l) => l.map((o) => (o.id === id ? { ...o, durum: "duruyor" as const } : o))), 420));
       setHak((h) => { const y = h - 1; if (y <= 0) setHakBitti(true); return y; });
     }
-  }, [oklar, kazandi, hakBitti, onuAcik]);
+  }, [oklar, kazandi, hakBitti, onuAcik, cikisMesafesi]);
 
   const devam = useCallback(() => {
     const sonraki = bolumNo + 1;
@@ -132,12 +187,6 @@ export default function OkBulmaca() {
     if (sonraki > OK_BOLUM_SAYISI) setAsama("secim"); else basla(sonraki);
   }, [bolumNo, ilerleme, kullanici, basla]);
 
-  // Kayma mesafesi: ok kenardan tamamen çıkana kadar (hücre birimi)
-  const cikisMesafesi = useMemo(() => (a: Ok) => {
-    const [r, c] = a.hucreler[a.hucreler.length - 1];
-    const kenar = a.yon[0] > 0 ? bolum.satir - r : a.yon[0] < 0 ? r + 1 : a.yon[1] > 0 ? bolum.sutun - c : c + 1;
-    return kenar + a.hucreler.length + 1;
-  }, [bolum]);
 
   if (asama === "yukleniyor") return <div className="bk bk-oyun-sahne"><UcNokta style={{ padding: 60 }} /></div>;
 
@@ -186,36 +235,48 @@ export default function OkBulmaca() {
       <div className="bk-ok-tahta" style={{ aspectRatio: `${C} / ${R}` }}>
         <svg viewBox={`0 0 ${C} ${R}`} width="100%" height="100%">
           <rect width={C} height={R} fill="#FFFFFF" rx={0.3} />
-          {/* Noktalar yalnız BOŞ hücrelerde (Android görünümü); ok çıkınca hücre boşalır, nokta belirir */}
+          {/* Noktalar yalnız BOŞ hücrelerde (Android görünümü). Çıkan okta hücre = o anki gövdenin altı:
+              kuyruk geçince nokta belirir, baş gelince kaybolur; ince şaftın altından nokta sızmaz. */}
           {(() => {
             const dolu = new Set<string>();
-            for (const o of oklar) if (o.durum !== "cikti") for (const [r, c] of o.hucreler) dolu.add(`${r},${c}`);
+            for (const o of oklar) {
+              if (o.durum === "cikti") continue;
+              if (o.durum !== "cikiyor") { for (const [r, c] of o.hucreler) dolu.add(`${r},${c}`); continue; }
+              // kontrol çizgisinde k. nokta = k hücre yol; gövde [s, s+L], ok ucu +0,34, nokta yarıçapı 0,05
+              const s = cikis[o.id] ?? 0, n = o.hucreler.length, bas = s + n - 1 + 0.08;
+              const [hr, hc] = o.hucreler[n - 1];
+              for (let k = Math.max(0, Math.ceil(s - 0.06)); k <= bas + 0.4; k++) {
+                const [r, c] = k < n ? o.hucreler[k] : [hr + o.yon[0] * (k - n + 1), hc + o.yon[1] * (k - n + 1)];
+                dolu.add(`${r},${c}`);
+              }
+            }
             return Array.from({ length: R }, (_, r) => Array.from({ length: C }, (_, c) =>
               dolu.has(`${r},${c}`) ? null : <circle key={`${r}-${c}`} cx={c + 0.5} cy={r + 0.5} r={0.05} fill={NOKTA} />
             ));
           })()}
           {oklar.filter((o) => o.durum !== "cikti").map((o) => {
-            const [hr, hc] = o.hucreler[o.hucreler.length - 1];
-            const [dr, dc] = o.yon;
-            const m = o.durum === "cikiyor" ? cikisMesafesi(o) : o.durum === "carpti" ? 0.18 : 0;
+            const m = o.durum === "carpti" ? 0.18 : 0;
             const renk = o.durum === "carpti" ? KIRMIZI : LACIVERT;
+            const sIlerleme = o.durum === "cikiyor" ? (cikis[o.id] ?? 0) : 0;
+            const { p, yon: [dr, dc] } = yilanPenceresi(o.hucreler, o.yon, sIlerleme, R + C + o.hucreler.length + 2);
+            if (p.length === 0) return null;
             // İnce şaft (0,11 hücre) + küçük üçgen ok başı (Android ArrowBolum ölçüleri):
-            // uç hücre kenarına 0,08 kala, taban uçtan 0,34 geride, yarım genişlik 0,2
-            const tx = hc + 0.5 + dc * 0.42, ty = hr + 0.5 + dr * 0.42;      // uç
-            const px = -dr, py = dc;                                          // dik yön
-            const kx = tx - dc * 0.34, ky = ty - dr * 0.34;                   // taban orta
+            // şaft başın tabanında biter; uç tabandan 0,34 ileride, yarım genişlik 0,2
+            const [kx, ky] = p[p.length - 1];
+            const tx = kx + dc * 0.34, ty = ky + dr * 0.34;
+            const px = -dr, py = dc;
             const ax = kx + px * 0.2, ay = ky + py * 0.2, cx = kx - px * 0.2, cy = ky - py * 0.2;
             return (
               <g
                 key={o.id}
                 className="bk-ok"
                 data-durum={o.durum}
-                style={{ transform: `translate(${dc * m}px, ${dr * m}px)` }}
+                style={{ transform: `translate(${o.yon[1] * m}px, ${o.yon[0] * m}px)` }}
                 onClick={() => dokun(o.id)}
               >
                 {/* geniş görünmez vuruş alanı: parmakla kolay tutulsun */}
-                <path d={okYolu(o.hucreler)} fill="none" stroke="transparent" strokeWidth={0.9} strokeLinecap="round" strokeLinejoin="round" />
-                <path d={okYolu(o.hucreler)} fill="none" stroke={renk} strokeWidth={0.11} strokeLinecap="round" strokeLinejoin="round" />
+                <path d={yolCiz(p)} fill="none" stroke="transparent" strokeWidth={0.9} strokeLinecap="round" strokeLinejoin="round" />
+                <path d={yolCiz(p)} fill="none" stroke={renk} strokeWidth={0.11} strokeLinecap="round" strokeLinejoin="round" />
                 <polygon points={`${tx},${ty} ${ax},${ay} ${cx},${cy}`} fill={renk} />
               </g>
             );
