@@ -1031,9 +1031,10 @@
 @font-face { font-family: "bk-deftermetin";  src: url("/fonts/deftermetin.ttf");  font-display: swap; }
 @font-face { font-family: "bk-sorucevap";    src: url("/fonts/sorucevap.ttf");    font-display: swap; }
 
-.bk-defter { min-height: 100vh; background: #fdfdfd; color: #1a1a2e; }
+.bk-defter { min-height: 100vh; min-height: 100dvh; background: #fdfdfd; color: #1a1a2e; display: flex; flex-direction: column; }
 .bk-defter-kagit {
-  max-width: 760px; margin: 0 auto; padding: 26px 24px 150px; position: relative;
+  /* Kâğıt ekranın altına (sabit alt banda) kadar uzar; içerik kısa olsa da kareli/çizgili zemin yarıda bitmez */
+  flex: 1; width: 100%; max-width: 760px; margin: 0 auto; padding: 26px 24px 150px; position: relative;
   /* çizgili kâğıt: 28px aralık — matematik/fen kareli (22px) */
   background-image: repeating-linear-gradient(
     to bottom, transparent 0 27px, rgba(0,0,0,.07) 27px 28px);
@@ -1044,7 +1045,7 @@
     repeating-linear-gradient(to right,  transparent 0 21px, rgba(0,0,0,.07) 21px 22px);
 }
 .bk-defter-ust {
-  max-width: 760px; margin: 0 auto; padding: 14px 24px 0;
+  width: 100%; max-width: 760px; margin: 0 auto; padding: 14px 24px 0;
   display: flex; align-items: center; justify-content: space-between; gap: 12px;
 }
 .bk-defter-ust a { color: #1a1a2e; opacity: .55; font-size: 22px; text-decoration: none; }
