@@ -52,24 +52,24 @@ export default async function DersSayfasi({
       </h1>
       <p className="bk-ia-giris">
         {b.sinif.sinif}. sınıf {b.ders.ad} dersi {b.ders.uniteler.length} üniteden oluşuyor.
-        Her ünitenin konu anlatımı, testleri ve yazılı hazırlığı Bilkie uygulamasında.
+        Üniteyi seç, konu anlatımını oku; testi ve yazılı hazırlığı Bilkie uygulamasında.
       </p>
 
-      {/* ⚠️ Ünite adları BAĞLANTI DEĞİL — bilinçli. Konu anlatımı metni halka açık
-          değil (kullanıcı kararı, 10 Eyl 2026); her üniteye bir sayfa açılsaydı 199
-          tane ince, birbirinin aynı, içeriği başka yere yönlendiren sayfa oluşurdu.
-          Google'ın "doorway" tanımı tam olarak bu ve cezası site geneline işler. */}
-      <ol className="bk-ia-uniteler dizin">
+      {/* Her ünite kendi sayfasına gider — defterin yarısı orada okunuyor
+          (16 Eyl 2026'ya kadar bağlantısızdı; bkz. [unite]/page.tsx). */}
+      <ol className="bk-ia-uniteler">
         {b.ders.uniteler.map((u, i) => (
           <li key={u.slug}>
-            <span className="no">{i + 1}</span>
-            <strong>{u.baslik}</strong>
+            <Link href={`/konu-anlatimi/${b.sinif.slug}/${b.ders.slug}/${u.slug}`}>
+              <span className="no">{i + 1}</span>
+              <strong>{u.baslik}</strong>
+            </Link>
           </li>
         ))}
       </ol>
 
       <aside className="bk-ia-cagri">
-        <strong>Konu anlatımlarının tamamı Bilkie&apos;de</strong>
+        <strong>Defterlerin tamamı Bilkie&apos;de</strong>
         <p>
           {b.ders.ad} ünitelerini oku, testleri çöz, seri yap, ligde yüksel. Ücretsiz.
         </p>

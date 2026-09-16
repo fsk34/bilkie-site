@@ -46,8 +46,13 @@ export default function sitemap(): MetadataRoute.Sitemap {
         lastModified: simdi,
         priority: 0.7,
       });
-      // Ünite sayfası YOK: konu anlatımı metni halka açık değil, dizin ders
-      // sayfasında bitiyor (bkz. [sinif]/[ders]/page.tsx).
+      for (const u of d.uniteler) {
+        girisler.push({
+          url: `${KOK}/konu-anlatimi/${s.slug}/${d.slug}/${u.slug}`,
+          lastModified: simdi,
+          priority: 0.7,
+        });
+      }
     }
   }
 

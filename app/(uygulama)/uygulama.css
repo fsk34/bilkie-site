@@ -2545,12 +2545,6 @@ html[data-bk-oturum="1"] .bk-oturum-sayfa[data-durum="bilinmiyor"] .bk-oturum-be
   background: var(--oyun-kart); border: 1px solid var(--oyun-cizgi);
 }
 .bk-ia-uniteler a:hover { border-color: var(--secili-cizgi); }
-/* Bağlantısız dizin: kutuyu <a> değil <li> taşır (ünite sayfası üretilmiyor). */
-.bk-ia-uniteler.dizin li {
-  display: flex; align-items: center; gap: 14px; padding: 13px 16px;
-  border-radius: 12px; background: var(--oyun-kart); border: 1px solid var(--oyun-cizgi);
-}
-.bk-ia-uniteler.dizin strong { font-weight: 400; font-size: 15px; }
 
 .bk-ia-uniteler .no {
   flex: 0 0 auto; width: 28px; height: 28px; border-radius: 8px;

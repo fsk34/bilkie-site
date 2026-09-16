@@ -4,19 +4,20 @@
 // kullanıcı adına okur. İçerik sayfaları ise arama motoru için sunucuda çiziliyor;
 // orada oturum yok ve Firebase'in içerik veritabanları anonim okumaya KAPALI (401).
 //
-// ⚠️ VERİ KAYNAĞI TEK YERDE: `dizinHam()` / `atasozleriHam()`. Bugün depodaki
+// ⚠️ VERİ KAYNAĞI TEK YERDE: `defterlerHam()` / `testlerHam()` / `atasozleriHam()`. Bugün depodaki
 // dışa aktarılmış JSON'u okuyorlar. Firebase servis hesabı anahtarı alınabilirse
 // (bkz. proje notları: kuruluş politikası `disableServiceAccountKeyCreation`
-// engelliyor) yalnız bu iki fonksiyon canlı okumaya çevrilir; sayfalar değişmez.
+// engelliyor) yalnız bu fonksiyonlar canlı okumaya çevrilir; sayfalar değişmez.
 //
 // Dönüşüm defterBicim.ts'ten geliyor — uygulamayla AYNI mantık, kopya değil.
 
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { sayfalariCevir, sayi, type DefterSayfa } from "./defterBicim";
 
 /* ------------------------------------------------------------------ kaynak */
 
-let _dizin: Record<string, unknown> | null = null;
+let _defterler: Record<string, unknown> | null = null;
 let _testler: Record<string, unknown> | null = null;
 let _atasozleri: Record<string, unknown> | null = null;
 
@@ -27,17 +28,19 @@ function oku(dosya: string): Record<string, unknown> {
 }
 
 /**
- * Sınıf → ders → ünite BAŞLIKLARI. İçeriğin kendisi burada YOK.
+ * Konu defterleri — her defterin YARISI (en az 3 sayfa) burada, kalanı uygulamada.
  *
- * ⚠️ Konu anlatımı metni bilerek depoda değil (kullanıcı kararı, 10 Eyl 2026):
- * halka açılmıyor, o yüzden ne sayfalara basılıyor ne de repoda duruyor.
- * `dizin.json` yalnız 12 KB başlık; tam dışa aktarım 2,4 MB idi.
- * Açma kararı verilirse: konudefterleri dışa aktarımı geri alınır ve
- * defterBicim.sayfalariCevir ile çizilir (dönüştürücü hazır duruyor).
+ * Kapalı sayfalar depoda da durmuyor: tam dışa aktarım 2,5 MB, bu 665 KB.
+ * Üretim betiği: scripts/defterleri_cikar.py. Sınıf/ders/ünite ağacı da bu
+ * dosyadan çıkar (ayrı bir dizin dosyası yok; iki kaynak zamanla ayrışırdı).
+ *
+ * Tarihçe: 10 Eyl'de ünite sayfaları tamamen kapalıydı (dizin ders sayfasında
+ * bitiyordu). 16 Eyl'de AdSense "düşük değerli içerik" deyince testlerdeki kısmi
+ * açma kuralı defterlere de uygulandı — ölçüldü, sayfa başına medyan 287 kelime.
  */
-function dizinHam(): Record<string, unknown> {
-  if (!_dizin) _dizin = oku("dizin.json");
-  return _dizin;
+function defterlerHam(): Record<string, unknown> {
+  if (!_defterler) _defterler = oku("defterler.json");
+  return _defterler;
 }
 
 function atasozleriHam(): Record<string, unknown> {
@@ -94,24 +97,36 @@ export function dersAdi(dersKey: string, sinif: number): string {
 
 /* -------------------------------------------------------------------- tipler */
 
-export type Unite = { key: string; baslik: string; slug: string };
+export type Unite = { key: string; baslik: string; slug: string; toplam: number; acik: number };
 export type Ders = { key: string; ad: string; slug: string; uniteler: Unite[] };
 export type Sinif = { sinif: number; slug: string; dersler: Ders[] };
 
 /* ------------------------------------------------------------------ okuyucu */
 
-function uniteleriCoz(liste: unknown): Unite[] {
-  if (!Array.isArray(liste)) return [];
+function uniteleriCoz(kume: unknown): Unite[] {
+  if (!kume || typeof kume !== "object") return [];
   const out: Unite[] = [];
-  for (const u of liste) {
+  for (const [key, u] of Object.entries(kume as Record<string, unknown>)) {
     if (!u || typeof u !== "object") continue;
     const o = u as Record<string, unknown>;
-    const key = typeof o.key === "string" ? o.key : "";
     const baslik = typeof o.title === "string" ? o.title : key;
-    if (key && baslik) out.push({ key, baslik, slug: slug(baslik) });
+    const pages = Array.isArray(o.pages) ? o.pages : [];
+    if (baslik && pages.length) {
+      out.push({ key, baslik, slug: slug(baslik), toplam: sayi(o.toplam) || pages.length, acik: pages.length });
+    }
   }
   // Ünite anahtarları u1, u2… — sayısal sıra, alfabetik değil (u10 < u2 olmasın).
-  return out.sort((a, b) => sayiCek(a.key) - sayiCek(b.key));
+  out.sort((a, b) => sayiCek(a.key) - sayiCek(b.key));
+  // Aynı derste aynı adlı üniteler (5/matematik "Sayılar ve Nicelikler" u2 + u4, MEB'de
+  // gerçekten iki ünite): ikincisi "-2" ekini alır. Ek ünite sırasına göre verilir,
+  // yeniden üretimde adres değişmez. Eksiz bırakılsa biri diğerini ezerdi (199 → 198).
+  const gorulen = new Map<string, number>();
+  for (const u of out) {
+    const n = (gorulen.get(u.slug) ?? 0) + 1;
+    gorulen.set(u.slug, n);
+    if (n > 1) u.slug = `${u.slug}-${n}`;
+  }
+  return out;
 }
 
 function sayiCek(s: string): number {
@@ -120,7 +135,7 @@ function sayiCek(s: string): number {
 
 /** Yayınlanabilir tüm sınıf/ders/ünite ağacı. Sayfa üretimi ve sitemap bunu kullanır. */
 export function icerikAgaci(): Sinif[] {
-  const ham = dizinHam();
+  const ham = defterlerHam();
   const out: Sinif[] = [];
   for (const [gradeKey, gv] of Object.entries(ham)) {
     const sinif = sayiCek(gradeKey);
@@ -156,6 +171,19 @@ export function dersBul(sinifSlug: string, dersSlug: string): { sinif: Sinif; de
   const sinif = sinifBul(sinifSlug);
   const ders = sinif?.dersler.find((d) => d.slug === dersSlug);
   return sinif && ders ? { sinif, ders } : undefined;
+}
+
+export function uniteBul(
+  sinifSlug: string,
+  dersSlug: string,
+  uniteSlug: string
+): { sinif: Sinif; ders: Ders; unite: Unite; sayfalar: DefterSayfa[] } | undefined {
+  const b = dersBul(sinifSlug, dersSlug);
+  const unite = b?.ders.uniteler.find((u) => u.slug === uniteSlug);
+  if (!b || !unite) return undefined;
+  const ham = ((defterlerHam()[`grade${b.sinif.sinif}`] as Record<string, unknown>)?.[b.ders.key] as
+    Record<string, Record<string, unknown>>)?.[unite.key];
+  return { ...b, unite, sayfalar: sayfalariCevir(ham?.pages) };
 }
 
 /* ------------------------------------------------------ atasözleri / deyimler */
