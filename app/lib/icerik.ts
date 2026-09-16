@@ -14,6 +14,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { sayfalariCevir, sayi, type DefterSayfa } from "./defterBicim";
+import { konuAyristir, uniteler as katalogUniteleri } from "./katalog";
 
 /* ------------------------------------------------------------------ kaynak */
 
@@ -103,13 +104,29 @@ export type Sinif = { sinif: number; slug: string; dersler: Ders[] };
 
 /* ------------------------------------------------------------------ okuyucu */
 
-function uniteleriCoz(kume: unknown): Unite[] {
+/**
+ * Ünite adı: defterin kendi adı; o jenerikse ("Ünite 1") uygulamanın kataloğundaki ad.
+ *
+ * Neden: 4-8. sınıf Türkçe defterleri (ve 8/sosyal) veritabanında "Ünite 1..5" diye
+ * kayıtlı — 23 defter. Uygulama bu adı hiç göstermiyor, katalogdaki adı basıyor
+ * ("Okuma", "Dil Yapıları ve Söz Varlığı"); web de öyle yapsın, yoksa sayfa başlığı
+ * "Ünite 1 — 5. Sınıf Türkçe Konu Anlatımı" oluyor (17 Eyl'e kadar öyleydi).
+ * Jenerik OLMAYAN adlarda defterinki kalır: 3/türkçe'de katalog yanlış deftere
+ * bağlı (OKUMA → "Adlar"), oradaki adı katalogdan alsak sayfa içeriğiyle çelişirdi.
+ */
+function uniteAdi(defterAdi: string, sinif: number, dersSlug: string, key: string): string {
+  if (!/^Ünite \d+$/i.test(defterAdi.trim())) return defterAdi;
+  const ku = katalogUniteleri(sinif, dersSlug).find((u) => katalogDefterAnahtari(u) === key);
+  return ku?.title ?? defterAdi;
+}
+
+function uniteleriCoz(kume: unknown, sinif: number, dersSlug: string): Unite[] {
   if (!kume || typeof kume !== "object") return [];
   const out: Unite[] = [];
   for (const [key, u] of Object.entries(kume as Record<string, unknown>)) {
     if (!u || typeof u !== "object") continue;
     const o = u as Record<string, unknown>;
-    const baslik = typeof o.title === "string" ? o.title : key;
+    const baslik = uniteAdi(typeof o.title === "string" ? o.title : key, sinif, dersSlug, key);
     const pages = Array.isArray(o.pages) ? o.pages : [];
     if (baslik && pages.length) {
       out.push({ key, baslik, slug: slug(baslik), toplam: sayi(o.toplam) || pages.length, acik: pages.length });
@@ -143,11 +160,11 @@ export function icerikAgaci(): Sinif[] {
     const subjects = (gv ?? {}) as Record<string, unknown>;
     const dersler: Ders[] = [];
     for (const [dersKey, dv] of Object.entries(subjects)) {
-      const uniteler = uniteleriCoz(dv);
-      if (!uniteler.length) continue;
       // hayat_bilgisi veritabanı adı; adreste ve ekranda "sosyal" olarak görünür
       // (uygulamadaki kuralın aynısı, bkz. defterBicim.defterDersAnahtari).
       const gorunenKey = dersKey === "hayat_bilgisi" ? "sosyal" : dersKey;
+      const uniteler = uniteleriCoz(dv, sinif, gorunenKey);
+      if (!uniteler.length) continue;
       dersler.push({
         key: dersKey,
         ad: dersAdi(dersKey, sinif),
@@ -277,4 +294,59 @@ export function testBul(
   const b = testDersBul(sinifSlug, dersSlug);
   const test = b?.ders.testler.find((t) => t.slug === konuSlug);
   return b && test ? { ...b, test } : undefined;
+}
+
+
+/* ------------------------------------------------ ünite ↔ test çapraz bağı */
+
+/*
+ * İki katman birbirini bilsin: ünite sayfası "bu ünitenin testleri"ni, test sayfası
+ * "konu anlatımını oku"yu göstersin. Bağ AD EŞLEŞTİRMEYLE DEĞİL, uygulamanın kendi
+ * kataloğuyla kuruluyor: katalog.ts'teki ünite `defterKey` (yoksa anahtarın kendisi,
+ * "u3" gibi) ile deftere, konu satırlarındaki "[tN]" ile testlere bağlı.
+ * Ölçüldü (17 Eyl 2026): 199 defterin 197'si testli bir katalog ünitesine bağlanıyor;
+ * 3/türkçe u5-u6'nın testi yok, 4/türkçe "Temalar" defteri yok.
+ * Ad eşleştirme denendi: 146/199 — test ünite adları "Ünite 1 – …" biçiminde, tutmuyor.
+ */
+
+function katalogDefterAnahtari(u: { key: string; defterKey?: string }): string | null {
+  return u.defterKey ?? (/^u\d+$/.test(u.key) ? u.key : null);
+}
+
+/*
+ * ⚠️ 3/türkçe'de katalog yanlış deftere bağlı: OKUMA → u1 "Adlar (İsimler)", YAZMA → u2
+ * "Eş Anlamlı…" — defterler dil bilgisi konusuna göre, testler beceri alanına göre.
+ * Uygulamada da böyle (katalog üç platformda ortak). Web'de "Adlar" sayfasının altında
+ * "Metnin Konusu" testini göstermek yanlış olur; o ders çapraz bağdan hariç.
+ * Katalog düzeltilirse bu satır silinir.
+ */
+function caprazBagKapali(sinif: number, dersSlug: string): boolean {
+  return sinif === 3 && dersSlug === "turkce";
+}
+
+/** Bir defter ünitesinin halka açık testleri (katalog sırasıyla). */
+export function uniteTestleri(sinif: Sinif, ders: Ders, unite: Unite): { ders: TestDers; testler: Test[] } | null {
+  if (caprazBagKapali(sinif.sinif, ders.slug)) return null;
+  const tb = testDersBul(sinif.slug, ders.slug);
+  if (!tb) return null;
+  const ku = katalogUniteleri(sinif.sinif, ders.slug).find((u) => katalogDefterAnahtari(u) === unite.key);
+  if (!ku) return null;
+  const anahtarlar = ku.topics.map((t) => konuAyristir(t).testKey).filter(Boolean);
+  const testler = anahtarlar
+    .map((k) => tb.ders.testler.find((t) => t.t === k))
+    .filter((t): t is Test => Boolean(t));
+  return testler.length ? { ders: tb.ders, testler } : null;
+}
+
+/** Bir testin konu anlatımı (defter ünitesi) — yoksa null. */
+export function testinUnitesi(sinif: TestSinif, ders: TestDers, test: Test): { sinif: Sinif; ders: Ders; unite: Unite } | null {
+  if (caprazBagKapali(sinif.sinif, ders.slug)) return null;
+  const ku = katalogUniteleri(sinif.sinif, ders.slug).find((u) =>
+    u.topics.some((t) => konuAyristir(t).testKey === test.t)
+  );
+  const dk = ku ? katalogDefterAnahtari(ku) : null;
+  if (!dk) return null;
+  const db = dersBul(sinif.slug, ders.slug);
+  const unite = db?.ders.uniteler.find((u) => u.key === dk);
+  return db && unite ? { sinif: db.sinif, ders: db.ders, unite } : null;
 }

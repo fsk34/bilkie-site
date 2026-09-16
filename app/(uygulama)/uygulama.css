@@ -2595,6 +2595,14 @@ html[data-bk-oturum="1"] .bk-oturum-sayfa[data-durum="bilinmiyor"] .bk-oturum-be
 }
 .bk-ia-tablo th { background: var(--kutu); font-weight: 400; color: var(--acik-mavi); }
 
+/* Ünite ↔ test çapraz bağı */
+.bk-ia-capraz { margin-top: 34px; }
+.bk-ia-anlatim-bagi {
+  margin: -16px 0 24px; padding: 11px 14px; border-radius: 10px; font-size: 14px;
+  background: var(--kutu); border: 1px solid var(--kutu-cizgi); color: var(--soluk);
+}
+.bk-ia-anlatim-bagi a { color: var(--acik-mavi); }
+
 /* Uygulamaya çağrı */
 .bk-ia-cagri {
   display: grid; gap: 8px; justify-items: center; text-align: center;

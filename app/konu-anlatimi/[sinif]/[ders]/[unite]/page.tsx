@@ -13,7 +13,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { DefterBlok } from "../../../../lib/defterBicim";
-import { icerikAgaci, uniteBul } from "../../../../lib/icerik";
+import { icerikAgaci, uniteBul, uniteTestleri } from "../../../../lib/icerik";
 import Yol from "../../../Yol";
 
 export function generateStaticParams() {
@@ -60,13 +60,15 @@ export default async function UniteSayfasi({ params }: { params: Params }) {
   const onceki = i > 0 ? liste[i - 1] : null;
   const sonraki = i >= 0 && i < liste.length - 1 ? liste[i + 1] : null;
   const kapali = Math.max(0, b.unite.toplam - b.unite.acik);
+  const testler = uniteTestleri(b.sinif, b.ders, b.unite);
 
-  // Defterin ilk bloğu çoğunlukla "Ünite 1 Gökyüzündeki Komşularımız ve Biz" başlığı —
-  // h1 zaten onu söylüyor, ikinci kez basılmasın.
+  // Defterin ilk bloğu çoğunlukla "Ünite 1 Gökyüzündeki Komşularımız ve Biz" ya da
+  // yalnız "Ünite 1" başlığı — h1 zaten üniteyi söylüyor, ikinci kez basılmasın.
   const sayfalar = b.sayfalar.map((s, n) => {
     if (n !== 0) return s;
     const [ilk, ...kalan] = s.bloklar;
-    const tekrar = ilk?.tip === "baslik" && (ilk.baslik ?? "").includes(b.unite.baslik);
+    const metin = ilk?.tip === "baslik" ? (ilk.baslik ?? "") : "";
+    const tekrar = metin !== "" && (metin.includes(b.unite.baslik) || /^Ünite \d+$/i.test(metin.trim()));
     return tekrar ? { ...s, bloklar: kalan } : s;
   });
 
@@ -131,6 +133,24 @@ export default async function UniteSayfasi({ params }: { params: Params }) {
           </section>
         ))}
       </article>
+
+      {/* Aynı ünitenin testleri — okuyan çözmeye geçsin; arama motoru iki katmanı
+          birbirine bağlasın. Bağ katalogdan (icerik.uniteTestleri), ad eşleştirme değil. */}
+      {testler && (
+        <section className="bk-ia-capraz">
+          <h2 className="bk-ia-h2">Bu ünitenin konu testleri</h2>
+          <ul className="bk-ia-uniteler">
+            {testler.testler.map((t, n) => (
+              <li key={t.slug}>
+                <Link href={`/konu-testi/${b.sinif.slug}/${b.ders.slug}/${t.slug}`}>
+                  <span className="no">{n + 1}</span>
+                  <strong>{t.ad}</strong>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {kapali > 0 && (
         <aside className="bk-ia-cagri">

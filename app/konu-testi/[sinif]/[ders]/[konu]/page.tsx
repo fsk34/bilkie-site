@@ -10,7 +10,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { testAgaci, testBul, type TestSoru } from "../../../../lib/icerik";
+import { testAgaci, testBul, testinUnitesi, type TestSoru } from "../../../../lib/icerik";
 import Yol from "../../../../konu-anlatimi/Yol";
 
 export function generateStaticParams() {
@@ -53,6 +53,7 @@ export default async function TestSayfasi({
   const onceki = i > 0 ? liste[i - 1] : null;
   const sonraki = i >= 0 && i < liste.length - 1 ? liste[i + 1] : null;
   const kapali = Math.max(0, b.test.toplam - b.test.sorular.length);
+  const anlatim = testinUnitesi(b.sinif, b.ders, b.test);
 
   const yapisalVeri = {
     "@context": "https://schema.org",
@@ -106,6 +107,16 @@ export default async function TestSayfasi({
         <p className="bk-ia-ustbilgi">
           {b.sinif.sinif}. Sınıf · {b.ders.ad} · {b.test.unite}
         </p>
+
+        {/* Konu anlatımı bağı: çözmeden önce okumak isteyene; katalogdan gelir. */}
+        {anlatim && (
+          <p className="bk-ia-anlatim-bagi">
+            Önce konuyu oku:{" "}
+            <Link href={`/konu-anlatimi/${anlatim.sinif.slug}/${anlatim.ders.slug}/${anlatim.unite.slug}`}>
+              {anlatim.unite.baslik} konu anlatımı
+            </Link>
+          </p>
+        )}
 
         <ol className="bk-test-liste">
           {b.test.sorular.map((q, n) => (
