@@ -10,22 +10,54 @@
 
 import Link from "next/link";
 import AltBant from "./AltBant";
+import { harfKumeleri, icerikAgaci, testAgaci } from "../lib/icerik";
 
 // Uygulamanın bölümleri: ana ekranın üç büyük kartı (AnaEkran.tsx) + Oyunlar
 // (Kabuk.tsx menüsündeki adıyla; beş oyunun beşi de web'de oynanıyor).
 const BOLUMLER: { ad: string; ikon: string; yol?: string }[] = [
-  // Konu testlerinin ilk 10 sorusu halka açık; diğerleri giriş istiyor.
+  // Konu testlerinin ilk 10 sorusu, defterlerin yarısı halka açık; gerisi giriş istiyor.
   { ad: "Konu Testleri", ikon: "test.png", yol: "/konu-testi" },
-  { ad: "Konu Defterleri", ikon: "defter.png" },
+  { ad: "Konu Defterleri", ikon: "defter.png", yol: "/konu-anlatimi" },
   { ad: "Yazılıya Hazırlık", ikon: "yazili.png" },
   { ad: "Oyunlar", ikon: "oyunlar.svg" },
 ];
 
 export default function Tanitim() {
+  // Halka açık içeriğin sayıları — elle yazılmaz, veriden sayılır; içerik büyüyünce
+  // kapı da kendini günceller.
+  const agac = icerikAgaci();
+  const uniteSayisi = agac.reduce((t, s) => t + s.dersler.reduce((x, d) => x + d.uniteler.length, 0), 0);
+  const testSayisi = testAgaci().reduce((t, s) => t + s.dersler.reduce((x, d) => x + d.testler.length, 0), 0);
+  const sozSayisi = harfKumeleri().reduce((t, h) => t + h.atasozleri.length + h.deyimler.length, 0);
+
+  const yapisalVeri = {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Organization",
+        "@id": "https://www.bilkie.com/#org",
+        name: "Bilkie",
+        url: "https://www.bilkie.com",
+        logo: "https://www.bilkie.com/bilkie-ikon.png",
+      },
+      {
+        "@type": "WebSite",
+        url: "https://www.bilkie.com",
+        name: "Bilkie",
+        inLanguage: "tr",
+        publisher: { "@id": "https://www.bilkie.com/#org" },
+      },
+    ],
+  };
+
   // `bk` sınıfı şart: renk ve font değişkenleri orada tanımlı, onsuz
   // var(--zemin) / var(--soluk) gibi değerler boşa düşer.
   return (
     <main className="bk bk-tanitim">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(yapisalVeri) }}
+      />
       <div className="bk-tanitim-orta">
         <header className="bk-tanitim-ust">
           <Link href="/" className="bk-tanitim-marka" aria-label="Bilkie">
@@ -70,6 +102,42 @@ export default function Tanitim() {
           ))}
         </ul>
       </div>
+
+      {/* Kapının ALTI: halka açık içerik. İlk ekran sade kapı olarak kalıyor (kullanıcı
+          kararı, 10 Eyl); arama motorunun ve kaydırıp bakanın gördüğü içerik burada.
+          Sayılar veriden; sınıf bağlantıları konu anlatımı hub'ına gider. */}
+      <section className="bk-tanitim-icerik" aria-labelledby="bk-tanitim-icerik-baslik">
+        <h2 id="bk-tanitim-icerik-baslik">Ücretsiz içerik, hesap gerekmez</h2>
+        <ul className="bk-tanitim-hub">
+          <li>
+            <Link href="/konu-anlatimi">
+              <strong>Konu Anlatımı</strong>
+              <span>{uniteSayisi} ünite, 3-8. sınıf, beş ders</span>
+            </Link>
+          </li>
+          <li>
+            <Link href="/konu-testi">
+              <strong>Konu Testleri</strong>
+              <span>{testSayisi} test, cevaplarıyla</span>
+            </Link>
+          </li>
+          <li>
+            <Link href="/atasozleri-ve-deyimler">
+              <strong>Atasözleri ve Deyimler</strong>
+              <span>{sozSayisi} söz, anlamlarıyla</span>
+            </Link>
+          </li>
+        </ul>
+
+        <h2>Sınıfını seç</h2>
+        <ul className="bk-tanitim-siniflar">
+          {agac.map((s) => (
+            <li key={s.slug}>
+              <Link href={`/konu-anlatimi/${s.slug}`}>{s.sinif}. Sınıf</Link>
+            </li>
+          ))}
+        </ul>
+      </section>
 
       <AltBant dersler={false} />
     </main>

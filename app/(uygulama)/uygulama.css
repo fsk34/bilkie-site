@@ -2484,8 +2484,32 @@ html[data-bk-oturum="1"] .bk-oturum-sayfa[data-durum="bilinmiyor"] .bk-oturum-be
 .bk-tanitim-neler a { color: var(--acik-mavi); }
 .bk-tanitim-neler a:hover { text-decoration: underline; }
 
+/* Kapının altındaki içerik bölümü */
+.bk-tanitim-icerik { width: 100%; max-width: 760px; margin: 0 auto; padding: 8px 20px 56px; }
+.bk-tanitim-icerik h2 { font-size: 22px; margin: 0 0 14px; }
+.bk-tanitim-hub {
+  margin: 0 0 34px; padding: 0; list-style: none;
+  display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+}
+.bk-tanitim-hub a {
+  display: flex; flex-direction: column; gap: 5px; height: 100%;
+  padding: 15px 17px; border-radius: 14px; text-decoration: none;
+  background: var(--oyun-kart); border: 1px solid var(--oyun-cizgi); color: var(--yazi);
+}
+.bk-tanitim-hub a:hover { border-color: var(--secili-cizgi); }
+.bk-tanitim-hub strong { font-family: "bk-baslik", system-ui, sans-serif; font-weight: 400; font-size: 18px; }
+.bk-tanitim-hub span { font-size: 12px; color: var(--soluk); line-height: 1.5; }
+.bk-tanitim-siniflar { margin: 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 8px; }
+.bk-tanitim-siniflar a {
+  display: inline-block; padding: 9px 16px; border-radius: 999px; text-decoration: none; font-size: 14px;
+  background: var(--oyun-kart); border: 1px solid var(--oyun-cizgi); color: var(--yazi);
+}
+.bk-tanitim-siniflar a:hover { border-color: var(--secili-cizgi); }
+
 @media (max-width: 820px) {
   .bk-tanitim-orta { gap: 30px; padding: 28px 18px; }
+  .bk-tanitim-icerik { padding: 4px 16px 40px; }
+  .bk-tanitim-icerik h2 { font-size: 19px; }
   .bk-tanitim-ust { gap: 12px; }
   .bk-tanitim-etiket { font-size: 12px; letter-spacing: 2.5px; }
   .bk-tanitim-neler { gap: 10px 18px; }
