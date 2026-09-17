@@ -1204,8 +1204,9 @@
   padding: 18px 16px; display: grid; gap: 16px; font-family: inherit;
 }
 .bk-akordiyon-satir { display: flex; align-items: center; gap: 10px; }
-/* Başlık yazıları düğmenin `color`unu alır (varsayılan beyaz; Sosyal'de sarı zemine koyu) */
-.bk-akordiyon-bas { color: #fff; }
+/* Başlık yazıları kapsayıcının `color`unu alır (varsayılan beyaz; Sosyal'de sarı zemine koyu) */
+.bk-akordiyon-ic { color: #fff; }
+.bk-akordiyon-bas { color: inherit; }
 .bk-akordiyon-no {
   width: 28px; height: 28px; flex: 0 0 28px; border-radius: 50%;
   background: rgba(255,255,255,.22); color: inherit; display: grid; place-items: center;
@@ -1219,7 +1220,7 @@
 .bk-akordiyon-ayrac { height: 1px; background: rgba(255,255,255,.25); }
 .bk-akordiyon-alt { display: flex; }
 .bk-akordiyon-alt button, .bk-akordiyon-alt a, .bk .bk-akordiyon-alt a {
-  flex: 1; border: 0; background: none; cursor: pointer; color: #fff;
+  flex: 1; border: 0; background: none; cursor: pointer; color: inherit;
   font-family: inherit; font-size: 13px; font-weight: 600; padding: 12px 0;
   display: flex; align-items: center; justify-content: center; gap: 6px; text-decoration: none;
 }
@@ -1301,6 +1302,14 @@
   width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center;
   color: #fff; font-size: 13px; font-weight: 700;
 }
+/* Ünite başlığının altındaki Konu Defteri | Quiz hap düğmeleri (defter sayfası) */
+.bk-akordiyon-haplar { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 0 16px 16px; }
+.bk-akordiyon-haplar .bk-konu-dugme { height: 44px; font-size: 15px; }
+.bk-konu-dugme[data-durum="bitti"][href] { cursor: pointer; }
+
+/* Konu defteri: yalnız numara + ad (gösterim), düğme/çubuk yok — aynı satır, iki sütun */
+.bk-konu-satir.sade { grid-template-columns: 30px minmax(0, 1fr); grid-template-areas: none; padding: 10px 12px; }
+.bk-konu-satir.sade .ad { white-space: normal; }
 .bk-konu-satir .ad {
   color: #fff; font-size: 14px; font-weight: 500;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
@@ -1327,6 +1336,9 @@ a.bk-konu-dugme:active { border-bottom-width: 3px; transform: translateY(4px); }
   .bk-konu-satir .no { grid-area: no; } .bk-konu-satir .ad { grid-area: ad; white-space: normal; }
   .bk-konu-satir .iz { grid-area: iz; } .bk-konu-satir .yuzde { grid-area: yuzde; }
   .bk-konu-satir .bk-konu-dugme { grid-area: dugme; height: 44px; font-size: 15px; }
+  /* sade satır (defter) telefonda da iki sütun kalır */
+  .bk-konu-satir.sade { grid-template-columns: 30px minmax(0, 1fr); grid-template-areas: none; }
+  .bk-konu-satir.sade .no, .bk-konu-satir.sade .ad { grid-area: auto; }
 }
 
 /* ------------------------------------------------------------------ ligler */

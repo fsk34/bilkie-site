@@ -2,8 +2,9 @@
 
 // Bir dersin üniteleri — uygulamadaki DefterTopicHubScreen'in aynısı:
 // kabartmalı ünite akordiyonu (dışta koyu ton, içte açık ton, altta 5px),
-// numaralı daire + ünite adı + dönen ok, ilerleme çubuğu, altta Konu Defteri | Quiz,
-// açılınca ders görselli konu kartları.
+// numaralı daire + ünite adı + dönen ok, ilerleme çubuğu, altta Konu Defteri | Quiz.
+// Açılınca konu satırları (17 Eyl 2026, konu testleriyle aynı görünüm): ünitenin altına
+// bağlı çerçeve içinde numara + ad. Defterde konular yalnız GÖSTERİM — düğme/çubuk yok.
 
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
@@ -16,12 +17,12 @@ import Bekleme from "../../Bekleme";
 import { quizBitenler } from "../../../lib/quiz";
 
 // Uygulamadaki ders renk çiftleri (üst/alt) ve zemin görselleri
-const DERS_STIL: Record<string, { ust: string; alt: string; gorsel: string; ad: string }> = {
-  turkce:    { ust: "#72CEFD", alt: "#1E608F", gorsel: "turkcebutton",    ad: "Türkçe" },
-  fen:       { ust: "#40DB18", alt: "#206B0D", gorsel: "fenbutton",       ad: "Fen Bilimleri" },
-  ingilizce: { ust: "#971FB5", alt: "#5B0B6E", gorsel: "ingilizcebutton", ad: "İngilizce" },
-  matematik: { ust: "#F04B74", alt: "#A2314D", gorsel: "matematikbutton", ad: "Matematik" },
-  sosyal:    { ust: "#F0EB4B", alt: "#8F8C2E", gorsel: "sosyalbutton",    ad: "Sosyal Bilgiler" },
+const DERS_STIL: Record<string, { ust: string; alt: string; dolgu: string; gorsel: string; ad: string }> = {
+  turkce:    { ust: "#72CEFD", alt: "#1E608F", dolgu: "#A3D9FF", gorsel: "turkcebutton",    ad: "Türkçe" },
+  fen:       { ust: "#40DB18", alt: "#206B0D", dolgu: "#72D759", gorsel: "fenbutton",       ad: "Fen Bilimleri" },
+  ingilizce: { ust: "#971FB5", alt: "#5B0B6E", dolgu: "#E78AFE", gorsel: "ingilizcebutton", ad: "İngilizce" },
+  matematik: { ust: "#F04B74", alt: "#A2314D", dolgu: "#FF789A", gorsel: "matematikbutton", ad: "Matematik" },
+  sosyal:    { ust: "#F0EB4B", alt: "#8F8C2E", dolgu: "#FFFA5D", gorsel: "sosyalbutton",    ad: "Sosyal Bilgiler" },
 };
 
 export default function DefterUniteleriSayfasi() {
@@ -101,11 +102,11 @@ function Icerik() {
         const acikMi = acik.has(i);
 
         return (
-          <div key={u.key}>
+          <div key={u.key} className="bk-unite" data-acik={acikMi}>
             <div className="bk-akordiyon" style={{ background: stil.alt }}>
-              <div className="bk-akordiyon-ic" style={{ background: stil.ust }}>
-                {/* Sarı zeminde beyaz okunmuyor → Sosyal'de ders kutusuyla aynı koyu ton (testler sayfasıyla aynı) */}
-                <button className="bk-akordiyon-bas" onClick={() => cevir(i)} style={{ color: dersKey === "sosyal" ? "#150538" : "#fff" }}>
+              {/* Sarı zeminde beyaz okunmuyor → Sosyal'de başlık + alt bağlantılar ders kutusuyla aynı koyu ton */}
+              <div className="bk-akordiyon-ic" style={{ background: stil.ust, color: dersKey === "sosyal" ? "#150538" : "#fff" }}>
+                <button className="bk-akordiyon-bas" onClick={() => cevir(i)}>
                   <div className="bk-akordiyon-satir">
                     <span className="bk-akordiyon-no">{i + 1}</span>
                     <span className="bk-akordiyon-ad">{u.title}</span>
@@ -116,35 +117,41 @@ function Icerik() {
                   </div>
                 </button>
 
-                <div className="bk-akordiyon-ayrac" />
-
-                <div className="bk-akordiyon-alt">
-                  <Link href={`/defter/${dersKey}/${anahtar}`}>✎ Konu Defteri</Link>
-                  <span className="ayrac" />
+                {/* Konu Defteri | Quiz: metin bağlantısı yerine hap düğmeler (konu testlerindeki
+                    "Devam Et" stili: dolgu + alt çerçeve); quiz bitince yeşil "Tamamlandı" stili. */}
+                <div className="bk-akordiyon-haplar">
                   <Link
-                    href={`/quiz/${dersKey}/${quizAnahtari}`}
-                    data-bitti={bitenQuizler[quizAnahtari] === true}
+                    className="bk-konu-dugme"
+                    href={`/defter/${dersKey}/${anahtar}`}
+                    style={{ background: stil.dolgu, borderColor: stil.alt, color: "#0C1A3F" }}
                   >
-                    ✓ Quiz{bitenQuizler[quizAnahtari] ? " ✔" : ""}
+                    ✎ Konu Defteri
                   </Link>
+                  {bitenQuizler[quizAnahtari] ? (
+                    <Link className="bk-konu-dugme" href={`/quiz/${dersKey}/${quizAnahtari}`} data-durum="bitti">
+                      ✓ Quiz ✔
+                    </Link>
+                  ) : (
+                    <Link
+                      className="bk-konu-dugme"
+                      href={`/quiz/${dersKey}/${quizAnahtari}`}
+                      style={{ background: stil.dolgu, borderColor: stil.alt, color: "#0C1A3F" }}
+                    >
+                      ✓ Quiz
+                    </Link>
+                  )}
                 </div>
               </div>
             </div>
 
             {acikMi && (
-              <div className="bk-konu-kartlar">
+              <div className="bk-konu-grup" style={{ borderColor: stil.alt }}>
                 {u.topics.map((satir, ti) => {
                   const { baslik } = konuAyristir(satir);
                   return (
-                    <div
-                      className="bk-konu-kart"
-                      key={ti}
-                      style={{ background: stil.ust, borderBottom: `7px solid ${stil.alt}` }}
-                    >
-                      <span className="yazi">
-                        <span className="no">Konu {ti + 1}</span>
-                        <span className="ad">{baslik}</span>
-                      </span>
+                    <div className="bk-konu-satir sade" key={ti}>
+                      <span className="no" style={{ background: stil.alt }}>{ti + 1}</span>
+                      <span className="ad">{baslik}</span>
                     </div>
                   );
                 })}
