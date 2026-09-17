@@ -104,7 +104,8 @@ function Icerik() {
           <div key={u.key}>
             <div className="bk-akordiyon" style={{ background: stil.alt }}>
               <div className="bk-akordiyon-ic" style={{ background: stil.ust }}>
-                <button className="bk-akordiyon-bas" onClick={() => cevir(i)}>
+                {/* Sarı zeminde beyaz okunmuyor → Sosyal'de ders kutusuyla aynı koyu ton (testler sayfasıyla aynı) */}
+                <button className="bk-akordiyon-bas" onClick={() => cevir(i)} style={{ color: dersKey === "sosyal" ? "#150538" : "#fff" }}>
                   <div className="bk-akordiyon-satir">
                     <span className="bk-akordiyon-no">{i + 1}</span>
                     <span className="bk-akordiyon-ad">{u.title}</span>

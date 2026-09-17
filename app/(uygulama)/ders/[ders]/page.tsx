@@ -1,9 +1,11 @@
 "use client";
 
-// Bir dersin üniteleri ve konuları — uygulamadaki SubjectTestHubScreen'in aynısı:
-// kabartmalı ünite akordiyonu (numara + ünite ikonu + ad + dönen ok + yüzdeli çubuk),
-// açılınca konu kartları (sol üstte "Konu: N" + ad, sol altta ünite ikonu,
-// sağda "git" düğmesi, altta %55 genişlikte adım çubuğu, 3/3 olunca "Kilitli").
+// Bir dersin üniteleri ve konuları. Ünite başlığı uygulamadaki SubjectTestHubScreen'in
+// aynısı (kabartmalı akordiyon: numara + ünite ikonu + ad + dönen ok + yüzdeli çubuk).
+// Konu satırları 17 Eyl 2026 tasarımı (önce web'de): açılan ünitenin altına bağlı çerçeve
+// içinde ince satırlar — numara + ad + adım çubuğu + yüzde + düğme. Düğme profildeki
+// sınıf hapı kalıbında, dersin renginde: çerçeve `alt`, Başla `ust`, Devam Et `dolgu`
+// (seçenek A), Tamamlandı her derste yeşil ve tıklanmaz (eski "Kilitli" davranışı).
 
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
@@ -15,12 +17,17 @@ import { useTestIlerlemesi } from "../../../lib/canliVeri";
 import Bekleme from "../../Bekleme";
 import { ADIM_SAYISI } from "../../../lib/veri";
 
-const DERS_STIL: Record<string, { ust: string; alt: string; dolgu: string; ad: string }> = {
-  turkce:    { ust: "#72CEFD", alt: "#1E608F", dolgu: "#A3D9FF", ad: "Türkçe" },
-  fen:       { ust: "#40DB18", alt: "#206B0D", dolgu: "#72D759", ad: "Fen Bilimleri" },
-  ingilizce: { ust: "#971FB5", alt: "#5B0B6E", dolgu: "#E78AFE", ad: "İngilizce" },
-  matematik: { ust: "#F04B74", alt: "#A2314D", dolgu: "#FF789A", ad: "Matematik" },
-  sosyal:    { ust: "#F0EB4B", alt: "#8F8C2E", dolgu: "#FFFA5D", ad: "Sosyal Bilgiler" },
+// `ustYazi`: düğme yazısı — dolgu rengine göre kontrast ölçüldü (lacivert #0C1A3F ya da beyaz).
+// Yalnız İngilizce'nin `ust` moru beyaz ister (6,6:1); diğer hepsinde lacivert daha yüksek.
+const LACIVERT = "#0C1A3F";
+// `basYazi`: ünite başlığının yazısı. Sarı zeminde beyaz okunmuyor → Sosyal'de ders
+// kutusuyla aynı koyu ton (#150538, testler sayfasındaki `.bk-ders-kutu .ad`); diğerleri beyaz.
+const DERS_STIL: Record<string, { ust: string; alt: string; dolgu: string; ad: string; ustYazi: string; basYazi: string }> = {
+  turkce:    { ust: "#72CEFD", alt: "#1E608F", dolgu: "#A3D9FF", ad: "Türkçe",          ustYazi: LACIVERT,  basYazi: "#fff" },
+  fen:       { ust: "#40DB18", alt: "#206B0D", dolgu: "#72D759", ad: "Fen Bilimleri",   ustYazi: LACIVERT,  basYazi: "#fff" },
+  ingilizce: { ust: "#971FB5", alt: "#5B0B6E", dolgu: "#E78AFE", ad: "İngilizce",       ustYazi: "#FFFFFF", basYazi: "#fff" },
+  matematik: { ust: "#F04B74", alt: "#A2314D", dolgu: "#FF789A", ad: "Matematik",       ustYazi: LACIVERT,  basYazi: "#fff" },
+  sosyal:    { ust: "#F0EB4B", alt: "#8F8C2E", dolgu: "#FFFA5D", ad: "Sosyal Bilgiler", ustYazi: LACIVERT,  basYazi: "#150538" },
 };
 
 // Uygulamadaki stepFraction: 1 adım %35, 2 adım %70, 3 adım tam
@@ -99,10 +106,10 @@ function Icerik() {
         const uniteIkon = `/uygulama/unite/ic_g${sinif}_${dersKey}_t${i + 1}.svg`;
 
         return (
-          <div key={u.key}>
+          <div key={u.key} className="bk-unite" data-acik={acikMi}>
             <div className="bk-akordiyon" style={{ background: stil.alt }}>
               <div className="bk-akordiyon-ic" style={{ background: stil.ust }}>
-                <button className="bk-akordiyon-bas" onClick={() => cevir(i)}>
+                <button className="bk-akordiyon-bas" onClick={() => cevir(i)} style={{ color: stil.basYazi }}>
                   <div className="bk-akordiyon-satir">
                     <span className="bk-akordiyon-no">{i + 1}</span>
                     <UniteIkon kaynak={uniteIkon} sinif="bk-akordiyon-ikon" />
@@ -120,35 +127,39 @@ function Icerik() {
             </div>
 
             {acikMi && (
-              <div>
+              <div className="bk-konu-grup" style={{ borderColor: stil.alt }}>
                 {konular.map((k, ti) => {
                   const adim = Math.min(ADIM_SAYISI, ilerleme[k.testKey] ?? 0);
-                  const kilit = adim >= ADIM_SAYISI;
+                  const bitti = adim >= ADIM_SAYISI;
+                  const yuzde = Math.round(adimOrani(adim) * 100);
                   return (
-                    <div className="bk-test-kart" key={k.testKey} style={{ background: stil.ust }}>
-                      <div className="no">Konu: {ti + 1}</div>
-                      <div className="ad">{k.baslik}</div>
-
-                      <UniteIkon kaynak={uniteIkon} sinif="unite-ikon" />
-
+                    <div className="bk-konu-satir" key={k.testKey}>
+                      <span className="no" style={{ background: stil.alt }}>{ti + 1}</span>
+                      <span className="ad">{k.baslik}</span>
                       <span className="iz" style={{ background: stil.alt }}>
-                        <i style={{ width: `${adimOrani(adim) * 100}%`, background: stil.dolgu }} />
+                        <i style={{ width: `${yuzde}%`, background: stil.dolgu }} />
                       </span>
+                      <span className="yuzde" style={{ color: bitti ? "var(--yesil)" : "#fff" }}>% {yuzde}</span>
 
-                      {kilit ? (
-                        <span className="git" data-kilit="true">
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img src={`/uygulama/${dersKey}git.svg`} alt="" />
-                          <span className="kilit-yazi">Kilitli</span>
-                        </span>
+                      {bitti ? (
+                        <span className="bk-konu-dugme" data-durum="bitti">✓ Tamamlandı</span>
+                      ) : adim === 0 ? (
+                        <Link
+                          className="bk-konu-dugme"
+                          href={`/test/${dersKey}/${k.testKey}`}
+                          style={{ background: stil.ust, borderColor: stil.alt, color: stil.ustYazi }}
+                          aria-label={`${k.baslik} testine başla`}
+                        >
+                          Başla
+                        </Link>
                       ) : (
                         <Link
-                          className="git"
+                          className="bk-konu-dugme"
                           href={`/test/${dersKey}/${k.testKey}`}
-                          aria-label={`${k.baslik} testine git`}
+                          style={{ background: stil.dolgu, borderColor: stil.alt, color: LACIVERT }}
+                          aria-label={`${k.baslik} testine devam et`}
                         >
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img src={`/uygulama/${dersKey}git.svg`} alt="" />
+                          Devam Et
                         </Link>
                       )}
                     </div>
