@@ -81,11 +81,15 @@ export function useTestIlerlemesi(sinif: number): Record<string, Record<string, 
   );
 }
 
-/** Ana ekranın "Kaldığın yer" kartı: aynı progress_test düğümü (abonelik paylaşılır), farklı çözüm. */
+/** Ana ekranın "Kaldığın yer" kartı: progress_test + progress_defter (abonelikler paylaşılır), farklı çözüm. */
 export function useSonDokunulan(sinif: number): SonDokunulan | null | undefined {
-  // `undefined` = bilinmiyor (kimlik/ilk açılış); `null` = biliniyor, hiç test çözülmemiş.
-  const v = useKullaniciDugumu<{ son: SonDokunulan | null }>(
-    kullaniciDb, (uid) => testIlerlemeYolu(uid, sinif), (ham) => ({ son: sonDokunulanCoz(ham) }), { son: null }
+  // `undefined` = bilinmiyor (kimlik/ilk açılış); `null` = biliniyor, hiç dokunulmamış.
+  const v = useKullaniciDugumleri<{ son: SonDokunulan | null }>(
+    kullaniciDb,
+    (uid) => [testIlerlemeYolu(uid, sinif), defterIlerlemeYollari(uid, sinif)[0]],
+    (h) => ({ son: sonDokunulanCoz(h[0], h[1]) }),
+    { son: null },
+    2
   );
   return v === null ? undefined : v.son;
 }

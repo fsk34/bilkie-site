@@ -1,5 +1,5 @@
 // Ana ekranın veri mantığı (19 Eyl 2026 yeniden kurgu) — SAF, ağ yok.
-//   • kaldığın yer: progress_test'teki step{n}/completedAt damgalarından en son dokunulan konu
+//   • kaldığın yer: progress_test step{n}/completedAt + progress_defter updatedAt damgalarından en son dokunulan iş
 //   • Devam Et kartının üç hâli: hiç test yok → "Hadi başlayalım", yarım konu → "Kaldığın yerden",
 //     son konu bitmiş → "Sıradaki konu" (kart hiç ölmez, her zaman tek tıkla bir işe götürür)
 //   • Bilkie'nin önerisi: kural tabanlı, en fazla 2 madde; veri yetersizse öneri YOK
@@ -16,24 +16,33 @@ function sayi(v: unknown): number {
 
 /* --------------------------------------------------------------- kaldığın yer */
 
-export type SonDokunulan = { ders: string; konu: string; adim: number; zaman: number };
+/** tur: "test" → konu = testKey; "defter" → konu = defterKey (20 Eyl: defter de "dokunulan" sayılır) */
+export type SonDokunulan = { tur: "test" | "defter"; ders: string; konu: string; adim: number; zaman: number };
 
 /**
- * Ham progress_test düğümünden (ders → konu → step{n}/completedAt) en son dokunulan konu.
- * completedAt'i üç platform da yazıyor (Android TestScreens.kt, iOS saveProgress, web adimSonucuYaz).
+ * En son dokunulan iş. Test: progress_test'teki step{n}/completedAt (üç platform yazıyor).
+ * Defter: progress_defter'deki updatedAt (20 Eyl'den itibaren üç platform sayfa değişince yazıyor;
+ * eski kayıtlarda yok → yalnız test sayılır). Quiz'in damgası yok (değer düz `true`).
  */
-export function sonDokunulanCoz(ham: unknown): SonDokunulan | null {
+export function sonDokunulanCoz(testHam: unknown, defterHam?: unknown): SonDokunulan | null {
   let en: SonDokunulan | null = null;
   type Adim = { completedAt?: unknown };
   type Konu = { completedSteps?: unknown } & Record<string, Adim | unknown>;
-  for (const [ders, konular] of Object.entries((ham ?? {}) as Record<string, Record<string, Konu>>)) {
+  for (const [ders, konular] of Object.entries((testHam ?? {}) as Record<string, Record<string, Konu>>)) {
     for (const [konu, v] of Object.entries(konular ?? {})) {
       let zaman = 0;
       for (let a = 1; a <= ADIM_SAYISI; a++) zaman = Math.max(zaman, sayi((v?.[`step${a}`] as Adim | undefined)?.completedAt));
       if (zaman <= 0) continue;
       if (!en || zaman > en.zaman) {
-        en = { ders, konu, adim: Math.max(0, Math.min(ADIM_SAYISI, sayi(v?.completedSteps))), zaman };
+        en = { tur: "test", ders, konu, adim: Math.max(0, Math.min(ADIM_SAYISI, sayi(v?.completedSteps))), zaman };
       }
+    }
+  }
+  for (const [ders, uniteler] of Object.entries((defterHam ?? {}) as Record<string, Record<string, { updatedAt?: unknown }>>)) {
+    for (const [unite, v] of Object.entries(uniteler ?? {})) {
+      const zaman = sayi(v?.updatedAt);
+      if (zaman <= 0) continue;
+      if (!en || zaman > en.zaman) en = { tur: "defter", ders, konu: unite, adim: 0, zaman };
     }
   }
   return en;
@@ -130,15 +139,15 @@ function karta(is_: Is, hal: DevamKarti["hal"], d: ReturnType<typeof isDurumu>):
 /**
  * Devam Et kartı.
  *   • Hiç test dokunulmamış → zincirin başından ilk bitmemiş iş (Başla; yarım defterse Devam Et)
- *   • Son dokunulan test yarım → o test (Başla/Devam Et)
- *   • Son test bitmiş → zincirde ondan SONRAKİ ilk bitmemiş iş, başa sararak (Sıradaki;
+ *   • Son dokunulan iş (test ya da defter) yarım → o iş (Başla/Devam Et)
+ *   • Son iş bitmiş → zincirde ondan SONRAKİ ilk bitmemiş iş, başa sararak (Sıradaki;
  *     iş yarım başlanmışsa Devam Et). Her şey bitmişse null (kart çıkmaz).
  */
 export function devamKartiHesapla(sinif: number, son: SonDokunulan | null, veri: DevamVerisi): DevamKarti | null {
   const sira = isSirasi(sinif);
   if (sira.length === 0) return null;
 
-  const i = son ? sira.findIndex((k) => k.tur === "test" && k.ders === son.ders && k.key === son.konu) : -1;
+  const i = son ? sira.findIndex((k) => k.tur === son.tur && k.ders === son.ders && k.key === son.konu) : -1;
   if (i >= 0) {
     const d = isDurumu(sira[i], veri);
     if (!d.bitti) return karta(sira[i], d.basladi ? "devam" : "basla", d);

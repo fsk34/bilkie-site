@@ -697,7 +697,8 @@ function defterYolu(uid: string, sinif: number, dersKey: string, uniteKey: strin
 export async function defterSayfaYaz(
   uid: string, sinif: number, dersKey: string, uniteKey: string, sayfa: number
 ): Promise<void> {
-  await update(dbRef(kullaniciDb, defterYolu(uid, sinif, dersKey, uniteKey)), { currentPage: sayfa });
+  // updatedAt (20 Eyl): ana ekranın "kaldığın yer" kartı yarım defteri de en son dokunulan iş sayar
+  await update(dbRef(kullaniciDb, defterYolu(uid, sinif, dersKey, uniteKey)), { currentPage: sayfa, updatedAt: serverTimestamp() });
 }
 
 /**

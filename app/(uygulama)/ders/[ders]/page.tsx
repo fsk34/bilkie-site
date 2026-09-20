@@ -92,7 +92,9 @@ function Icerik() {
     if (son === undefined) return new Set<number>();
     let i = 0;
     if (son && son.ders === dersKey) {
-      const bulunan = liste.findIndex((u) => u.topics.some((t) => konuAyristir(t).testKey === son.konu));
+      const bulunan = son.tur === "defter"
+        ? liste.findIndex((u) => (u.defterKey && u.defterKey.length > 0 ? u.defterKey : u.key) === son.konu)
+        : liste.findIndex((u) => u.topics.some((t) => konuAyristir(t).testKey === son.konu));
       if (bulunan >= 0) i = bulunan;
     }
     return new Set([i]);
