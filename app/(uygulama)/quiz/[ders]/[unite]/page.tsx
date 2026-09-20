@@ -57,7 +57,7 @@ export default function QuizSayfasi() {
   const [ilkKez, setIlkKez] = useState(false);
   const [cikisSorusu, setCikisSorusu] = useState(false);
 
-  const geriYolu = `/defter/${dersKey}`;
+  const geriYolu = `/ders/${dersKey}`;
 
   useEffect(() => {
     if (yukleniyor) return;

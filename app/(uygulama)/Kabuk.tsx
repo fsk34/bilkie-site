@@ -99,8 +99,9 @@ export default function Kabuk({ children }: { children: React.ReactNode }) {
         </div>
       </div>
 
+      {/* Telefonda 6 sekme (uygulamayla aynı); "Daha Fazla" yalnız sol menüde — 7 sekme sıkışıyordu (19 Eyl) */}
       <nav className="bk-mobil-alt">
-        {MENU.map((m) => (
+        {MENU.filter((m) => m.ikon).map((m) => (
           <Link key={m.yol} href={m.yol} data-aktif={aktifMi(m.yol)}>
             <span><Ikon src={m.ikon} /></span>
             {m.ad}

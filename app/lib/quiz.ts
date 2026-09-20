@@ -120,6 +120,20 @@ export async function quizUnitesiGetir(
 export const quizBittiYolu = (uid: string, sinif: number, dersKey: string, uniteKey: string) =>
   `users/${uid}/quiz_done/grade${sinifSinirla(sinif)}/${dersKey}/${uniteKey}`;
 
+/** Sınıfın tüm bitmiş quizleri tek düğümde (ana ekranın canlı aboneliği). */
+export const quizBitenlerYolu = (uid: string, sinif: number) =>
+  `users/${uid}/quiz_done/grade${sinifSinirla(sinif)}`;
+
+/** Ham quiz_done düğümü → ders → ünite → true (saf; `true` olmayan değerler atılır). */
+export function quizBitenleriCoz(ham: unknown): Record<string, Record<string, boolean>> {
+  const out: Record<string, Record<string, boolean>> = {};
+  for (const [ders, uniteler] of Object.entries((ham ?? {}) as Record<string, Record<string, unknown>>)) {
+    out[ders] = {};
+    for (const [u, v] of Object.entries(uniteler ?? {})) if (v === true) out[ders][u] = true;
+  }
+  return out;
+}
+
 /** Bu ünitenin quizi daha önce bitirilmiş mi (ödül bir kez verilir). */
 export async function quizBittiMi(
   uid: string, sinif: number, dersKey: string, uniteKey: string
@@ -163,4 +177,16 @@ export async function quizTamamla(
   await set(dbRef(kullaniciDb, quizBittiYolu(uid, g, dersKey, uniteKey)), true);
   await xpEkle(uid, g, XP_QUIZ_TAMAM, `quiz_${dersKey}_${uniteKey}`);
   return { ilkKez: true, xp: XP_QUIZ_TAMAM };
+}
+
+/** Sınıfın TÜM derslerinin bitmiş quizleri tek okumada (canlı abonelik istemeyen yerler için). */
+export async function quizBitenlerTumu(
+  uid: string, sinif: number
+): Promise<Record<string, Record<string, boolean>>> {
+  try {
+    const snap = await get(dbRef(kullaniciDb, quizBitenlerYolu(uid, sinif)));
+    return quizBitenleriCoz(snap.val());
+  } catch {
+    return {};
+  }
 }

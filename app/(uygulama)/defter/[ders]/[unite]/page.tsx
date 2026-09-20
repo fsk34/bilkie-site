@@ -17,6 +17,7 @@ import {
   defterSayfaYaz,
   defterSayfalariGetir,
   ACT_DEFTER,
+  defterKaldigiSayfa,
   defterTamamla,
   defterToplamSayfaYaz,
   type DefterBlok,
@@ -35,6 +36,8 @@ export default function DefterOkuyucuSayfasi() {
   const [durum, setDurum] = useState<Durum>("yukleniyor");
   const [sayfalar, setSayfalar] = useState<DefterSayfa[]>([]);
   const [indeks, setIndeks] = useState(0);
+  // Kaldığı sayfadan açıldıysa o sayfadan ÖNCEKİLER görev sayılmaz (kapat-aç ile şişirme olmasın)
+  const baslangicIndeksi = useRef(0);
   const [kaydediliyor, setKaydediliyor] = useState(false);
   const [kazanilanXp, setKazanilanXp] = useState(0);
   const [seriSayisi, setSeriSayisi] = useState<number | null>(null);
@@ -56,9 +59,14 @@ export default function DefterOkuyucuSayfasi() {
     let iptal = false;
     (async () => {
       try {
-        const gelen = await defterSayfalariGetir(sinif, dersKey, uniteKey);
+        // Kaldığı sayfa içerikle birlikte okunur; sayfa sayısı dışına taşan/bitmiş kayıt baştan açar
+        const [gelen, kaldigi] = await Promise.all([
+          defterSayfalariGetir(sinif, dersKey, uniteKey),
+          kullanici ? defterKaldigiSayfa(kullanici.uid, sinif, dersKey, uniteKey) : Promise.resolve(0),
+        ]);
         if (iptal) return;
         setSayfalar(gelen);
+        if (kaldigi >= 2 && kaldigi <= gelen.length) { baslangicIndeksi.current = kaldigi - 1; setIndeks(kaldigi - 1); }
         setDurum(gelen.length > 0 ? "okuma" : "hata");
         if (gelen.length > 0 && kullanici) {
           defterToplamSayfaYaz(kullanici.uid, sinif, dersKey, uniteKey, gelen.length).catch(() => {});
@@ -90,7 +98,7 @@ export default function DefterOkuyucuSayfasi() {
     } catch { /* görev yazımı okumayı bozmasın */ }
   }, [kullanici, sinif]);
   useEffect(() => {
-    if (durum === "okuma" && indeks > 0) void sayfaTamamla(indeks - 1);
+    if (durum === "okuma" && indeks > baslangicIndeksi.current) void sayfaTamamla(indeks - 1);
   }, [indeks, durum, sayfaTamamla]);
 
   const bitir = useCallback(async () => {
@@ -128,7 +136,7 @@ export default function DefterOkuyucuSayfasi() {
     return (
       <Perde metin={kullanici ? "Bu ünitenin defteri bulunamadı." : "Defter yüklenemedi. Okumak için giriş yapman gerekebilir."}>
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center" }}>
-          <Link className="bk-dugme" href={`/defter/${dersKey}`}>Ünitelere dön</Link>
+          <Link className="bk-dugme" href={`/ders/${dersKey}`}>Ünitelere dön</Link>
           {!kullanici && <Link className="bk-dugme acik" href="/giris">Giriş yap</Link>}
         </div>
       </Perde>
@@ -173,7 +181,7 @@ export default function DefterOkuyucuSayfasi() {
           )}
 
           <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
-            <Link className="bk-dugme" href={`/defter/${dersKey}`}>Ünitelere dön</Link>
+            <Link className="bk-dugme" href={`/ders/${dersKey}`}>Ünitelere dön</Link>
             <Link className="bk-dugme acik" href={`/testler`}>Test çöz</Link>
           </div>
         </div>
@@ -187,7 +195,7 @@ export default function DefterOkuyucuSayfasi() {
   return (
     <div className="bk-defter">
       <div className="bk-defter-ust">
-        <Link href={`/defter/${dersKey}`} aria-label="Çık">✕</Link>
+        <Link href={`/ders/${dersKey}`} aria-label="Çık">✕</Link>
         <span className="bk-defter-sayac">{indeks + 1}/{sayfalar.length}</span>
         <span style={{ width: 22 }} />
       </div>

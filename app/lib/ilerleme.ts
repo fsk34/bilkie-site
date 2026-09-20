@@ -223,7 +223,9 @@ export async function yaziliBittiIsle(a: YaziliBitisArgs): Promise<GorevDegisimi
 
   let gorevIlerledi: GorevDegisimi[] = [];
   try {
-    gorevIlerledi = await gorevOlayiUygula(a.uid, { tip: "yazili_bitti", sinif: a.sinif });
+    gorevIlerledi = await gorevOlayiUygula(a.uid, {
+      tip: "yazili_bitti", sinif: a.sinif, dogru: a.dogru, toplam: a.toplam,
+    });
   } catch (e) {
     sessizHata("ilerleme", e);
     /* yoksay */

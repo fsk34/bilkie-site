@@ -15,6 +15,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { kullaniciDb } from "./firebase";
 import { useCanli } from "./canli";
+import { sonDokunulanCoz, type SonDokunulan } from "./anaEkran";
+import { quizBitenlerYolu, quizBitenleriCoz } from "./quiz";
 import { useKullanici, useKullaniciDugumleri, useKullaniciDugumu } from "./kullaniciVerisi";
 import {
   aylikGorevDurumYolu,
@@ -79,6 +81,15 @@ export function useTestIlerlemesi(sinif: number): Record<string, Record<string, 
   );
 }
 
+/** Ana ekranın "Kaldığın yer" kartı: aynı progress_test düğümü (abonelik paylaşılır), farklı çözüm. */
+export function useSonDokunulan(sinif: number): SonDokunulan | null | undefined {
+  // `undefined` = bilinmiyor (kimlik/ilk açılış); `null` = biliniyor, hiç test çözülmemiş.
+  const v = useKullaniciDugumu<{ son: SonDokunulan | null }>(
+    kullaniciDb, (uid) => testIlerlemeYolu(uid, sinif), (ham) => ({ son: sonDokunulanCoz(ham) }), { son: null }
+  );
+  return v === null ? undefined : v.son;
+}
+
 export function useDefterIlerlemesi(
   sinif: number
 ): Record<string, Record<string, DefterDurumu>> | null {
@@ -88,6 +99,13 @@ export function useDefterIlerlemesi(
     (v) => defterIlerlemesiCoz(v[0], v[1]),
     {},
     2
+  );
+}
+
+/** ders → ünite → true. Ana ekranın Devam Et zinciri (Defter → testler → Quiz) ve öneri kutusu. */
+export function useQuizBitenler(sinif: number): Record<string, Record<string, boolean>> | null {
+  return useKullaniciDugumu(
+    kullaniciDb, (uid) => quizBitenlerYolu(uid, sinif), quizBitenleriCoz, {}
   );
 }
 

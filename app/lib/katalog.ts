@@ -7,6 +7,9 @@ export type Unite = {
   topics: string[];
   defterKey?: string;
   quizKey?: string;
+  /** Bu ünitenin defter içeriği DB'de yok (20 Eyl 2026 ölçümü: 198 üniteden yalnız 4/Türkçe/Temalar).
+   *  Devam Et zinciri defteri atlar, ders sayfası Konu Defteri hapını gizler. Android/iOS kataloğuna da işlenmeli. */
+  defterYok?: true;
 };
 
 export const KATALOG: Record<number, Record<string, Unite[]>> = 
@@ -448,7 +451,8 @@ export const KATALOG: Record<number, Record<string, Unite[]>> =
           "Millî Kültürümüz [t42]",
           "Vatandaşlık [t43]"
         ],
-        "defterKey": "u5"
+        "defterKey": "u5",
+        "defterYok": true
       }
     ],
     "matematik": [

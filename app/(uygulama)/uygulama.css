@@ -298,8 +298,8 @@
 }
 
 /* ------------------------------------------------------------- ana ekran */
-/* Uygulamanın ana ekranı: üstte 4 küçük kutu, altında 3 büyük buton.
-   Ölçüler ve renkler HomeScreen.swift / HomeComponents.swift'ten. */
+/* 19 Eyl 2026 yeniden kurgu: 4 küçük kutu → Devam Et kartı → (Bugünkü Hedef) → yazılı bandı
+   → 5 ders kartı → Bilkie'nin önerisi + Bu ayın rozeti. Taslak: ~/Desktop/bilkie-taslak. */
 
 .bk-kutular { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 14px; }
 .bk-kutu {
@@ -313,23 +313,137 @@
   white-space: pre-line;
 }
 
-.bk-buyukler { display: grid; gap: 14px; }
-.bk-buyuk {
-  display: flex; align-items: center; gap: 12px; text-decoration: none; color: #fff;
-  background: var(--zemin);
-  border: 3px solid var(--dugme-dis); border-bottom-width: 9px; border-radius: 14px;
-  padding: 18px 20px; min-height: 132px; cursor: pointer;
-  transition: border-bottom-width .06s, transform .06s;
+/* Devam Et kartı — SABİT Bilkie kartı (lacivert + #4A538E kenar, 9px dudak); ders rengi yalnız
+   hap + çubuk + düğmede (A/B sonrası kullanıcı kararı, 19 Eyl). Ders sayfasındaki özet kartı
+   (.bk-ozet) aynı kalıbı ders renginde kullanır. */
+.bk-devam {
+  display: flex; align-items: center; gap: 14px; border-radius: 14px; padding: 18px 20px;
+  margin-bottom: 14px; border: 3px solid var(--dugme-dis); border-bottom-width: 9px;
+  background: var(--zemin); color: #fff; text-decoration: none;
 }
-.bk-buyuk:active { border-bottom-width: 3px; transform: translateY(6px); }
-.bk-buyuk h2 { font-size: 18px; letter-spacing: .3px; }
-.bk-buyuk p { color: var(--soluk); font-size: 13px; margin-top: 6px; }
-.bk-buyuk img { width: 96px; height: 96px; object-fit: contain; opacity: .95; }
+.bk-devam .etiket {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  font-family: "bk-baslik", system-ui, sans-serif; font-size: 12px; letter-spacing: .6px; opacity: .8; margin-bottom: 6px;
+}
+.bk-devam .etiket .hap {
+  font-size: 11px; letter-spacing: .4px; padding: 3px 9px; border-radius: 999px; opacity: 1;
+}
+/* İş türü rozeti (Defter / Test / Quiz): ders hapının yanında, nötr — ders rengiyle yarışmasın */
+.bk-devam .etiket .hap.tur { background: rgba(255,255,255,.14); color: #fff; border: 1px solid rgba(255,255,255,.28); }
+.bk-devam h2 { font-size: 20px; line-height: 1.15; }
+.bk-devam .alt { font-size: 13px; opacity: .8; margin-top: 4px; }
+.bk-devam .iz { display: block; height: 10px; border-radius: 999px; overflow: hidden; margin: 12px 0 14px; max-width: 340px; }
+.bk-devam .iz.bos { height: 12px; }
+.bk-devam .iz i { display: block; height: 100%; border-radius: 999px; }
+.bk-devam .bk-konu-dugme { display: grid; }
+/* Sarı = yazılı sinyali (yazılı bandı ve ders sayfasındaki Yazılıya Hazırlık düğmesi) */
+.bk-sari-dugme {
+  display: inline-grid; place-items: center; height: 46px; padding: 0 22px; border-radius: 12px;
+  border: 3px solid #b8860b; border-bottom-width: 7px; background: #ffc93c; color: #0c1a3f;
+  font-family: "bk-baslik", system-ui, sans-serif; font-size: 16px; text-decoration: none; box-sizing: border-box;
+  cursor: pointer; transition: border-bottom-width .06s, transform .06s;
+}
+.bk-sari-dugme:active { border-bottom-width: 3px; transform: translateY(4px); }
+.bk-devam > img { width: 96px; height: 96px; object-fit: contain; }
+/* Ders sayfasındaki özet kartı aynı kalıp, ders renginde (renkler satır içi) */
+.bk-devam.bk-ozet .etiket { margin-bottom: 0; }
+.bk-devam.bk-ozet .iz { margin: 6px 0 12px; max-width: none; }
+.ozet-satir { display: flex; flex-wrap: wrap; gap: 8px 0; font-size: 13px; opacity: .85; }
+.ozet-satir span { display: inline-flex; align-items: center; gap: 6px; }
+.ozet-satir img { width: 28px; height: 28px; object-fit: contain; }
+/* Maddeler arası ince dikey ayırıcı (kullanıcı: "küçük düz bir çizgi") — satır kırılınca ilk maddede çıkmaz */
+.ozet-satir span + span::before { content: ""; display: inline-block; width: 1px; height: 18px; background: currentColor; opacity: .35; margin: 0 14px 0 12px; }
+
+/* Ders ızgarası: Konu Testleri sayfasındaki .bk-ders-kutu, 3 + 2 dizilim */
+.bk-dersler { display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; margin-bottom: 14px; }
+.bk-dersler .bk-ders-kutu { grid-column: span 2; height: 136px; margin: 0; }
+.bk-dersler .bk-ders-kutu:nth-child(4), .bk-dersler .bk-ders-kutu:nth-child(5) { grid-column: span 3; }
+.bk-dersler .bk-ders-kutu .ad { font-size: 19px; max-width: 70%; }
+.bk-dersler .bk-ders-kutu .ikon { width: 64px; height: 64px; right: 14px; }
+/* Kart daraldığı için çubuk görselin altına girmesin */
+.bk-dersler .bk-ders-kutu .iz { width: calc(100% - 114px); bottom: 26px; }
+
+/* Yazılı bandı — açık dönem: sarı çerçeveli büyük band; kapalı: ince satır */
+.bk-yazili {
+  display: flex; align-items: center; gap: 14px; border-radius: 14px; padding: 16px 20px; margin-bottom: 14px;
+  background: var(--zemin); border: 3px solid #b8860b; border-bottom-width: 9px; text-decoration: none; color: #fff;
+}
+.bk-yazili img { width: 72px; height: 72px; object-fit: contain; }
+.bk-yazili h2 { font-size: 18px; }
+.bk-yazili p { font-size: 13px; color: var(--soluk); margin-top: 5px; }
+.bk-yazili .rozet {
+  font-family: "bk-baslik", system-ui, sans-serif; font-size: 12px; color: #0c1a3f;
+  background: #ffc93c; border-radius: 8px; padding: 5px 9px; white-space: nowrap;
+}
+.bk-yazili.sessiz { border-color: var(--dugme-dis); padding: 12px 16px; border-bottom-width: 5px; }
+.bk-yazili.sessiz img { width: 40px; height: 40px; }
+.bk-yazili.sessiz h2 { font-size: 15px; }
+.bk-yazili .ok { color: rgba(255,255,255,.4); font-size: 22px; }
+
+/* Bugünkü Hedef: masaüstünde YOK (sağ rayda Günlük Görevler var); ray gizlenince içeriğe girer */
+.bk-hedef { display: none; }
+@media (max-width: 1260px) {
+  .bk-hedef {
+    display: block; margin-bottom: 14px; background: var(--zemin);
+    border: 1px solid var(--dugme-dis); border-radius: 20px; padding: 16px;
+  }
+}
+.bk-gorev-onek { font-family: "bk-baslik", system-ui, sans-serif; font-size: 11px; color: var(--oyun-soluk); letter-spacing: .4px; }
+
+/* Veri kutuları — sağ ray kartı dili (1px #4A538E, köşe 20) */
+.bk-veri { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px; }
+.bk-veri-kutu, .bk .bk-veri-kutu {
+  background: var(--zemin); border: 1px solid var(--dugme-dis); border-radius: 20px; padding: 16px;
+  display: flex; flex-direction: column; text-decoration: none; color: var(--yazi);
+}
+.bk-veri-kutu h3 { font-size: 16px; margin-bottom: 10px; }
+.bk-oneri, .bk .bk-oneri {
+  display: flex; gap: 10px; align-items: flex-start; padding: 10px 0; border-top: 1px solid var(--cizgi);
+  text-decoration: none; color: var(--yazi);
+}
+.bk-oneri:first-of-type { border-top: 0; padding-top: 0; }
+.bk-oneri .no {
+  width: 34px; height: 34px; flex: 0 0 34px; border-radius: 10px; display: grid; place-items: center;
+  font-family: "bk-baslik", system-ui, sans-serif; font-size: 12px;
+}
+.bk-oneri .ad { font-size: 14px; line-height: 1.3; }
+.bk-oneri .neden { font-size: 12px; color: var(--oyun-soluk); margin-top: 3px; }
+.bk-oneri .git {
+  margin-left: auto; font-family: "bk-baslik", system-ui, sans-serif; font-size: 12px;
+  color: var(--acik-mavi); white-space: nowrap; padding-top: 8px;
+}
+.bk-rozet-ay { display: flex; gap: 12px; align-items: center; flex: 1; }
+.bk-rozet-ay img { width: 64px; height: 64px; object-fit: contain; }
+.bk-rozet-ay img[data-kazanildi="false"] { filter: grayscale(1); opacity: .55; }
+.bk-rozet-ay p { font-size: 13px; color: var(--oyun-soluk); line-height: 1.4; }
+.bk-rozet-ay b { color: #fff; font-weight: 400; }
 
 @media (max-width: 620px) {
-  .bk-kutular { grid-template-columns: repeat(2, 1fr); }
-  .bk-buyuk { min-height: 108px; padding: 14px 16px; }
-  .bk-buyuk img { width: 74px; height: 74px; }
+  /* 4 kutu telefonda TEK SIRADA (mobil uygulamadaki gibi): 2×2 dizilince Devam Et katlamanın altına iniyordu */
+  .bk-kutular { gap: 8px; }
+  .bk-kutu { min-height: 88px; padding: 8px 4px; border-radius: 12px; }
+  .bk-kutu img { width: 34px; height: 34px; }
+  .bk-kutu span { font-size: 10.5px; }
+  .bk-devam { padding: 14px; }
+  .bk-devam h2 { font-size: 18px; }
+  .bk-devam > img { display: none; }
+  /* Telefonda 2×2: "Ünite | Konu" / "Test Tamamlandı | Defter Bitti"; ayırıcı yalnız sağ sütunda */
+  .ozet-satir { display: grid; grid-template-columns: auto 1fr; gap: 8px 0; }
+  .ozet-satir span:nth-child(odd)::before { display: none; }
+  .ozet-satir span + span::before { margin: 0 10px; }
+  .bk-dersler { grid-template-columns: 1fr 1fr; }
+  .bk-dersler .bk-ders-kutu, .bk-dersler .bk-ders-kutu:nth-child(4), .bk-dersler .bk-ders-kutu:nth-child(5) { grid-column: span 1; height: 120px; }
+  .bk-dersler .bk-ders-kutu:nth-child(5) { grid-column: span 2; }
+  .bk-dersler .bk-ders-kutu .ad { font-size: 16px; max-width: 62%; left: 14px; top: 14px; }
+  .bk-dersler .bk-ders-kutu .ikon { width: 50px; height: 50px; right: 10px; }
+  .bk-dersler .bk-ders-kutu .iz { left: 14px; bottom: 22px; width: calc(100% - 84px); }
+  /* Açık-dönem bandı: görsel küçülür, yazı esner, rozet alt satıra sağa düşer */
+  .bk-yazili { flex-wrap: wrap; padding: 14px 16px; }
+  .bk-yazili img { width: 52px; height: 52px; }
+  .bk-yazili > div { flex: 1 1 200px; }
+  .bk-yazili .rozet { margin-left: auto; }
+  .bk-yazili p { font-size: 12px; }
+  .bk-veri { grid-template-columns: 1fr; }
 }
 
 /* --------------------------------------------------------------- sağ ray */

@@ -511,6 +511,7 @@ export function gorevHedefi(t: GorevTanim): number {
     case "test_total_correct": return Math.max(1, s("totalCorrect") || s("target"));
     case "combo_defter_test":  return Math.max(1, s("count") || s("target"));
     case "weekly_active_days": return Math.max(1, s("days"));
+    case "yazili_correct":     return Math.max(1, s("minCorrect"));
     default:                   return 1;
   }
 }
@@ -697,6 +698,26 @@ export async function defterSayfaYaz(
   uid: string, sinif: number, dersKey: string, uniteKey: string, sayfa: number
 ): Promise<void> {
   await update(dbRef(kullaniciDb, defterYolu(uid, sinif, dersKey, uniteKey)), { currentPage: sayfa });
+}
+
+/**
+ * Defter açılırken kaldığı sayfa (1 tabanlı; 0 = baştan). Bitmiş defter baştan açılır — 20 Eyl 2026
+ * (kullanıcı kararı): ana ekrandaki "3/12 sayfa · Devam Et" vaadiyle tutarlı. Android/iOS'a da işlenecek.
+ */
+export async function defterKaldigiSayfa(
+  uid: string, sinif: number, dersKey: string, uniteKey: string
+): Promise<number> {
+  try {
+    const g = sinifSinirla(sinif);
+    const [ilerleme, bitti] = await Promise.all([
+      get(dbRef(kullaniciDb, defterYolu(uid, g, dersKey, uniteKey))),
+      get(dbRef(kullaniciDb, `users/${uid}/progress_defter_done/grade${g}/${dersKey}/${uniteKey}`)),
+    ]);
+    if (bitti.val() === true) return 0;
+    return Math.max(0, sayi((ilerleme.val() ?? {}).currentPage));
+  } catch {
+    return 0;
+  }
 }
 
 export async function defterToplamSayfaYaz(
@@ -1289,7 +1310,28 @@ export async function konuIstatistikleri(
 ): Promise<Record<string, KonuIstatistigi>> {
   const g = sinifSinirla(sinif);
   const snap = await get(dbRef(kullaniciDb, `users/${uid}/stats/grade${g}/subjects/${dersKey}/topics`));
-  const ham = (snap.val() ?? {}) as Record<string, any>;
+  return konuIstatistikleriCoz(snap.val());
+}
+
+/** Ana ekranın öneri kutusu: TÜM derslerin konu istatistiği tek okumada (subjects düğümü). */
+export async function tumKonuIstatistikleri(
+  uid: string, sinif: number
+): Promise<Record<string, Record<string, KonuIstatistigi>>> {
+  const g = sinifSinirla(sinif);
+  const out: Record<string, Record<string, KonuIstatistigi>> = {};
+  try {
+    const snap = await get(dbRef(kullaniciDb, `users/${uid}/stats/grade${g}/subjects`));
+    const ham = (snap.val() ?? {}) as Record<string, any>;
+    for (const [ders, v] of Object.entries(ham)) out[ders] = konuIstatistikleriCoz(v?.topics);
+  } catch {
+    /* okunamadıysa öneri çıkmaz — uydurmayız */
+  }
+  return out;
+}
+
+/** topics düğümü → konu → {basari, soru, ortSn} (saf). */
+export function konuIstatistikleriCoz(hamDugum: unknown): Record<string, KonuIstatistigi> {
+  const ham = (hamDugum ?? {}) as Record<string, any>;
   const out: Record<string, KonuIstatistigi> = {};
   for (const [k, v] of Object.entries(ham)) {
     const soru = sayi(v?.tests?.totalQuestions);
@@ -1527,7 +1569,7 @@ export function haftaAnahtari(d: Date = new Date()): string {
   return `${yil}-W${String(hafta).padStart(2, "0")}`;
 }
 
-/** Yılın kaçıncı haftası (uygulamadaki `weekOfYear % 21` seçimi için). */
+/** ISO hafta numarası (1-53) — katalogdaki `weekly.week` bu sayıyla eşleşir. */
 function haftaNo(): number {
   return Number.parseInt(haftaAnahtari().split("-W")[1], 10) || 1;
 }
@@ -1566,19 +1608,16 @@ async function gorevleriOkuVeBirlestir(tanimlar: GorevTanim[], yol: string): Pro
   return gorevleriBirlestir(tanimlar, snap.val());
 }
 
-/** Haftalık görev TANIMLARI — uygulamadaki gibi hafta numarası % 21, boşsa 0'a düşer. */
+/** Haftalık görev TANIMLARI — ISO hafta numarasıyla birebir (Android/iOS aynı). */
 export async function haftalikGorevTanimlari(): Promise<GorevTanim[]> {
   // Yaz tatili (Temmuz, Ağustos): haftalık görev YOK — Android `loadWeeklyDefsFromCatalog`
-  // ve iOS'taki karşılığı bu kapıyı uyguluyor, web'de eksikti. Haftalık görevler aya
-  // bakmadan `weekOfYear % 21` ile döndüğü için web yaz boyunca görev göstermeye devam
-  // ediyordu; mobilde boş, web'de dolu — aynı hesapta iki farklı görev listesi demekti.
+  // ve iOS'taki karşılığı bu kapıyı uyguluyor. Katalogda yaz haftaları zaten boş, kapı yedek.
   const ay0 = new Date().getMonth();
   if (ay0 === 6 || ay0 === 7) return [];
 
-  const hedefHafta = haftaNo() % 21;
-  const tanimlar = await katalogTanimlari("weekly", (c) => sayi(c.week) === hedefHafta);
-  if (tanimlar.length > 0) return tanimlar;
-  return katalogTanimlari("weekly", (c) => sayi(c.week) === 0);
+  // Döngü yok: eski `% 21` aynı görevi 21 hafta sonra alakasız bir haftada tekrar gösteriyordu.
+  const hedefHafta = haftaNo();
+  return katalogTanimlari("weekly", (c) => sayi(c.week) === hedefHafta);
 }
 
 /** Aylık görev TANIMLARI — katalogda ay 1-tabanlı da olabilir, uygulamadaki gibi normalize edilir. */

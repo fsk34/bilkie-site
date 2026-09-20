@@ -28,7 +28,9 @@ export type GorevOlayTipi =
   | "test_bitti"
   | "defter_sayfa"
   | "defter_bitti"
-  | "yazili_bitti";
+  | "yazili_bitti"
+  /** Herhangi bir oyuna girildi (tatil haftalarının "oyun oyna" görevi). */
+  | "oyun_girildi";
 
 export type GorevOlayi = {
   tip: GorevOlayTipi;
@@ -207,8 +209,8 @@ async function bolumeUygula(
           }
         }
 
-        // streak_any: herhangi bir etkinlik görevi tamamlar
-        if (kind === "streak_any") {
+        // streak_any: herhangi bir etkinlik görevi tamamlar (oyun çalışma sayılmaz)
+        if (kind === "streak_any" && o.tip !== "oyun_girildi") {
           bitir();
           return d;
         }
@@ -277,6 +279,10 @@ async function bolumeUygula(
           if (kind === "combo_defter_test") komboIsaretle("comboSeenTest", "comboSeenDefter");
         } else if (o.tip === "yazili_bitti") {
           if (kind === "yazili_complete") yeni = 1;
+          // test_correct ile aynı kalıp: TEK yazılıdaki doğru sayısı, kümülatif değil
+          if (kind === "yazili_correct") yeni = Math.max(oncekiIlerleme, Math.max(0, o.dogru ?? 0));
+        } else if (o.tip === "oyun_girildi") {
+          if (kind === "game_play") yeni = 1;
         }
 
         yeni = Math.min(hedef, Math.max(0, yeni));

@@ -10,8 +10,20 @@ import Link from "next/link";
 import Kabuk from "../Kabuk";
 import OyunIkon from "./OyunIkon";
 import { OYUNLAR } from "./oyunlar";
+import { gorevOlayiUygula } from "../../lib/gorevYaz";
+import { sessizHata } from "../../lib/hata";
+import { useOturum } from "../../lib/oturum";
 
 export default function OyunlarSayfasi() {
+  const { kullanici, sinif } = useOturum();
+
+  // "Hadi biraz oyun oynayalım" görevi (game_play): herhangi bir oyuna GİRMEK yeter.
+  // Özet ekranı yok, sessizce ilerler; Görevler sayfası kendi okur. (Android MainActivity oyunaGirildi)
+  const oyunaGirildi = () => {
+    if (!kullanici) return;
+    gorevOlayiUygula(kullanici.uid, { tip: "oyun_girildi", sinif }).catch((e) => sessizHata("oyun", e));
+  };
+
   return (
     <Kabuk>
       <h1 className="bk-oyun-baslik">Oyunlar</h1>
@@ -29,7 +41,7 @@ export default function OyunlarSayfasi() {
             </>
           );
           return o.yol ? (
-            <Link key={o.key} className="bk-oyun-kart" data-hazir="true" href={o.yol}>
+            <Link key={o.key} className="bk-oyun-kart" data-hazir="true" href={o.yol} onClick={oyunaGirildi}>
               {ic}
             </Link>
           ) : (
