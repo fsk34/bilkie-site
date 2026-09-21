@@ -10,24 +10,30 @@
 //   3. Bugünkü Hedef — YALNIZ sağ ray gizliyken (≤1260px; masaüstünde rayda zaten var)
 //   4. Yazılıya Hazırlık — açık dönemde büyük band (derslerin ÜSTÜNDE), yoksa ince satır (ALTINDA)
 //   5. 5 ders kartı (Konu Testleri sayfasındaki .bk-ders-kutu dili) → /ders/[ders]
-//   6. Bilkie'nin önerisi (kural tabanlı, ≤2 madde) + Bu ayın rozeti
+//   6. Bilgie Koç (kural tabanlı, lib/koc.ts: tek cümle + eylemler) + Yanlışlarım (Hata Turu evi)
+//      Bu ayın rozeti 20 Eyl'de sağ raya taşındı (Kabuk), ray gizliyken Hedef'in altında.
 // Taslak: ~/Desktop/bilkie-taslak/ana-*.png
 
 import Link from "next/link";
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import Kabuk from "./Kabuk";
 import RozetKazandin from "./RozetKazandin";
+import LigAtladin from "./LigAtladin";
 import UcNokta from "./UcNokta";
 import { useOturum } from "../lib/oturum";
 import { uniteler } from "../lib/katalog";
 import {
-  useDefterIlerlemesi, useGorevler, useGunlukGorevler, useQuizBitenler, useRozetler, useSonDokunulan, useTestIlerlemesi,
+  useDefterIlerlemesi, useGorevler, useGunlukGorevler, useIstatistikAgaci, useQuizBitenler, useSonDokunulan, useTestIlerlemesi, useUstBilgi,
 } from "../lib/canliVeri";
-import { tumKonuIstatistikleri, type Gorev } from "../lib/veri";
+import { type Gorev } from "../lib/veri";
+import { istatistikBirlestir, kocIstatistikCoz, kocPlaniHesapla, type KocIstatistik, type KocPlani } from "../lib/koc";
+import { evdeKayitlariOku, evdeOzetle, type EvdeOzet } from "../lib/evde";
+import { HATA_OLGUNLASMA_GUN, hatalariOku, olgunHatalar } from "../lib/hatalar";
 import { acilisMetni, yaziliTakvimi, type YaziliSinav } from "../lib/yaziliTakvim";
-import { AY_AD, AY_ANAHTAR, ayVurgu } from "../lib/ayGorsel";
+import { ayVurgu } from "../lib/ayGorsel";
+import AyRozetiKutusu from "./AyRozeti";
 import {
-  DERS_SIRASI, dersEkli, dersEtiketi, dersOranlari, devamKartiHesapla, onerileriHesapla, type DevamKarti as DevamKartiVerisi, type Oneri,
+  DERS_SIRASI, dersEkli, dersEtiketi, dersOranlari, devamKartiHesapla, type DevamKarti as DevamKartiVerisi, type DevamVerisi,
 } from "../lib/anaEkran";
 
 const KUTULAR = [
@@ -51,6 +57,7 @@ export default function AnaEkran() {
   return (
     <Kabuk>
       <RozetKazandin />
+      <LigAtladin />
       <Icerik />
     </Kabuk>
   );
@@ -70,10 +77,15 @@ function Icerik() {
     () => dersOranlari(sinif, { ilerleme: ilerleme ?? {}, defter: defter ?? {}, quiz: quiz ?? {} }),
     [sinif, ilerleme, defter, quiz]
   );
-  const hesaplanan = useMemo(
-    () => (ilerleme && defter && quiz && son !== undefined ? devamKartiHesapla(sinif, son, { ilerleme, defter, quiz }) : null),
-    [sinif, son, ilerleme, defter, quiz]
+  const veri = useMemo<DevamVerisi | null>(
+    () => (ilerleme && defter && quiz ? { ilerleme, defter, quiz } : null), [ilerleme, defter, quiz]
   );
+  const hesaplanan = useMemo(
+    () => (veri && son !== undefined ? devamKartiHesapla(sinif, son, veri) : null),
+    [sinif, son, veri]
+  );
+  const ust = useUstBilgi(sinif);
+  const seri = useMemo(() => (ust ? { seri: ust.seri, bugunAktif: ust.bugunAktif } : null), [ust]);
   const devam = useOnizleme(sinif, hesaplanan);
   const dersler = DERS_SIRASI.filter((d) => uniteler(sinif, d).length > 0);
 
@@ -86,6 +98,7 @@ function Icerik() {
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={`/uygulama/${k.gorsel}.png`} alt="" />
             <span>{k.ad}</span>
+            <i className="ok" aria-hidden>›</i>
           </Link>
         ))}
       </div>
@@ -93,6 +106,8 @@ function Icerik() {
       {devam && <DevamKarti sinif={sinif} devam={devam} />}
 
       <HedefKarti gunluk={gunluk} haftalik={haftalik} />
+      {/* Bu ayın rozeti masaüstünde sağ rayda (Kabuk); ray gizliyken (≤1260px) Hedef'in altında */}
+      <div className="bk-hedef"><AyRozetiKutusu /></div>
 
       {yazili.durum === "acik" && <YaziliBandi sinav={yazili.sinav} />}
 
@@ -117,8 +132,8 @@ function Icerik() {
       {yazili.durum === "kapali" && <YaziliSatiri metin={yazili.metin} />}
 
       <div className="bk-veri">
-        <OneriKutusu sinif={sinif} uid={kullanici?.uid ?? null} ilerleme={ilerleme} defter={defter} quiz={quiz} devam={devam} />
-        <AyRozetiKutusu />
+        <BilkieAIKutusu sinif={sinif} uid={kullanici?.uid ?? null} veri={veri} devam={devam} yazili={yazili.koc} seri={seri} />
+        <YanlislarimKutusu uid={kullanici?.uid ?? null} sinif={sinif} />
       </div>
     </>
   );
@@ -233,146 +248,167 @@ function HedefKarti({ gunluk, haftalik }: { gunluk: Gorev[] | null; haftalik: Go
 
 /* -------------------------------------------------------------- yazılı bandı */
 
+/** Bilkie AI'nın yazılı girdisi: açık ya da bir sonraki sınav, kaç gün kaldı (açıksa 0). */
+type KocYazili = { ad: string; anahtar: string; gunKaldi: number } | null;
 type YaziliDurumu =
-  | { durum: "bekliyor" }
-  | { durum: "acik"; sinav: YaziliSinav }
-  | { durum: "kapali"; metin: string };
+  | { durum: "bekliyor"; koc: null }
+  | { durum: "acik"; sinav: YaziliSinav; koc: KocYazili }
+  | { durum: "kapali"; metin: string; koc: KocYazili };
 
 /** Takvim tek okunur: açık sınav varsa band, yoksa bir sonraki açılış tarihi. */
 function useYaziliDurumu(): YaziliDurumu {
-  const [d, setD] = useState<YaziliDurumu>({ durum: "bekliyor" });
+  const [d, setD] = useState<YaziliDurumu>({ durum: "bekliyor", koc: null });
   useEffect(() => {
     let iptal = false;
     yaziliTakvimi().then((r) => {
       if (iptal) return;
-      if (r.durum !== "basarili") { setD({ durum: "kapali", metin: "Yazılı zamanı geldiğinde burada açılacak" }); return; }
+      if (r.durum !== "basarili") { setD({ durum: "kapali", metin: "Yazılı zamanı geldiğinde burada açılacak", koc: null }); return; }
       const acik = r.sinavlar.find((s) => s.acik);
-      if (acik) { setD({ durum: "acik", sinav: acik }); return; }
+      if (acik) { setD({ durum: "acik", sinav: acik, koc: { ad: acik.ad, anahtar: acik.anahtar, gunKaldi: 0 } }); return; }
       const bugun = new Date().toISOString().slice(0, 10);
       const sonraki = r.sinavlar.filter((s) => s.baslar && s.baslar > bugun).sort((a, b) => a.baslar!.localeCompare(b.baslar!))[0];
-      setD({ durum: "kapali", metin: sonraki ? `${sonraki.ad} ${acilisMetni(sonraki.baslar)}` : "Yazılı zamanı geldiğinde burada açılacak" });
+      const gunKaldi = sonraki?.baslar ? Math.max(0, Math.round((Date.parse(sonraki.baslar) - Date.parse(bugun)) / 86400000)) : null;
+      setD({
+        durum: "kapali",
+        metin: sonraki ? `${sonraki.ad} ${acilisMetni(sonraki.baslar)}` : "Yazılı zamanı geldiğinde burada açılacak",
+        koc: sonraki && gunKaldi !== null ? { ad: sonraki.ad, anahtar: sonraki.anahtar, gunKaldi } : null,
+      });
     });
     return () => { iptal = true; };
   }, []);
   return d;
 }
 
+/* Ana ekrandaki Yazılıya Hazırlık = ders sayfasındaki SARI düğmeyle aynı kalıp (kullanıcı, 20 Eyl):
+   .bk-sari-dugme, tam genişlik; altında küçük durum satırı (dönem açık / ne zaman açılacak).
+   Yer kuralı aynı: açık dönemde derslerin ÜSTÜNDE, kapalıyken ALTINDA. */
 function YaziliBandi({ sinav }: { sinav: YaziliSinav }) {
   return (
-    <Link href={`/yazili/${sinav.anahtar}`} className="bk-yazili">
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src="/uygulama/yazili.png" alt="" />
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <h2>Yazılıya Hazırlık</h2>
-        <p>{sinav.ad} dönemi açık — derslere göre hazırlan</p>
-      </div>
-      <span className="rozet">YAZILI ZAMANI</span>
+    <Link href={`/yazili/${sinav.anahtar}`} className="bk-sari-dugme bk-yazili-dugme">
+      <span>📝 Yazılıya Hazırlık</span>
+      <small>{sinav.ad} dönemi açık — derslere göre hazırlan</small>
     </Link>
   );
 }
 
 function YaziliSatiri({ metin }: { metin: string }) {
   return (
-    <Link href="/yazili" className="bk-yazili sessiz">
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src="/uygulama/yazili.png" alt="" />
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <h2>Yazılıya Hazırlık</h2>
-        <p>{metin}</p>
-      </div>
-      <span className="ok">›</span>
+    <Link href="/yazili" className="bk-sari-dugme bk-yazili-dugme">
+      <span>📝 Yazılıya Hazırlık</span>
+      <small>{metin}</small>
     </Link>
   );
 }
 
-/* ------------------------------------------------------------- öneri kutusu */
-/* İstatistik (subjects) ve quiz_done tek seferlik okunur; ilerleme/defter canlı.
-   Kurallar anaEkran.ts'te. Veri yetersizse kutu dürüstçe "biraz test çöz" der. */
-
-function OneriKutusu({ sinif, uid, ilerleme, defter, quiz, devam }: {
+/* ------------------------------------------------------------- Bilkie AI */
+/* Kural tabanlı koç (lib/koc.ts): istatistik (subjects) tek okunur; ilerleme/defter/quiz canlı.
+   API/LLM yok. Veri yetersizse teşhis uydurmaz, "seni tanıyayım" der. Sonra İstatistik'te tam alan. */
+function BilkieAIKutusu({ sinif, uid, veri, devam, yazili, seri }: {
   sinif: number; uid: string | null;
-  ilerleme: Record<string, Record<string, number>> | null;
-  defter: ReturnType<typeof useDefterIlerlemesi>;
-  quiz: ReturnType<typeof useQuizBitenler>;
+  veri: DevamVerisi | null;
   devam: DevamKartiVerisi | null;
+  yazili: KocYazili;
+  seri: { seri: number; bugunAktif: boolean } | null;
 }) {
-  // İstatistik tek okuma (ağır düğüm, canlı abonelik gereksiz); defter/quiz canlı hook'tan.
-  const [istatistik, setIstatistik] = useState<Awaited<ReturnType<typeof tumKonuIstatistikleri>> | null>(null);
+  // İstatistik CANLI (stats/grade{N} ağacı — İstatistik ekranıyla paylaşılan abonelik).
+  // Evde çözülenler de sayılır (evde.ts): koç çocuğun kâğıttaki yarısını da görsün.
+  const agac = useIstatistikAgaci(sinif);
+  const [evde, setEvde] = useState<EvdeOzet | null>(null);
+  const [hatalar, setHatalar] = useState<{ olgun: number; toplam: number } | null>(null);
   useEffect(() => {
     if (!uid) return;
     let iptal = false;
-    tumKonuIstatistikleri(uid, sinif).then((v) => { if (!iptal) setIstatistik(v); });
+    Promise.all([hatalariOku(uid, sinif), evdeKayitlariOku(uid, sinif)]).then(([h, e]) => {
+      if (iptal) return;
+      setEvde(e.length > 0 ? evdeOzetle(e) : {});
+      setHatalar({ olgun: olgunHatalar(h, Date.now()).length, toplam: h.length });
+    });
     return () => { iptal = true; };
   }, [uid, sinif]);
+  const istatistik: KocIstatistik | null = useMemo(() => {
+    if (!agac || evde === null) return null;
+    const app = kocIstatistikCoz((agac as { subjects?: unknown }).subjects);
+    return Object.keys(evde).length > 0 ? istatistikBirlestir(app, evde) : app;
+  }, [agac, evde]);
 
-  const oneriler: Oneri[] | null = useMemo(() => {
-    if (!istatistik || !ilerleme || !defter || !quiz) return null;
-    // Kart bir quiz gösteriyorsa öneride aynı quiz tekrar etmesin
-    const haricQuiz = devam?.tur === "quiz" ? { ders: devam.ders, key: devam.href.split("/").pop() ?? "" } : null;
-    const haricDers = devam?.hal === "dersbitti" ? devam.ders : null;
-    return onerileriHesapla({ sinif, ilerleme, istatistik, defter, quiz, haricQuiz, haricDers, dersAdi: (d) => dersEtiketi(d, sinif) });
-  }, [istatistik, ilerleme, defter, quiz, devam, sinif]);
+  const plan: KocPlani | null = useMemo(() => {
+    if (!istatistik || !veri) return null;
+    const simdi = new Date();
+    return kocPlaniHesapla({ sinif, veri, istatistik, devam, yazili, seri, hatalar, simdi: simdi.getTime(), saat: simdi.getHours() });
+  }, [istatistik, hatalar, veri, devam, yazili, seri, sinif]);
 
   return (
-    <div className="bk-veri-kutu">
-      <h3>Bilkie&apos;nin önerisi</h3>
-      {oneriler == null && <UcNokta boyut={8} aralik={6} etiket="Öneri hazırlanıyor" style={{ padding: "8px 0" }} />}
-      {oneriler != null && oneriler.length === 0 && (
-        <p className="bk-soluk" style={{ fontSize: 13, lineHeight: 1.45 }}>
-          Henüz yeterli veri yok. Birkaç test daha çöz, sana özel öneri burada çıksın.
-        </p>
+    <div className="bk-veri-kutu bk-koc">
+      <div className="bk-koc-bas">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/bilkie-ikon.png" alt="" />
+        <h3>Bilgie Koç</h3>
+      </div>
+      {plan == null && <UcNokta boyut={8} aralik={6} etiket="Bilgie düşünüyor" style={{ padding: "8px 0" }} />}
+      {plan && <p className="bk-koc-mesaj" data-kural={plan.kural}>{plan.mesaj}</p>}
+      {plan?.eylem && (
+        <Link href={plan.eylem.href} className="bk-konu-dugme bk-koc-dugme"
+          style={{ background: DERS_STIL[plan.eylem.ders]?.dolgu ?? "#ffa726", borderColor: DERS_STIL[plan.eylem.ders]?.alt ?? "#b85c00", color: "#0C1A3F" }}>
+          {plan.eylem.baslik} ›
+        </Link>
       )}
-      {oneriler?.map((o) => {
+      {plan && plan.digerleri.length > 0 && <div className="bk-koc-diger">Başka önerim</div>}
+      {plan?.digerleri.map((o) => {
         const s = DERS_STIL[o.ders];
         return (
           <Link key={o.kural + o.href} href={o.href} className="bk-oneri">
-            <span className="no" style={{ background: s?.ust, color: o.ders === "ingilizce" ? "#fff" : "#150538" }}>{dersKisa(o.ders)}</span>
+            <span className="no" style={{ background: s?.ust ?? "#ffc93c", color: o.ders === "ingilizce" ? "#fff" : "#150538" }}>{o.kural === "hata" ? "⟲" : dersKisa(o.ders)}</span>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div className="ad">{o.baslik}</div>
               <div className="neden">{o.neden}</div>
             </div>
-            <span className="git">{o.eylem} ›</span>
+            <span className="git">{o.etiket} ›</span>
           </Link>
         );
       })}
     </div>
   );
 }
-
 function dersKisa(d: string): string {
   return ({ turkce: "TÜR", matematik: "MAT", fen: "FEN", sosyal: "SOS", ingilizce: "İNG" } as Record<string, string>)[d] ?? d.slice(0, 3).toUpperCase();
 }
 
-/* ---------------------------------------------------------- bu ayın rozeti */
-/* Aylık görevlerin hepsi bitince ayın rozeti kazanılır (gorevYaz.aylikRozetVer). */
-
-function AyRozetiKutusu() {
-  const aylik = useGorevler("aylik");
-  const rozetler = useRozetler();
-  const simdi = new Date();
-  const ay = simdi.getMonth();
-  const aySonu = new Date(simdi.getFullYear(), ay + 1, 0).getDate();
-  const kalanGun = aySonu - simdi.getDate();
-  const kazanildi = rozetler?.includes(ay) ?? false;
-  const kalanGorev = aylik ? aylik.filter((g) => g.ilerleme < g.hedef).length : null;
+/* ------------------------------------------------------------- Yanlışlarım */
+/* Hata Turu'nun kalıcı evi (Duolingo "Mistakes"): toplam yanlış, kaçı tekrar için olgun; boşsa kutlama.
+   Bilgie Koç zamanı gelince dürter, burası her zaman durur. Tek okuma (kutu açılınca). */
+function YanlislarimKutusu({ uid, sinif }: { uid: string | null; sinif: number }) {
+  const [sayim, setSayim] = useState<{ olgun: number; toplam: number } | null>(null);
+  useEffect(() => {
+    if (!uid) return;
+    let iptal = false;
+    hatalariOku(uid, sinif).then((h) => { if (!iptal) setSayim({ olgun: olgunHatalar(h, Date.now()).length, toplam: h.length }); });
+    return () => { iptal = true; };
+  }, [uid, sinif]);
 
   return (
-    <Link href="/rozetler" className="bk-veri-kutu">
-      <h3>Bu ayın rozeti</h3>
-      <div className="bk-rozet-ay">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={`/uygulama/rozet/${AY_ANAHTAR[ay]}rozet.webp`} alt="" data-kazanildi={kazanildi} />
-        {aylik == null && !kazanildi
-          ? <UcNokta boyut={8} aralik={6} etiket="Rozet yükleniyor" />
-          : <p>
-              <b>{AY_AD[ay]} rozeti</b>{" "}
-              {kazanildi
-                ? "senin! Tebrikler."
-                : kalanGorev === 0
-                  ? "için tüm görevler tamam — işleniyor."
-                  : `için ${kalanGorev} görev daha. Ayın sonuna ${kalanGun === 0 ? "bugün son gün" : `${kalanGun} gün var`}.`}
-            </p>}
-      </div>
-    </Link>
+    <div className="bk-veri-kutu bk-yanlislarim">
+      <h3>Yanlışlarım</h3>
+      {sayim == null && <UcNokta boyut={8} aralik={6} etiket="Yanlışlar sayılıyor" style={{ padding: "8px 0" }} />}
+      {sayim && sayim.toplam === 0 && (
+        <p className="bk-soluk" style={{ fontSize: 13, lineHeight: 1.45 }}>
+          Tekrar edilecek yanlışın yok 🎉 Testlerde yanlış yaptığın sorular burada birikir, {HATA_OLGUNLASMA_GUN} gün sonra yeniden sorarım.
+        </p>
+      )}
+      {sayim && sayim.toplam > 0 && (
+        <>
+          <div className="bk-yanlis-sayi">
+            <b>{sayim.toplam}</b> yanlış · <b>{sayim.olgun}</b> tekrar için hazır
+          </div>
+          <p className="bk-soluk" style={{ fontSize: 12, lineHeight: 1.4, margin: "4px 0 12px" }}>
+            {sayim.olgun > 0
+              ? "Yanlışını doğruya çevirince kayıt silinir."
+              : `Yeni yanlışlar ${HATA_OLGUNLASMA_GUN} gün sonra tura girer; şimdi de deneyebilirsin.`}
+          </p>
+          <Link href="/hata-turu" className="bk-konu-dugme bk-koc-dugme" style={{ background: "#ffa726", borderColor: "#b85c00", color: "#0C1A3F" }}>
+            ⟲ Hata turuna başla
+          </Link>
+        </>
+      )}
+    </div>
   );
 }

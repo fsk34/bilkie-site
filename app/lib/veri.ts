@@ -333,7 +333,7 @@ async function ligPuaniYansit(uid: string, sinif: number, puan: number): Promise
   });
   await update(
     dbRef(kullaniciDb, `leaderboards/leagues/grade${g}/${SEZON()}/${uid}`),
-    { points: guvenli, name: ad, avatar, updatedAt: serverTimestamp() }
+    { points: guvenli, name: ad, avatar, atMs: serverTimestamp() }   // alan adı Android ile aynı (LeagueScreen.kt)
   );
 }
 
@@ -403,7 +403,8 @@ export async function seriIsaretle(uid: string, bit: number): Promise<SeriSonucu
 
 /* ------------------------------------------------------------------ sorular */
 
-export type Soru = { metin: string; secenekler: string[]; dogruIndeks: number };
+/** anahtar: DB'deki soru düğümü adı (q1, 1…) — yanlış soru takibinde kimlik (hatalar.ts) */
+export type Soru = { anahtar: string; metin: string; secenekler: string[]; dogruIndeks: number };
 
 /**
  * tests/grade{N}/{ders}/{konu}/s{adim} → sorular.
@@ -467,7 +468,7 @@ export async function sorulariGetir(
       const son = Math.max(0, Math.min(secenekler.length - 1, indeks));
 
       if (metin && secenekler.length > 0) {
-        out.push({ metin, secenekler, dogruIndeks: son });
+        out.push({ anahtar: k, metin, secenekler, dogruIndeks: son });
       }
     }
     return out;
@@ -1147,13 +1148,6 @@ export function dersRengi(key: string): string {
   return DERS_RENK[key] ?? "#95D5DE";
 }
 
-function istatistikYolu(uid: string, sinif: number, dersKey: string | null): string {
-  const g = sinifSinirla(sinif);
-  return dersKey
-    ? `users/${uid}/stats/grade${g}/subjects/${dersKey}`
-    : `users/${uid}/stats/grade${g}/overall`;
-}
-
 /** Düğümdeki değer 0 ise eski (kök) alana düşer — uygulamadaki fallback zinciri. */
 function alan(dugum: Record<string, any>, yeni: string, eski?: string): number {
   const parcalar = yeni.split("/");
@@ -1164,11 +1158,26 @@ function alan(dugum: Record<string, any>, yeni: string, eski?: string): number {
   return sayi(dugum?.[eski]);
 }
 
-export async function testIstatistigi(
-  uid: string, sinif: number, dersKey: string | null
-): Promise<TestIstatistigi> {
-  const snap = await get(dbRef(kullaniciDb, istatistikYolu(uid, sinif, dersKey)));
-  const v = (snap.val() ?? {}) as Record<string, any>;
+/**
+ * İstatistik alt ağacı: users/{uid}/stats/grade{N} — TEK canlı düğüm.
+ *
+ * 21 Eyl'e kadar İstatistik ekranı bu ağacın 6 parçasını ayrı `get()`lerle her açılışta
+ * yeniden çekiyordu. Şimdi ekran ağacın tamamına abone (canliVeri.useIstatistikAgaci);
+ * aşağıdaki çözücüler SAF: ham düğümü alır, sayı üretir. Test/defter/quiz/yazılı
+ * bitince Firebase değişikliği kendisi getirir; geçersizleştirme mantığı yok.
+ * Ağaç yalnız sayaç içerir (müfredat boyutuyla sınırlı, kullanımla büyümez).
+ */
+export const istatistikAgaciYolu = (uid: string, sinif: number) =>
+  `users/${uid}/stats/grade${sinifSinirla(sinif)}`;
+
+/** Ders seçiliyse subjects/{ders}, değilse overall düğümü. */
+function istatistikDugumu(ham: unknown, dersKey: string | null): Record<string, any> {
+  const agac = (ham ?? {}) as Record<string, any>;
+  return (dersKey ? agac.subjects?.[dersKey] : agac.overall) ?? {};
+}
+
+export function testIstatistigiCoz(ham: unknown, dersKey: string | null): TestIstatistigi {
+  const v = istatistikDugumu(ham, dersKey);
 
   const soru = alan(v, "tests/totalQuestions", "totalQuestions");
   const dogru = alan(v, "tests/totalCorrect", "totalCorrect");
@@ -1201,14 +1210,11 @@ export async function testIstatistigi(
 }
 
 /** Tüm dersler → ders kırılımı; tek ders → ünite kırılımı (yoksa tek dilim). */
-export async function istatistikDilimleri(
-  uid: string, sinif: number, dersKey: string | null
-): Promise<Dilim[]> {
-  const g = sinifSinirla(sinif);
+export function istatistikDilimleriCoz(agacHam: unknown, dersKey: string | null): Dilim[] {
+  const agac = (agacHam ?? {}) as Record<string, any>;
 
   if (!dersKey) {
-    const snap = await get(dbRef(kullaniciDb, `users/${uid}/stats/grade${g}/subjects`));
-    const ham = (snap.val() ?? {}) as Record<string, any>;
+    const ham = (agac.subjects ?? {}) as Record<string, any>;
     const out: Dilim[] = [];
     for (const k of Object.keys(ham)) {
       const soru = sayi(ham[k]?.tests?.totalQuestions);
@@ -1224,8 +1230,7 @@ export async function istatistikDilimleri(
   }
 
   const palet = ["#6BC1FF", "#FFC93C", "#2ECC71", "#E67E22", "#9B59B6", "#95D5DE"];
-  const uSnap = await get(dbRef(kullaniciDb, `users/${uid}/stats/grade${g}/subjects/${dersKey}/units`));
-  const uHam = (uSnap.val() ?? {}) as Record<string, any>;
+  const uHam = (agac.subjects?.[dersKey]?.units ?? {}) as Record<string, any>;
   const uniteler: Dilim[] = [];
   let i = 0;
   for (const k of Object.keys(uHam)) {
@@ -1245,9 +1250,9 @@ export async function istatistikDilimleri(
   }
 
   // Ünite kırılımı yoksa ders seviyesinde tek dilim
-  const dSnap = await get(dbRef(kullaniciDb, `users/${uid}/stats/grade${g}/subjects/${dersKey}`));
-  const soru = sayi(dSnap.val()?.tests?.totalQuestions);
-  const dogru = sayi(dSnap.val()?.tests?.totalCorrect);
+  const d = agac.subjects?.[dersKey] ?? {};
+  const soru = sayi(d?.tests?.totalQuestions);
+  const dogru = sayi(d?.tests?.totalCorrect);
   if (soru <= 0) return [];
   return [{
     id: dersKey, etiket: DERS_ETIKET[dersKey] ?? dersKey, soru,
@@ -1257,15 +1262,10 @@ export async function istatistikDilimleri(
 }
 
 /** Defter kartı — uygulamadaki fetchDefterCardInfo (ünite anahtarı u+sayı olanlar sayılır). */
-export async function defterKartBilgisi(
-  uid: string, sinif: number, dersKey: string | null, uniteSayisi: (ders: string) => number
-): Promise<DefterKarti> {
-  const g = sinifSinirla(sinif);
-  const [progSnap, doneSnap, quizSnap] = await Promise.all([
-    get(dbRef(kullaniciDb, `users/${uid}/progress_defter/grade${g}`)),
-    get(dbRef(kullaniciDb, `users/${uid}/progress_defter_done/grade${g}`)),
-    get(dbRef(kullaniciDb, `users/${uid}/quiz_done/grade${g}`)),
-  ]);
+/** progress_defter · progress_defter_done · quiz_done ham düğümlerinden (üçü de canlı hook'larla zaten dinleniyor). */
+export function defterKartBilgisiCoz(
+  progHam: unknown, doneHam: unknown, quizHam: unknown, dersKey: string | null, uniteSayisi: (ders: string) => number
+): DefterKarti {
 
   const uniteMi = (k: string) => /^u\d+$/.test(k) || /^u\d+_/.test(k);
   const dersleri = (ham: Record<string, any>) =>
@@ -1273,7 +1273,7 @@ export async function defterKartBilgisi(
 
   let baslanan = 0;
   let okunanSayfa = 0;
-  for (const ders of dersleri(progSnap.val() ?? {})) {
+  for (const ders of dersleri((progHam ?? {}) as Record<string, any>)) {
     for (const [k, v] of Object.entries((ders ?? {}) as Record<string, any>)) {
       if (!uniteMi(k)) continue;
       baslanan += 1;
@@ -1282,7 +1282,7 @@ export async function defterKartBilgisi(
   }
 
   let tamamlanan = 0;
-  for (const ders of dersleri(doneSnap.val() ?? {})) {
+  for (const ders of dersleri((doneHam ?? {}) as Record<string, any>)) {
     for (const [k, v] of Object.entries((ders ?? {}) as Record<string, any>)) {
       if (!uniteMi(k)) continue;
       if (v === true) tamamlanan += 1;
@@ -1291,7 +1291,7 @@ export async function defterKartBilgisi(
 
   // Quiz: uygulamada anahtar süzgeci YOK, doğru olan her düğüm sayılır.
   let quizTamamlanan = 0;
-  for (const ders of dersleri(quizSnap.val() ?? {})) {
+  for (const ders of dersleri((quizHam ?? {}) as Record<string, any>)) {
     for (const v of Object.values((ders ?? {}) as Record<string, any>)) {
       if (v === true) quizTamamlanan += 1;
     }
@@ -1305,14 +1305,7 @@ export async function defterKartBilgisi(
   return { tamamlanan, baslanan, okunanSayfa, yuzde, toplam, quizTamamlanan, quizToplam: toplam };
 }
 
-/** Konu konu test istatistiği: stats/grade{N}/subjects/{ders}/topics — anahtar = [tN] eki. */
-export async function konuIstatistikleri(
-  uid: string, sinif: number, dersKey: string
-): Promise<Record<string, KonuIstatistigi>> {
-  const g = sinifSinirla(sinif);
-  const snap = await get(dbRef(kullaniciDb, `users/${uid}/stats/grade${g}/subjects/${dersKey}/topics`));
-  return konuIstatistikleriCoz(snap.val());
-}
+
 
 /** Ana ekranın öneri kutusu: TÜM derslerin konu istatistiği tek okumada (subjects düğümü). */
 export async function tumKonuIstatistikleri(
@@ -1358,11 +1351,8 @@ export function konuIstatistikleriCoz(hamDugum: unknown): Record<string, KonuIst
   return out;
 }
 
-export async function yaziliIstatistigi(
-  uid: string, sinif: number, dersKey: string | null
-): Promise<YaziliIstatistigi> {
-  const snap = await get(dbRef(kullaniciDb, istatistikYolu(uid, sinif, dersKey)));
-  const v = (snap.val() ?? {}) as Record<string, any>;
+export function yaziliIstatistigiCoz(ham: unknown, dersKey: string | null): YaziliIstatistigi {
+  const v = istatistikDugumu(ham, dersKey);
   const hazir = alan(v, "yazili/preparedExams", "preparedExams");
   const cozulen = alan(v, "yazili/solvedCount");
   if (hazir === 0 && cozulen === 0) return { basariOrani: 0, ortalamaSaniye: 0 };
@@ -1387,10 +1377,8 @@ export async function yaziliIstatistigi(
   };
 }
 
-export async function yaziliDersCubuklari(uid: string, sinif: number): Promise<Dilim[]> {
-  const g = sinifSinirla(sinif);
-  const snap = await get(dbRef(kullaniciDb, `users/${uid}/stats/grade${g}/subjects`));
-  const ham = (snap.val() ?? {}) as Record<string, any>;
+export function yaziliDersCubuklariCoz(agacHam: unknown): Dilim[] {
+  const ham = ((agacHam ?? {}) as Record<string, any>).subjects ?? {};
   return DERS_ANAHTARLARI.map((k) => ({
     id: k,
     etiket: DERS_KISA[k] ?? k.slice(0, 3).toLocaleUpperCase("tr"),

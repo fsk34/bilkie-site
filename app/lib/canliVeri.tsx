@@ -29,6 +29,7 @@ import {
   gunlukGorevDurumYolu,
   gunlukGorevTanimlari,
   haftalikGorevDurumYolu,
+  istatistikAgaciYolu,
   haftalikGorevTanimlari,
   ligSatirlariCoz,
   ligTablosuYolu,
@@ -110,6 +111,36 @@ export function useDefterIlerlemesi(
 export function useQuizBitenler(sinif: number): Record<string, Record<string, boolean>> | null {
   return useKullaniciDugumu(
     kullaniciDb, (uid) => quizBitenlerYolu(uid, sinif), quizBitenleriCoz, {}
+  );
+}
+
+/* ------------------------------------------------------------- istatistik */
+
+/**
+ * users/{uid}/stats/grade{N} ağacının tamamı — İstatistik ekranı ve Bilgie Koç bunu
+ * dinler, sayıları veri.ts'teki saf `…Coz` çözücülerle türetir.
+ *
+ * Neden tek ağaç: eskiden 6 ayrı `get()` her açılışta ağa gidiyordu; test bitirip
+ * dönünce sayı taze ama her dönüşte yükleniyor noktası vardı. Canlı abonelikte ilk
+ * çizim son bilinen değerle (yerel önce), güncel değer arkadan gelir; test/defter/
+ * quiz/yazılı bitince değişiklik kendiliğinden düşer — geçersizleştirme kodu yok.
+ * Abonelik yalnız bu ekranlar açıkken yaşar (+30 sn), girmeyen kullanıcıya maliyet yok.
+ * `null` = henüz bilinmiyor (çizme); `{}` = biliniyor, hiç veri yok.
+ */
+export function useIstatistikAgaci(sinif: number): Record<string, unknown> | null {
+  return useKullaniciDugumu(
+    kullaniciDb, (uid) => istatistikAgaciYolu(uid, sinif), (ham) => (ham ?? {}) as Record<string, unknown>, {}
+  );
+}
+
+/** Defter kartı için üç ham düğüm (progress_defter · progress_defter_done · quiz_done) — abonelikler diğer hook'larla paylaşılır. */
+export function useDefterKartiHam(sinif: number): [unknown, unknown, unknown] | null {
+  return useKullaniciDugumleri(
+    kullaniciDb,
+    (uid) => [...defterIlerlemeYollari(uid, sinif), quizBitenlerYolu(uid, sinif)],
+    (v) => [v[0], v[1], v[2]] as [unknown, unknown, unknown],
+    [null, null, null],
+    3
   );
 }
 

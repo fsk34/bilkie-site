@@ -1,6 +1,7 @@
 "use client";
 
 import UcNokta from "./UcNokta";
+import AyRozetiKutusu from "./AyRozeti";
 import { ayVurgu } from "../lib/ayGorsel";
 
 // Uygulama kabuğu: sol gezinme + içerik + sağ ray.
@@ -95,6 +96,8 @@ export default function Kabuk({ children }: { children: React.ReactNode }) {
             {/* Zaten o bölümdeysek sağ rayda tekrar gösterme */}
             {!yol.startsWith("/ligler") && <LigKarti xp={ust?.xp ?? null} />}
             {!yol.startsWith("/gorevler") && <GorevKarti gorevler={gorevler} />}
+            {/* 20 Eyl: ana ekrandan raya taşındı (görevlerin altı); rozet sayfasındaysak tekrar yok */}
+            {!yol.startsWith("/rozetler") && <AyRozetiKutusu />}
           </aside>
         </div>
       </div>

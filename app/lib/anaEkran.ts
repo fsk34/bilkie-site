@@ -2,8 +2,7 @@
 //   • kaldığın yer: progress_test step{n}/completedAt + progress_defter updatedAt damgalarından en son dokunulan iş
 //   • Devam Et kartının üç hâli: hiç test yok → "Hadi başlayalım", yarım konu → "Kaldığın yerden",
 //     son konu bitmiş → "Sıradaki konu" (kart hiç ölmez, her zaman tek tıkla bir işe götürür)
-//   • Bilkie'nin önerisi: kural tabanlı, en fazla 2 madde; veri yetersizse öneri YOK
-//     (uydurma yok: bkz. feedback-no-fake-precision)
+//   • Bilkie AI (öneri/koç kuralları): lib/koc.ts
 
 import { konuAyristir, uniteler, type Unite } from "./katalog";
 import { ADIM_SAYISI, type DefterDurumu } from "./veri";
@@ -215,117 +214,7 @@ export function dersOranlari(sinif: number, veri: DevamVerisi): Record<string, n
   return out;
 }
 
-/* -------------------------------------------------------------------- öneri */
-
-export type KonuIstatistikOzeti = { basari: number; soru: number };
-
-export type Oneri = {
-  kural: "guclendir" | "quiz" | "bosluk";
-  ders: string;
-  baslik: string;
-  neden: string;
-  href: string;
-  eylem: string;
-};
-
-/** Güçlendir kuralı: bu kadar sorudan azıyla "zayıf" demeyiz. */
-export const ONERI_SORU_ESIGI = 10;
-/** Başarı bu yüzdenin üstündeyse "tekrar çöz" önerisi çıkmaz. */
-export const ONERI_BASARI_TAVANI = 70;
-
-/**
- * En fazla 2 öneri. Sıra: Güçlendir (en düşük başarı, ≥10 soru, <%70) → Quiz kaldı (defter
- * bitmiş, quiz çözülmemiş) → Boşluk (hiç dokunulmamış ders). Aynı kuraldan tek madde.
- * `istatistik`: ders → konu → {basari, soru}; `defter`: ders → ünite → durum; `quiz`: ders → ünite → true.
- * Kartın gösterdiği quiz atlanır; yerine varsa o dersteki bir sonraki bekleyen quiz gelir.
- */
-export function onerileriHesapla(args: {
-  sinif: number;
-  ilerleme: Record<string, Record<string, number>>;
-  istatistik: Record<string, Record<string, KonuIstatistikOzeti>>;
-  defter: Record<string, Record<string, DefterDurumu>>;
-  quiz: Record<string, Record<string, boolean>>;
-  dersAdi: (ders: string) => string;
-  /** Devam Et kartı zaten bu quizi gösteriyorsa öneride tekrar etme (20 Eyl) */
-  haricQuiz?: { ders: string; key: string } | null;
-  /** Kart zaten bu derse "geçelim mi?" diyorsa "hiç dokunmadın" önerisi tekrar etmesin (20 Eyl) */
-  haricDers?: string | null;
-}): Oneri[] {
-  const { sinif, ilerleme, istatistik, defter, quiz, dersAdi, haricQuiz, haricDers } = args;
-  const out: Oneri[] = [];
-
-  // 1) Güçlendir
-  let zayif: { ders: string; konuKey: string; basari: number; soru: number } | null = null;
-  for (const ders of DERS_SIRASI) {
-    for (const [konuKey, s] of Object.entries(istatistik[ders] ?? {})) {
-      if (s.soru < ONERI_SORU_ESIGI || s.basari >= ONERI_BASARI_TAVANI) continue;
-      if (!zayif || s.basari < zayif.basari) zayif = { ders, konuKey, basari: s.basari, soru: s.soru };
-    }
-  }
-  if (zayif) {
-    const ad = konuAdiBul(sinif, zayif.ders, zayif.konuKey);
-    if (ad) {
-      out.push({
-        kural: "guclendir", ders: zayif.ders,
-        baslik: `${ad} konusunu bir kez daha çöz`,
-        neden: `${zayif.soru} soruda %${zayif.basari} doğru — en zayıf konun`,
-        href: `/test/${zayif.ders}/${zayif.konuKey}`, eylem: "ÇÖZ",
-      });
-    }
-  }
-
-  // 2) Defter bitmiş, quiz çözülmemiş
-  for (const ders of DERS_SIRASI) {
-    const liste = uniteler(sinif, ders);
-    for (let i = 0; i < liste.length; i++) {
-      const u = liste[i];
-      const defterKey = u.defterKey && u.defterKey.length > 0 ? u.defterKey : u.key;
-      const quizKey = u.quizKey && u.quizKey.length > 0 ? u.quizKey : u.key;
-      if (haricQuiz && haricQuiz.ders === ders && haricQuiz.key === quizKey) continue;
-      if ((u.defterYok || defter[ders]?.[defterKey]?.bitti) && !quiz[ders]?.[quizKey]) {
-        out.push({
-          kural: "quiz", ders,
-          baslik: `${i + 1}. ünitenin quizi seni bekliyor`,
-          neden: `${dersAdi(ders)} · defteri bitirdin, quiz çözülmedi`,
-          href: `/quiz/${ders}/${quizKey}`, eylem: "QUIZ",
-        });
-        break;
-      }
-    }
-    if (out.length >= 2) return out;
-  }
-
-  // 3) Hiç dokunulmamış ders (yalnız başka bir şey öneriyorsak — tek başına "hiç" anlamsız)
-  if (out.length > 0) {
-    for (const ders of DERS_SIRASI) {
-      if (ders === haricDers) continue;
-      const liste = uniteler(sinif, ders);
-      if (liste.length === 0) continue;
-      const dokunuldu = Object.values(ilerleme[ders] ?? {}).some((a) => a > 0);
-      if (dokunuldu) continue;
-      const ilk = liste[0].topics.map(konuAyristir).find((k) => k.testKey);
-      if (!ilk) continue;
-      out.push({
-        kural: "bosluk", ders,
-        baslik: `${dersAdi(ders)} dersine hiç dokunmadın`,
-        neden: `${liste[0].title} ile başla`,
-        href: `/test/${ders}/${ilk.testKey}`, eylem: "BAŞLA",
-      });
-      break;
-    }
-  }
-  return out.slice(0, 2);
-}
-
-function konuAdiBul(sinif: number, ders: string, konuKey: string): string | null {
-  for (const u of uniteler(sinif, ders)) {
-    for (const t of u.topics) {
-      const k = konuAyristir(t);
-      if (k.testKey === konuKey) return k.baslik;
-    }
-  }
-  return null;
-}
+/* Öneri kuralları 20 Eyl akşamı lib/koc.ts'e taşındı (Bilkie AI: 10 kural, tek cümle + eylemler). */
 
 /* ---------------------------------------------------------------- ders adı */
 

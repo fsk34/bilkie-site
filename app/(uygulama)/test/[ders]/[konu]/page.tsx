@@ -20,6 +20,7 @@ import { sesCal } from "../../../ses";
 import SonucAkisi, { type SeriArgs, type SonucArgs } from "../../../sonuc/SonucAkisi";
 import type { GorevDegisimi } from "../../../../lib/gorevYaz";
 import { enUzunSeriGuncelle, testBittiIsle } from "../../../../lib/ilerleme";
+import { hataDegisimleriYaz, type SoruSonucu } from "../../../../lib/hatalar";
 import { useOturum } from "../../../../lib/oturum";
 import { konuAyristir, uniteler } from "../../../../lib/katalog";
 import {
@@ -64,6 +65,8 @@ export default function TestSayfasi() {
 
   const ustUsteDogru = useRef(0);
   const adimBaslangici = useRef(Date.now());
+  // Yanlış soru takibi (hatalar.ts): soru başına sonuç biriktirilir, bitişte tek yazma
+  const soruSonuclari = useRef<SoruSonucu[]>([]);
 
   const ders = dersBul(dersKey);
   const konuBasligi = konuAdiBul(sinif, dersKey, konuKey);
@@ -121,6 +124,8 @@ export default function TestSayfasi() {
             uid: kullanici.uid, sinif, dersKey, konuKey, adim,
             dogru: sonDogru, toplam, oncekiTamamlanan,
           });
+          // Yanlışlar Hata Turu'na, doğrular varsa eski kaydı siler — hata akışı bozmasın
+          hataDegisimleriYaz(kullanici.uid, sinif, dersKey, soruSonuclari.current).catch(() => {});
           if (xp > 0) await xpEkle(kullanici.uid, sinif, xp, "test");
           const seri = await seriIsaretle(kullanici.uid, ACT_TEST);
 
@@ -156,7 +161,9 @@ export default function TestSayfasi() {
   function kontrolEt() {
     if (secili == null || kontrolEdildi) return;
     setKontrolEdildi(true);
-    if (secili === sorular[indeks].dogruIndeks) {
+    const dogru = secili === sorular[indeks].dogruIndeks;
+    soruSonuclari.current.push({ konu: konuKey, adim, soruKey: sorular[indeks].anahtar, dogru });
+    if (dogru) {
       sesCal("dogru");
       setDogruSayisi((d) => d + 1);
       ustUsteDogru.current += 1;

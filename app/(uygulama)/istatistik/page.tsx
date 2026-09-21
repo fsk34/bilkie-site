@@ -7,19 +7,21 @@
 // sütun grafiği, tek ders seçiliyken ünite seçici + konu konu kartlar.
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Kabuk from "../Kabuk";
 import UcNokta from "../UcNokta";
+import BilgieKocBolumu from "./BilgieKoc";
 import { useOturum } from "../../lib/oturum";
 import { konuAyristir, uniteler, type Unite } from "../../lib/katalog";
+import { useDefterKartiHam, useIstatistikAgaci } from "../../lib/canliVeri";
 import {
-  defterKartBilgisi,
+  defterKartBilgisiCoz,
   dersRengi,
-  istatistikDilimleri,
-  konuIstatistikleri,
-  testIstatistigi,
-  yaziliDersCubuklari,
-  yaziliIstatistigi,
+  istatistikDilimleriCoz,
+  konuIstatistikleriCoz,
+  testIstatistigiCoz,
+  yaziliDersCubuklariCoz,
+  yaziliIstatistigiCoz,
   type DefterKarti,
   type Dilim,
   type KonuIstatistigi,
@@ -36,7 +38,8 @@ const DERSLER = [
   { key: "sosyal", ad: "Sosyal" },
 ];
 
-const BOLUMLER = ["Konu Testleri", "Konu Defterleri", "Yazılılar"] as const;
+// 20 Eyl 2026: 4. sekme Bilgie Koç (gözlemler · güçlü/zayıf · hız · yanlışlar) — BilgieKoc.tsx
+const BOLUMLER = ["Konu Testleri", "Konu Defterleri", "Yazılılar", "Bilgie Koç"] as const;
 
 /* Defter kartı renkleri — iOS DefterStatsCard */
 const D_BITTI = "#5DD67C";
@@ -59,46 +62,33 @@ function Icerik() {
   const [ders, setDers] = useState<string | null>(null);
   const [secimAcik, setSecimAcik] = useState(false);
 
-  const [test, setTest] = useState<TestIstatistigi | null>(null);
-  const [dilimler, setDilimler] = useState<Dilim[]>([]);
-  const [defter, setDefter] = useState<DefterKarti | null>(null);
-  const [yazili, setYazili] = useState<YaziliIstatistigi | null>(null);
-  const [cubuklar, setCubuklar] = useState<Dilim[]>([]);
-  const [konular, setKonular] = useState<Record<string, KonuIstatistigi>>({});
-  // Seçili ünite de burada duruyor: sekme değişince sıfırlanmasın.
+  // Seçili ünite burada duruyor: sekme değişince sıfırlanmasın.
   const [uniteIdx, setUniteIdx] = useState(0);
-  const [yukleniyor, setYukleniyor] = useState(true);
 
-  // Bağımlılık User NESNESİ değil uid: Firebase jetonu yenilendiğinde onAuthStateChanged
-  // yeniden tetikleniyor ve nesne kimliği değişince bütün istatistik yeniden okunuyordu.
-  const uid = kullanici?.uid ?? null;
+  // Veri: stats/grade{N} ağacı + defter/quiz ilerlemesi CANLI (canliVeri). Sayılar saf
+  // çözücülerle türetilir; ekran açılınca son bilinen değer anında çizilir, test/defter/
+  // quiz/yazılı bitince Firebase değişikliği kendisi getirir. (21 Eyl'e kadar 6 ayrı
+  // `get()` her açılışta ağa gidiyordu.) `null` = henüz bilinmiyor → yükleniyor.
+  const agac = useIstatistikAgaci(sinif);
+  const defterHam = useDefterKartiHam(sinif);
+  const yukleniyor = !!kullanici && (agac === null || defterHam === null);
 
-  // Ders ya da sınıf değişince ünite seçimi başa döner (eskiden alt bileşenin
-  // kendi effect'i yapıyordu; seçim yukarı taşınınca burada yapılması gerekiyor).
+  const test = useMemo(() => (agac ? testIstatistigiCoz(agac, ders) : null), [agac, ders]);
+  const dilimler = useMemo(() => (agac ? istatistikDilimleriCoz(agac, ders) : []), [agac, ders]);
+  const yazili = useMemo(() => (agac ? yaziliIstatistigiCoz(agac, ders) : null), [agac, ders]);
+  const cubuklar = useMemo(() => (agac ? yaziliDersCubuklariCoz(agac) : []), [agac]);
+  const konular = useMemo<Record<string, KonuIstatistigi>>(() => {
+    if (!agac || !ders) return {};
+    const subjects = (agac as { subjects?: Record<string, { topics?: unknown }> }).subjects;
+    return konuIstatistikleriCoz(subjects?.[ders]?.topics);
+  }, [agac, ders]);
+  const defter = useMemo<DefterKarti | null>(
+    () => (defterHam ? defterKartBilgisiCoz(defterHam[0], defterHam[1], defterHam[2], ders, (dk) => uniteler(sinif, dk).length) : null),
+    [defterHam, ders, sinif]
+  );
+
+  // Ders ya da sınıf değişince ünite seçimi başa döner.
   useEffect(() => { setUniteIdx(0); }, [ders, sinif]);
-
-  useEffect(() => {
-    if (!uid) { setYukleniyor(false); return; }
-    let iptal = false;
-    setYukleniyor(true);
-    (async () => {
-      const [t, d, df, y, c, k] = await Promise.all([
-        testIstatistigi(uid, sinif, ders),
-        istatistikDilimleri(uid, sinif, ders),
-        defterKartBilgisi(uid, sinif, ders, (dk) => uniteler(sinif, dk).length),
-        yaziliIstatistigi(uid, sinif, ders),
-        yaziliDersCubuklari(uid, sinif),
-        // Ünite/konu kırılımı da BURADA okunuyor: eskiden alt bileşenin kendi
-        // useEffect'indeydi ve sekme değişince bileşen söküldüğü için her dönüşte
-        // yeniden çekiliyordu.
-        ders ? konuIstatistikleri(uid, sinif, ders) : Promise.resolve({}),
-      ]);
-      if (iptal) return;
-      setTest(t); setDilimler(d); setDefter(df); setYazili(y); setCubuklar(c); setKonular(k);
-      setYukleniyor(false);
-    })().catch(() => { if (!iptal) setYukleniyor(false); });
-    return () => { iptal = true; };
-  }, [uid, sinif, ders]);
 
   const dersAdi = DERSLER.find((d) => d.key === ders)?.ad ?? "Tüm Dersler";
 
@@ -137,6 +127,8 @@ function Icerik() {
           <button className="bk-ist-ders" data-b={bolum} onClick={() => setSecimAcik(true)}>
             {dersAdi.toLocaleUpperCase("tr")}
           </button>
+          {/* Kâğıtta çözülen testler (20 Eyl): elle giriş → Bilgie Koç da görür; XP/lig yok */}
+          <div className="bk-ist-evde-kap"><Link href="/evde" className="bk-ist-evde">📝 Evde çözdüm — ekle</Link></div>
 
           {yukleniyor ? (
             <Noktalar />
@@ -160,6 +152,9 @@ function Icerik() {
               </div>
               <div hidden={bolum !== 2}>
                 <YaziliBolumu test={test} yazili={yazili} cubuklar={cubuklar} dersKey={ders} />
+              </div>
+              <div hidden={bolum !== 3}>
+                {kullanici && <BilgieKocBolumu uid={kullanici.uid} sinif={sinif} dersKey={ders} />}
               </div>
             </>
           )}

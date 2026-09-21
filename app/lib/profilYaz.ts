@@ -11,7 +11,7 @@
 // ⚠️ 3. adımda `points` alanına DOKUNULMAZ: kullanıcı o sınıfta gerçekten puan kazanmış
 // olabilir; yalnızca görünen alanlar (ad, avatar) tazelenir.
 
-import { get, ref as dbRef, remove, runTransaction, update } from "firebase/database";
+import { get, ref as dbRef, remove, runTransaction, serverTimestamp, update } from "firebase/database";
 import { kullaniciDb } from "./firebase";
 import { gunAnahtari } from "./tarih";
 import { ligTablosuYolu, profilYolu, sinifSinirla } from "./veri";
@@ -46,7 +46,7 @@ export async function ligKimligiEsitle(uid: string, ad: string, avatar: string):
       await update(dbRef(kullaniciDb, yol), {
         name: isim,
         avatar: avatar.trim() || "profil0",
-        atMs: Date.now(),
+        atMs: serverTimestamp(),   // Android ServerValue.TIMESTAMP — istemci saati değil
       });
     } catch (e) {
       sessizHata("ligKimligi", e);
