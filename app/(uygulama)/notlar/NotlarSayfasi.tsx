@@ -394,10 +394,31 @@ function Soru({ baslik, metin, dugmeler }: { baslik: string; metin: string; dugm
 /* ================================================================== kâğıt + çizim */
 
 const CIZGI = "rgba(43,74,120,.14)";
+
+/**
+ * Kâğıt ölçüleri — TEK KAYNAK, üç platformda aynı sayılar (Android dp / iOS pt).
+ *
+ * Yazının çizgiye oturması için metin satır yüksekliği = çizgi aralığı (adım) olmalı
+ * ve metin bloğu çizgilerle aynı üst noktadan (UST) başlamalı. 21 Eyl'e kadar çizgi
+ * 30px, satır 22px'ti — birbirinden bağımsız iki sabit; yazı çizgilerin arasında yüzüyordu.
+ *
+ * `kaydir`: harf tabanı satır kutusunun altından yukarıda kalır; bk-main 15px ile
+ * ölçüldü (headless Chrome): adım 28'de 9px, 22'de 6px. Metni bu kadar aşağı alınca
+ * taban çizginin 2px üstüne oturuyor. Formül adım/2 − 7 iki ölçümü de veriyor.
+ * Çizgili 28 = konu defterinin çizgi aralığı; kareli 22 = defterin kare boyu.
+ */
+export const KAGIT_UST = 16;
+export function kagitOlcusu(kagit: NotKagit): { adim: number; kaydir: number } {
+  const adim = kagit === "cizgili" ? 28 : kagit === "kareli" ? 22 : 24;
+  return { adim, kaydir: kagit === "duz" ? 0 : adim / 2 - 7 };
+}
+
 function kagitStili(ozet: NotOzet): React.CSSProperties {
-  const s: React.CSSProperties = { backgroundColor: ozet.kagitRenk };
-  if (ozet.kagit === "cizgili") { s.backgroundImage = `linear-gradient(${CIZGI} 1px, transparent 1px)`; s.backgroundSize = "100% 30px"; s.backgroundPosition = "0 16px"; }
-  else if (ozet.kagit === "kareli") { s.backgroundImage = `linear-gradient(${CIZGI} 1px, transparent 1px), linear-gradient(90deg, ${CIZGI} 1px, transparent 1px)`; s.backgroundSize = "22px 22px"; s.backgroundPosition = "0 16px"; }
+  const { adim, kaydir } = kagitOlcusu(ozet.kagit);
+  const s = { backgroundColor: ozet.kagitRenk, "--adim": `${adim}px`, "--kaydir": `${kaydir}px` } as React.CSSProperties;
+  const konum = `0 ${KAGIT_UST}px`;
+  if (ozet.kagit === "cizgili") { s.backgroundImage = `linear-gradient(${CIZGI} 1px, transparent 1px)`; s.backgroundSize = `100% ${adim}px`; s.backgroundPosition = konum; }
+  else if (ozet.kagit === "kareli") { s.backgroundImage = `linear-gradient(${CIZGI} 1px, transparent 1px), linear-gradient(90deg, ${CIZGI} 1px, transparent 1px)`; s.backgroundSize = `${adim}px ${adim}px`; s.backgroundPosition = konum; }
   return s;
 }
 
@@ -422,7 +443,7 @@ function Kagit({ ozet, sayfa, cizimModu, arac, sekil, renk, kalinlik, metinDegis
         {sayfa.bloklar.map((b, bi) =>
           b.t === "metin"
             ? <MetinBlok key={bi} v={b.v} devre={cizimModu} onChange={(v) => metinDegisti(bi, v)} />
-            : <GorselBlok key={bi + b.yol} b={b} tikla={() => gorselBoyut(bi)} sil={() => gorselSil(bi)} />
+            : <GorselBlok key={bi + b.yol} b={b} adim={kagitOlcusu(ozet.kagit).adim} tikla={() => gorselBoyut(bi)} sil={() => gorselSil(bi)} />
         )}
       </div>
       <CizimKatmani ink={sayfa.ink} etkin={cizimModu} arac={arac} sekil={sekil} renk={renk} kalinlik={kalinlik} inkEkle={inkEkle} />
@@ -436,14 +457,26 @@ function MetinBlok({ v, devre, onChange }: { v: string; devre: boolean; onChange
   return <textarea ref={ref} className="blok" value={v} disabled={devre} rows={2} onChange={(e) => onChange(e.target.value)} placeholder="Buraya yaz…" />;
 }
 
-function GorselBlok({ b, tikla, sil }: { b: Extract<NotBlok, { t: "gorsel" }>; tikla: () => void; sil: () => void }) {
+function GorselBlok({ b, adim, tikla, sil }: { b: Extract<NotBlok, { t: "gorsel" }>; adim: number; tikla: () => void; sil: () => void }) {
   const [url, setUrl] = useState<string | null>(null);
   useEffect(() => { let iptal = false; notGorselUrl(b.yol).then((u) => { if (!iptal) setUrl(u); }); return () => { iptal = true; }; }, [b.yol]);
   const oran = b.boyut === "kucuk" ? "42%" : b.boyut === "orta" ? "70%" : "100%";
+  // Görselin boyu adımın katı değilse altındaki metin çizgiden kayar: boşluğu alt
+  // kenar payıyla bir sonraki çizgiye tamamla (görsel yüklenince ve boyut değişince).
+  // Payı MetinBlok'un yüksekliği gibi doğrudan DOM'a yazıyoruz: state'e koymak effect
+  // içinde setState (basamaklı render) demek; ölçüm zaten yerleşim sonrası gerekiyor.
+  const kutu = useRef<HTMLDivElement>(null);
+  const hizala = useCallback(() => {
+    const el = kutu.current; if (!el) return;
+    el.style.marginBottom = "0px";
+    const h = el.getBoundingClientRect().height;
+    el.style.marginBottom = (h > 0 ? (adim - (h % adim)) % adim : 0) + "px";
+  }, [adim]);
+  useLayoutEffect(hizala, [hizala, url, oran]);
   return (
-    <div className="gorsel" style={{ width: oran }}>
+    <div ref={kutu} className="gorsel" style={{ width: oran }}>
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      {url ? <img src={url} alt="" onClick={tikla} /> : <div className="bekle">…</div>}
+      {url ? <img src={url} alt="" onClick={tikla} onLoad={hizala} /> : <div className="bekle">…</div>}
       <button className="sil" onClick={sil} aria-label="Görseli sil">✕</button>
     </div>
   );
