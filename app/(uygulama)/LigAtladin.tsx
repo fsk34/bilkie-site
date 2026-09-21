@@ -12,6 +12,9 @@ import { useUstBilgi } from "../lib/canliVeri";
 import { ligBul } from "../lib/veri";
 import { LIG_ADI, LIG_SIRASI, bekleyenLigTerfisi, ligSirasi, ligTerfisiGorulduIsaretle } from "../lib/ligAtladin";
 
+const onizleme = () =>
+  process.env.NODE_ENV === "development" && new URLSearchParams(window.location.search).get("onizle") === "lig";
+
 export default function LigAtladin() {
   const { kullanici, sinif } = useOturum();
   const ust = useUstBilgi(sinif);
@@ -21,7 +24,11 @@ export default function LigAtladin() {
   useEffect(() => {
     if (!kullanici || simdiki <= 0) return;
     let iptal = false;
-    void bekleyenLigTerfisi(kullanici.uid, simdiki).then((b) => { if (!iptal && b != null) setSira(b); });
+    // Önizleme (yalnız geliştirme): localhost:3000/?onizle=lig → bir üst ligin sahnesi, yazma yok
+    const bekleyen = onizleme()
+      ? Promise.resolve(Math.min(LIG_SIRASI.length, simdiki + 1))
+      : bekleyenLigTerfisi(kullanici.uid, simdiki);
+    void bekleyen.then((b) => { if (!iptal && b != null) setSira(b); });
     return () => { iptal = true; };
   }, [kullanici, simdiki]);
 
@@ -31,7 +38,7 @@ export default function LigAtladin() {
   const kapat = () => {
     const kapanan = sira;
     setSira(null);
-    void ligTerfisiGorulduIsaretle(kullanici.uid, kapanan);
+    if (!onizleme()) void ligTerfisiGorulduIsaretle(kullanici.uid, kapanan);
   };
 
   return (
