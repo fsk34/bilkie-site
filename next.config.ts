@@ -107,6 +107,38 @@ const nextConfig: NextConfig = {
         permanent: true,
       },
 
+      // Türkçe konu anlatımı: 21 Eyl'de 22 ünitenin adı katalog adından (MEB beceri
+      // alanı) içeriğe göre ada çevrildi; adres de değişti. Eski adresler Search
+      // Console'da "keşfedildi" kuyruğundaydı, 404 yerine kalıcı yönlendirme.
+      ...([
+        ["4-sinif/turkce/okuma", "4-sinif/turkce/metin-analizi-ve-metin-turleri"],
+        ["4-sinif/turkce/yazma", "4-sinif/turkce/yazim-kurallari-de-da-ki-sayilar-ve-kisaltmalar"],
+        ["4-sinif/turkce/soz-varligi", "4-sinif/turkce/sozcukte-anlam-deyimler-ve-atasozleri"],
+        ["4-sinif/turkce/ek-konular", "4-sinif/turkce/cumle-bilgisi-ve-cumlede-anlam"],
+        ["5-sinif/turkce/dinleme-izleme", "5-sinif/turkce/parcada-anlam-ve-metin-analizi"],
+        ["5-sinif/turkce/okuma", "5-sinif/turkce/deyimler-atasozleri-ve-parcada-anlatim"],
+        ["5-sinif/turkce/konusma", "5-sinif/turkce/sozcukte-anlam-ve-anlam-iliskileri"],
+        ["5-sinif/turkce/yazma", "5-sinif/turkce/metin-turleri-soz-sanatlari-ve-anlatici"],
+        ["5-sinif/turkce/dil-yapilari-ve-soz-varligi", "5-sinif/turkce/isimler-sifatlar-ve-zamirler"],
+        ["6-sinif/turkce/dinleme-izleme", "6-sinif/turkce/soz-sanatlari-benzetme-kisilestirme-abartma"],
+        ["6-sinif/turkce/okuma", "6-sinif/turkce/anlatim-bicimleri-ve-dusunceyi-gelistirme-yollari"],
+        ["6-sinif/turkce/konusma", "6-sinif/turkce/cumlede-anlam-deyimler-ve-atasozleri"],
+        ["6-sinif/turkce/yazma", "6-sinif/turkce/grafik-tablo-okuma-ve-sozel-mantik"],
+        ["6-sinif/turkce/dil-yapilari-ve-soz-varligi", "6-sinif/turkce/sozcuk-yapisi-kok-yapim-ve-cekim-ekleri"],
+        ["7-sinif/turkce/okuma", "7-sinif/turkce/sozcukte-ve-cumlede-anlam-soz-sanatlari"],
+        ["7-sinif/turkce/yazma", "7-sinif/turkce/deyimler-atasozleri-ve-parcada-anlam"],
+        ["7-sinif/turkce/yazim-ve-noktalama", "7-sinif/turkce/metin-turleri-ve-yazim-kurallari"],
+        ["7-sinif/turkce/dil-bilgisi", "7-sinif/turkce/anlatim-bozukluklari-fiiller-ve-zarflar"],
+        ["8-sinif/turkce/okuma", "8-sinif/turkce/sozcukte-ve-cumlede-anlam-lgs"],
+        ["8-sinif/turkce/yazma", "8-sinif/turkce/deyimler-atasozleri-ve-parcada-anlatim"],
+        ["8-sinif/turkce/yazim-ve-noktalama", "8-sinif/turkce/yazim-kurallari-lgs"],
+        ["8-sinif/turkce/dil-bilgisi", "8-sinif/turkce/fiilimsiler-cumlenin-ogeleri-ve-fiil-catisi"],
+      ] as const).map(([eski, yeni]) => ({
+        source: `/konu-anlatimi/${eski}`,
+        destination: `/konu-anlatimi/${yeni}`,
+        permanent: true,
+      })),
+
       { source: "/uygulama", destination: "/", permanent: true },
       {
         source: `/uygulama/:rota(${rotalar})/:kalan*`,

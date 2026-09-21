@@ -134,9 +134,52 @@ export type Sinif = { sinif: number; slug: string; dersler: Ders[] };
  */
 function uniteAdi(defterAdi: string, sinif: number, dersSlug: string, key: string): string {
   if (!/^Ünite \d+$/i.test(defterAdi.trim())) return defterAdi;
+  const elle = ICERIGE_GORE_AD[`${sinif}/${dersSlug}/${key}`];
+  if (elle) return elle;
   const ku = katalogUniteleri(sinif, dersSlug).find((u) => katalogDefterAnahtari(u) === key);
   return ku?.title ?? defterAdi;
 }
+
+/**
+ * "Ünite N" adlı defterlerin İÇERİĞİNE göre verilen adlar — sayfa başlığı, h1, adres.
+ *
+ * Neden katalog yetmedi: 4-8. sınıf Türkçe'de katalogdaki ünite adları MEB beceri
+ * alanları ("Dinleme", "Okuma", "Konuşma", "Yazma"); defterlerse dil bilgisi konuları.
+ * Katalogdan ad alınca 5/Türkçe "Konuşma" sayfası "Sözcükte Anlam Türleri" anlatıyordu.
+ * Search Console tam bu sayfaları "tarandı – dizine eklenmedi" diye geri çevirdi
+ * (21 Eyl 2026). Başlık ≠ içerik, Google'ın doğrudan düşürdüğü sinyal.
+ *
+ * Adlar her defterin numaralı ana bölümlerinden çıkarıldı (bkz. dışa aktarım).
+ * Buraya girilmeyen jenerik defter (8/sosyal u1) katalogdan adını almaya devam eder;
+ * orada katalog adı içerikle örtüşüyor.
+ *
+ * ⚠️ Ad değişince adres de değişir; eski adresler next.config.ts'te 308 ile buraya
+ * yönlendirilir. Yeni ad eklerken oraya da eski slug'ı yaz.
+ */
+const ICERIGE_GORE_AD: Record<string, string> = {
+  "4/turkce/u1": "Metin Analizi ve Metin Türleri",
+  "4/turkce/u2": "Yazım Kuralları: De/Da, Ki, Sayılar ve Kısaltmalar",
+  "4/turkce/u3": "Sözcükte Anlam, Deyimler ve Atasözleri",
+  "4/turkce/u4": "Cümle Bilgisi ve Cümlede Anlam",
+  "5/turkce/u1": "Parçada Anlam ve Metin Analizi",
+  "5/turkce/u2": "Deyimler, Atasözleri ve Parçada Anlatım",
+  "5/turkce/u3": "Sözcükte Anlam ve Anlam İlişkileri",
+  "5/turkce/u4": "Metin Türleri, Söz Sanatları ve Anlatıcı",
+  "5/turkce/u5": "İsimler, Sıfatlar ve Zamirler",
+  "6/turkce/u1": "Söz Sanatları: Benzetme, Kişileştirme, Abartma",
+  "6/turkce/u2": "Anlatım Biçimleri ve Düşünceyi Geliştirme Yolları",
+  "6/turkce/u3": "Cümlede Anlam, Deyimler ve Atasözleri",
+  "6/turkce/u4": "Grafik-Tablo Okuma ve Sözel Mantık",
+  "6/turkce/u5": "Sözcük Yapısı: Kök, Yapım ve Çekim Ekleri",
+  "7/turkce/u1": "Sözcükte ve Cümlede Anlam, Söz Sanatları",
+  "7/turkce/u2": "Deyimler, Atasözleri ve Parçada Anlam",
+  "7/turkce/u3": "Metin Türleri ve Yazım Kuralları",
+  "7/turkce/u4": "Anlatım Bozuklukları, Fiiller ve Zarflar",
+  "8/turkce/u1": "Sözcükte ve Cümlede Anlam (LGS)",
+  "8/turkce/u2": "Deyimler, Atasözleri ve Parçada Anlatım",
+  "8/turkce/u3": "Yazım Kuralları (LGS)",
+  "8/turkce/u4": "Fiilimsiler, Cümlenin Ögeleri ve Fiil Çatısı",
+};
 
 function uniteleriCoz(kume: unknown, sinif: number, dersSlug: string): Unite[] {
   if (!kume || typeof kume !== "object") return [];
