@@ -29,6 +29,8 @@ export type GorevOlayTipi =
   | "defter_sayfa"
   | "defter_bitti"
   | "yazili_bitti"
+  /** Ünite quizi ilk kez bitti — "Bir quiz tamamla" görevi (quiz_complete); Android/iOS QUIZ_COMPLETE. */
+  | "quiz_bitti"
   /** Herhangi bir oyuna girildi (tatil haftalarının "oyun oyna" görevi). */
   | "oyun_girildi";
 
@@ -281,6 +283,9 @@ async function bolumeUygula(
           if (kind === "yazili_complete") yeni = 1;
           // test_correct ile aynı kalıp: TEK yazılıdaki doğru sayısı, kümülatif değil
           if (kind === "yazili_correct") yeni = Math.max(oncekiIlerleme, Math.max(0, o.dogru ?? 0));
+        } else if (o.tip === "quiz_bitti") {
+          // Her ünite quizi bir kez sayılır (quizTamamla zaten ilk bitişte çağırıyor)
+          if (kind === "quiz_complete") yeni = Math.min(hedef, oncekiIlerleme + 1);
         } else if (o.tip === "oyun_girildi") {
           if (kind === "game_play") yeni = 1;
         }

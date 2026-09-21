@@ -7,7 +7,8 @@
 // sütun grafiği, tek ders seçiliyken ünite seçici + konu konu kartlar.
 
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import Kabuk from "../Kabuk";
 import UcNokta from "../UcNokta";
 import BilgieKocBolumu from "./BilgieKoc";
@@ -51,19 +52,27 @@ const D_SAYFA = "#9AD7FF";
 export default function IstatistikSayfasi() {
   return (
     <Kabuk>
-      <Icerik />
+      {/* useSearchParams (?sekme=koc — ana ekrandaki Bilgie Koç kartından gelir) Suspense ister */}
+      <Suspense>
+        <Icerik />
+      </Suspense>
     </Kabuk>
   );
 }
 
 function Icerik() {
   const { kullanici, sinif } = useOturum();
-  const [bolum, setBolum] = useState(0);
+  // ?sekme=koc → doğrudan Bilgie Koç sekmesi (ana ekran kartındaki "HEPSİNİ GÖSTER")
+  const sekmeParam = useSearchParams().get("sekme");
+  const [bolum, setBolum] = useState(sekmeParam === "koc" ? 3 : 0);
   const [ders, setDers] = useState<string | null>(null);
   const [secimAcik, setSecimAcik] = useState(false);
 
-  // Seçili ünite burada duruyor: sekme değişince sıfırlanmasın.
-  const [uniteIdx, setUniteIdx] = useState(0);
+  // Seçili ünite burada duruyor: sekme değişince sıfırlanmasın. Ders/sınıf değişince başa döner —
+  // effect içinde setState yerine seçim anahtarıyla saklanıp türetiliyor (react-hooks/set-state-in-effect).
+  const [uniteSecimi, setUniteSecimi] = useState<{ ders: string | null; sinif: number; idx: number }>({ ders: null, sinif, idx: 0 });
+  const uniteIdx = uniteSecimi.ders === ders && uniteSecimi.sinif === sinif ? uniteSecimi.idx : 0;
+  const setUniteIdx = (idx: number) => setUniteSecimi({ ders, sinif, idx });
 
   // Veri: stats/grade{N} ağacı + defter/quiz ilerlemesi CANLI (canliVeri). Sayılar saf
   // çözücülerle türetilir; ekran açılınca son bilinen değer anında çizilir, test/defter/
@@ -87,8 +96,6 @@ function Icerik() {
     [defterHam, ders, sinif]
   );
 
-  // Ders ya da sınıf değişince ünite seçimi başa döner.
-  useEffect(() => { setUniteIdx(0); }, [ders, sinif]);
 
   const dersAdi = DERSLER.find((d) => d.key === ders)?.ad ?? "Tüm Dersler";
 
@@ -154,7 +161,7 @@ function Icerik() {
                 <YaziliBolumu test={test} yazili={yazili} cubuklar={cubuklar} dersKey={ders} />
               </div>
               <div hidden={bolum !== 3}>
-                {kullanici && <BilgieKocBolumu uid={kullanici.uid} sinif={sinif} dersKey={ders} />}
+                {kullanici && <BilgieKocBolumu uid={kullanici.uid} sinif={sinif} dersKey={ders} onDersSec={setDers} />}
               </div>
             </>
           )}
@@ -243,13 +250,14 @@ function Halka({ dilimler, ortaYazi }: { dilimler: Dilim[]; ortaYazi: string }) 
   const bosluk = dolu.length <= 1 ? 0 : 4.5;
   const kullanilabilir = 360 - bosluk * dolu.length;
 
+  // Kapanış içinde değişken güncellemek react-hooks/immutability'ye takılıyor → düz döngü
+  const yaylar: { d: Dilim; bas: number; aci: number }[] = [];
   let imlec = -90;
-  const yaylar = dolu.map((d) => {
+  for (const d of dolu) {
     const aci = kullanilabilir * (d.soru / toplam) * p;
-    const bas = imlec;
+    yaylar.push({ d, bas: imlec, aci });
     imlec += aci + bosluk;
-    return { d, bas, aci };
-  });
+  }
 
   return (
     <div className="bk-ist-halka-kap">
@@ -500,17 +508,15 @@ function useDolum(anahtar: string, sure: number): number {
   const [p, setP] = useState(0);
   const kare = useRef(0);
   useEffect(() => {
-    if (typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) {
-      setP(1);
-      return;
-    }
+    // setState'ler effect gövdesinde değil, animasyon karesinde (react-hooks/set-state-in-effect)
+    const azHareket = typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
     const bas = performance.now();
     const dur = () => {
+      if (azHareket) { setP(1); return; }
       const t = Math.min(1, (performance.now() - bas) / sure);
       setP(1 - (1 - t) * (1 - t));
       if (t < 1) kare.current = requestAnimationFrame(dur);
     };
-    setP(0);
     kare.current = requestAnimationFrame(dur);
     return () => cancelAnimationFrame(kare.current);
   }, [anahtar, sure]);

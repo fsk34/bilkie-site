@@ -499,8 +499,9 @@ function ilkBitmemisKonu(sinif: number, ders: string, veri: DevamVerisi) {
 }
 
 /** Kuralın çocuk diliyle kısa etiketi (İstatistik'teki gözlem kartları). */
+// Çocuğun okuyacağı rozet metni: simge + iki kelimeyi geçmeyen, somut bir ad ("Denge" değil "Uzun zaman oldu").
 export const KURAL_ETIKETI: Record<KocKural, string> = {
-  "az-veri": "Tanışma", yazili: "Yazılı", hata: "Yanlışlar", dikkatsiz: "Dikkat", zayif: "Güçlendir",
-  yavas: "Hız", "defter-once": "Önce defter", quiz: "Quiz", dengesiz: "Denge", tekrar: "Tekrar",
-  seri: "Seri", bosluk: "Yeni ders", harika: "Harika",
+  "az-veri": "👋 Tanışalım", yazili: "📝 Yazılı yaklaşıyor", hata: "🔁 Yanlışların", dikkatsiz: "🎯 Dikkat!", zayif: "💪 Biraz daha çalış",
+  yavas: "⚡ Hızlan", "defter-once": "📖 Önce oku", quiz: "❓ Quiz zamanı", dengesiz: "🗓️ Uzun zaman oldu", tekrar: "🧠 Hatırla",
+  seri: "🔥 Serin", bosluk: "🆕 Yeni ders", harika: "🌟 Harika",
 };

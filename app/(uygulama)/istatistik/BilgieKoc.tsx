@@ -1,15 +1,19 @@
 "use client";
 
 // İstatistik → "Bilgie Koç" sekmesi (20 Eyl 2026): bugünkü fotoğraf, mevcut veriyle.
-//   1. Bilgie'nin gözlemleri — tutan TÜM kurallar (ana ekranda yalnız ilki var), eylemli
-//   2. Güçlü yanların / Toparlanacaklar — en iyi 3 / en zayıf 3 konu (≥10 soru)
-//   3. Hız — ders başına ortalama test süresi
-//   4. Yanlışlarım — ders ders sayı, hazır olanlar, konu bazında ilk 5, Hata Turu
-//   5. "Haftalık gelişim yakında" (zaman serisi verisi henüz yazılmıyor — uydurmuyoruz)
+//   1. Bilgie ne diyor? — tutan TÜM kurallar (ana ekranda yalnız ilki var), konuşma balonu + eylem düğmesi
+//   1b. Ders ders durumun — yalnız "Tüm dersler"deyken: her ders bir satır (soru · süre · en zayıf konu · %),
+//       satıra dokununca üstteki ders seçici o derse geçer (sayfa state'i, onDersSec)
+//   2. Süper olduğun konular / Biraz daha çalışalım — en iyi 3 / en zayıf 3 konu (≥10 soru)
+//   3. Ne kadar hızlısın? — ders başına ortalama test süresi
+//   4. Tekrar bakacağın sorular — ders ders sayı, hazır olanlar, konu bazında ilk 5, Hata Turu
+//   5. Kâğıtta çözdüklerin — elle girilen kayıtlar
+//   6. "Haftalık ilerleme yakında" (zaman serisi verisi henüz yazılmıyor — uydurmuyoruz)
+// Dil (21 Eyl): 3.–4. sınıf çocuğuna hitap — kısa cümle, "sen" dili, sayı eşiği/terim yok.
 // Üstteki ders seçici burada da geçerli: tek ders seçiliyse o derse ait olanlar.
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import UcNokta from "../UcNokta";
 import { konuAyristir, uniteler } from "../../lib/katalog";
 import { useDefterIlerlemesi, useIstatistikAgaci, useQuizBitenler, useSonDokunulan, useTestIlerlemesi, useUstBilgi } from "../../lib/canliVeri";
@@ -22,7 +26,7 @@ import { dersRengi } from "../../lib/veri";
 
 const KOC_DERSLER = ["turkce", "matematik", "fen", "sosyal", "ingilizce"];
 
-export default function BilgieKocBolumu({ uid, sinif, dersKey }: { uid: string; sinif: number; dersKey: string | null }) {
+export default function BilgieKocBolumu({ uid, sinif, dersKey, onDersSec }: { uid: string; sinif: number; dersKey: string | null; onDersSec: (ders: string) => void }) {
   const ilerleme = useTestIlerlemesi(sinif);
   const defter = useDefterIlerlemesi(sinif);
   const quiz = useQuizBitenler(sinif);
@@ -81,11 +85,28 @@ export default function BilgieKocBolumu({ uid, sinif, dersKey }: { uid: string; 
   return (
     <div className="bk-koc-sayfa">
       <Gozlemler gozlemler={gozlemler} />
+      {!dersKey && <DersDers sinif={sinif} istatistik={istatistik} onDersSec={onDersSec} />}
       <GucluZayif sinif={sinif} istatistik={istatistik} dersler={dersler} />
       <Hiz sinif={sinif} istatistik={istatistik} dersler={dersler} />
       <Yanlislar sinif={sinif} hatalar={hatalar} dersler={dersler} simdi={simdi} />
       <EvdeCozduklerim sinif={sinif} kayitlar={(evde ?? []).filter((k) => dersler.includes(k.ders))} />
-      <p className="bk-soluk bk-koc-yakinda">Haftalık gelişim grafiği yakında — veri biriktikçe burada.</p>
+      <p className="bk-soluk bk-koc-yakinda">📈 Haftalık ilerleme grafiğin yakında burada olacak.</p>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------ bölüm başlığı */
+/* Her bölüm aynı kalıp: simge kutusu + başlık (+ tek satır açıklama, + sağda bağlantı). */
+
+function Baslik({ simge, baslik, alt, sag }: { simge: ReactNode; baslik: string; alt?: string; sag?: ReactNode }) {
+  return (
+    <div className="bk-koc-baslik">
+      <span className="simge">{simge}</span>
+      <div className="metin">
+        <h3>{baslik}</h3>
+        {alt && <p className="bk-soluk">{alt}</p>}
+      </div>
+      {sag}
     </div>
   );
 }
@@ -94,17 +115,72 @@ export default function BilgieKocBolumu({ uid, sinif, dersKey }: { uid: string; 
 
 function Gozlemler({ gozlemler }: { gozlemler: KocGozlem[] }) {
   return (
-    <section className="bk-koc-bolum">
-      <h3>Bilgie&apos;nin gözlemleri</h3>
-      {gozlemler.length === 0 && <p className="bk-soluk">Şu an dikkatimi çeken bir şey yok. Her şey yolunda görünüyor.</p>}
+    <section className="bk-koc-bolum bk-koc-gozlemler">
+      <Baslik
+        /* eslint-disable-next-line @next/next/no-img-element */
+        simge={<img src="/bilkie-ikon.png" alt="" />}
+        baslik="Bilgie ne diyor?"
+        alt={gozlemler.length === 0 ? "Bugün her şey yolunda görünüyor." : `Bugün sana ${gozlemler.length} şey söyleyeceğim.`}
+      />
+      {gozlemler.length === 0 && <p className="bk-soluk">Dikkatimi çeken bir şey yok. Kaldığın yerden devam et, ben buradayım. 😊</p>}
       {gozlemler.map((g, i) => (
         <div className="bk-koc-gozlem" key={g.kural + i} data-kural={g.kural}>
-          <span className="bk-koc-etiket">{KURAL_ETIKETI[g.kural]}</span>
+          <span className="bk-koc-etiket" style={g.eylem ? etiketRengi(g.eylem.ders) : undefined}>{KURAL_ETIKETI[g.kural]}</span>
           <p>{g.mesaj}</p>
           {g.eylem && (
-            <Link href={g.eylem.href} className="bk-koc-git">{g.eylem.baslik} ›</Link>
+            <Link href={g.eylem.href} className="bk-koc-git" style={dugmeRengi(g.eylem.ders)}>{g.eylem.baslik} ›</Link>
           )}
         </div>
+      ))}
+    </section>
+  );
+}
+
+/** Eylem düğmesi dersin renginde; yazı rengi zemine göre (İngilizce moru koyu, üstüne beyaz). */
+function dugmeRengi(ders: string): { background: string; color: string } {
+  const hex = dersRengi(ders);
+  const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255);
+  const parlaklik = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  return { background: hex, color: parlaklik > 0.45 ? "#0c1a3f" : "#ffffff" };
+}
+
+/** Tür rozeti dersin renginde ama hafif: saydam zemin + renkli yazı, dolu düğmeden ayrışsın. */
+function etiketRengi(ders: string): { background: string; color: string; boxShadow: string } {
+  const hex = dersRengi(ders);
+  return { background: `${hex}2e`, color: hex, boxShadow: `inset 0 0 0 1px ${hex}66` };
+}
+
+/* ---------------------------------------------------------- ders ders durum */
+/* Beş dersin hepsi listelenir; test çözülmemiş ders de "Henüz test çözmedin" diye durur ki
+   çocuk hangi derse hiç dokunmadığını görsün. En zayıf konu = ≥10 sorulu en düşük başarı. */
+
+function DersDers({ sinif, istatistik, onDersSec }: { sinif: number; istatistik: KocIstatistik; onDersSec: (ders: string) => void }) {
+  const satirlar = KOC_DERSLER.map((ders) => {
+    const t = istatistik[ders]?.tests;
+    const zayif = konuListesi(sinif, istatistik, [ders]).sort((a, b) => a.basari - b.basari)[0] ?? null;
+    return { ders, soru: t?.soru ?? 0, basari: t?.basari ?? 0, ortSn: t?.ortSn ?? 0, zayif };
+  });
+  if (satirlar.every((r) => r.soru === 0)) return null;
+  return (
+    <section className="bk-koc-bolum">
+      <Baslik simge="📚" baslik="Ders ders durumun" alt="Bir derse dokun, Bilgie yalnız o dersi anlatsın." />
+      {satirlar.map((r) => (
+        <button type="button" key={r.ders} className="bk-koc-ders" onClick={() => onDersSec(r.ders)} data-bos={r.soru === 0}>
+          <span className="bk-koc-nokta" style={{ background: dersRengi(r.ders) }} />
+          <span className="ad">{dersEtiketi(r.ders, sinif)}</span>
+          <span className="alt">
+            {r.soru === 0
+              ? "Henüz test çözmedin"
+              : [`${r.soru} soru`, r.ortSn > 0 ? `test başına ${sureMetni(r.ortSn)}` : null, r.zayif ? `en zor: ${r.zayif.konuAdi}` : null].filter(Boolean).join(" · ")}
+          </span>
+          {r.soru > 0 && (
+            <span className="sag">
+              <b data-ton={r.basari >= 85 ? "guclu" : r.basari < ESIK.zayifBasari ? "zayif" : "orta"}>%{r.basari}</b>
+              <span className="cubuk"><i style={{ width: `${r.basari}%`, background: dersRengi(r.ders) }} /></span>
+            </span>
+          )}
+          <span className="ok">›</span>
+        </button>
       ))}
     </section>
   );
@@ -142,22 +218,20 @@ function GucluZayif({ sinif, istatistik, dersler }: { sinif: number; istatistik:
     </Link>
   );
   return (
-    <section className="bk-koc-bolum">
-      <div className="bk-koc-iki">
-        <div>
-          <h3>Güçlü yanların</h3>
-          {guclu.length === 0
-            ? <p className="bk-soluk">%85 üstü konu henüz yok (konu başına en az {ESIK.konuSoru} soru).</p>
-            : guclu.map((k) => satir(k, "guclu"))}
-        </div>
-        <div>
-          <h3>Toparlanacaklar</h3>
-          {zayif.length === 0
-            ? <p className="bk-soluk">%{ESIK.zayifBasari} altında konu yok. Böyle devam.</p>
-            : zayif.map((k) => satir(k, "zayif"))}
-        </div>
-      </div>
-    </section>
+    <div className="bk-koc-iki">
+      <section className="bk-koc-bolum">
+        <Baslik simge="🌟" baslik="Süper olduğun konular" />
+        {guclu.length === 0
+          ? <p className="bk-soluk">Bir konuda {ESIK.konuSoru} soru çözünce en iyi konuların burada görünür.</p>
+          : guclu.map((k) => satir(k, "guclu"))}
+      </section>
+      <section className="bk-koc-bolum">
+        <Baslik simge="💪" baslik="Biraz daha çalışalım" />
+        {zayif.length === 0
+          ? <p className="bk-soluk">Zorlandığın bir konu yok. Böyle devam! 🎉</p>
+          : zayif.map((k) => satir(k, "zayif"))}
+      </section>
+    </div>
   );
 }
 
@@ -173,8 +247,7 @@ function Hiz({ sinif, istatistik, dersler }: { sinif: number; istatistik: KocIst
   const enYavas = [...satirlar].sort((a, b) => b.ortSn - a.ortSn)[0];
   return (
     <section className="bk-koc-bolum">
-      <h3>Hız</h3>
-      <p className="bk-soluk" style={{ marginBottom: 10 }}>Bir test sana ortalama ne kadar sürüyor.</p>
+      <Baslik simge="⏱️" baslik="Ne kadar hızlısın?" alt="Bir testi ortalama bu kadar sürede bitiriyorsun." />
       {satirlar.map((r) => (
         <div className="bk-koc-hiz" key={r.ders}>
           <span className="ders">{dersEtiketi(r.ders, sinif)}</span>
@@ -183,8 +256,9 @@ function Hiz({ sinif, istatistik, dersler }: { sinif: number; istatistik: KocIst
         </div>
       ))}
       {satirlar.length > 1 && (
-        <p className="bk-soluk" style={{ marginTop: 8 }}>
-          En hızlı {dersEtiketi(enHizli.ders, sinif)}, en yavaş {dersEtiketi(enYavas.ders, sinif)}. Yavaş olmak kötü değil; doğru olup yavaşsan hız turu, hızlı olup yanlışsan dikkat.
+        <p className="bk-soluk bk-koc-not">
+          En hızlı olduğun ders <b>{dersEtiketi(enHizli.ders, sinif)}</b>, en çok düşündüğün ders <b>{dersEtiketi(enYavas.ders, sinif)}</b>.
+          Yavaş olmak sorun değil; önemli olan doğru çözmek. 😊
         </p>
       )}
     </section>
@@ -202,6 +276,10 @@ function sureMetni(sn: number): string {
 function Yanlislar({ sinif, hatalar, dersler, simdi }: { sinif: number; hatalar: Hata[]; dersler: string[]; simdi: number }) {
   const liste = hatalar.filter((h) => dersler.includes(h.ders));
   const olgun = olgunHatalar(liste, simdi).length;
+  // Hiçbiri hazır değilse: ilk hazır olacak olana kaç gün var (çocuğa "bekle" değil, "2 gün sonra" deriz)
+  const ilkHazirGun = liste.length > 0 && olgun === 0
+    ? Math.max(1, Math.ceil((Math.min(...liste.map((h) => h.zaman)) + HATA_OLGUNLASMA_GUN * 86400000 - simdi) / 86400000))
+    : 0;
   // Konu bazında sayım (ilk 5)
   const konuSayim = new Map<string, { ders: string; konu: string; sayi: number }>();
   for (const h of liste) {
@@ -215,12 +293,16 @@ function Yanlislar({ sinif, hatalar, dersler, simdi }: { sinif: number; hatalar:
   };
   return (
     <section className="bk-koc-bolum">
-      <h3>Yanlışlarım</h3>
+      <Baslik simge="🔁" baslik="Tekrar bakacağın sorular" alt="Testlerde yanlış yaptığın soruları birkaç gün sonra sana yeniden sorarım." />
       {liste.length === 0 ? (
-        <p className="bk-soluk">Tekrar edilecek yanlışın yok 🎉 Testlerde yanlış yaptığın sorular burada birikir, {HATA_OLGUNLASMA_GUN} gün sonra yeniden sorarım.</p>
+        <p className="bk-soluk">Şu an yanlışın yok. Harika! 🎉</p>
       ) : (
         <>
-          <div className="bk-yanlis-sayi" style={{ marginBottom: 8 }}><b>{liste.length}</b> yanlış · <b>{olgun}</b> tekrar için hazır</div>
+          <div className="bk-yanlis-sayi bk-koc-sayi">
+            {olgun > 0
+              ? <><b>{olgun}</b> soru seni bekliyor. Hadi yeniden çözelim!</>
+              : <><b>{liste.length}</b> yanlışın var. {ilkHazirGun === 1 ? "Yarın" : `${ilkHazirGun} gün sonra`} yeniden soracağım.</>}
+          </div>
           {konular.map((k) => (
             <div className="bk-koc-hiz" key={k.ders + k.konu}>
               <span className="ders" style={{ flexBasis: "auto", flex: 1 }}>
@@ -229,9 +311,11 @@ function Yanlislar({ sinif, hatalar, dersler, simdi }: { sinif: number; hatalar:
               <span className="sn">{k.sayi} soru</span>
             </div>
           ))}
-          <Link href="/hata-turu" className="bk-konu-dugme bk-koc-dugme" style={{ background: "#ffa726", borderColor: "#b85c00", color: "#0C1A3F", marginTop: 12 }}>
-            ⟲ Hata turuna başla
-          </Link>
+          {olgun > 0 && (
+            <Link href="/hata-turu" className="bk-konu-dugme bk-koc-dugme" style={{ background: "#ffa726", borderColor: "#b85c00", color: "#0C1A3F", marginTop: 12 }}>
+              Yanlışlarımı yeniden çöz
+            </Link>
+          )}
         </>
       )}
     </section>
@@ -278,15 +362,12 @@ function EvdeCozduklerim({ sinif, kayitlar }: { sinif: number; kayitlar: EvdeKay
 
   return (
     <section className="bk-koc-bolum">
-      <div className="bk-kart-ust" style={{ marginBottom: 6 }}>
-        <h3 style={{ margin: 0 }}>Evde çözdüklerim</h3>
-        <Link href="/evde">EKLE</Link>
-      </div>
+      <Baslik simge="📒" baslik="Kâğıtta çözdüklerin" sag={<Link href="/evde" className="bk-koc-ekle">+ EKLE</Link>} />
       {kayitlar.length === 0 ? (
-        <p className="bk-soluk">Kâğıtta çözdüğün testleri de ekle; Bilgie Koç seni daha iyi tanır. Puan/lig kazandırmaz, yalnız seri işler.</p>
+        <p className="bk-soluk">Kitaptan ya da kâğıttan çözdüğün testleri de ekle; seni daha iyi tanırım. Puan kazandırmaz ama serini korur.</p>
       ) : (
         <>
-          <div className="bk-yanlis-sayi" style={{ marginBottom: 10 }}><b>{toplam}</b> soru · <b>{yuzde(dogru, toplam)}%</b> doğru</div>
+          <div className="bk-yanlis-sayi bk-koc-sayi"><b>{toplam}</b> soru çözdün, <b>%{yuzde(dogru, toplam)}</b> doğru.</div>
           <div className="bk-evde-gorunum">
             {([["ders", "Derse göre"], ["kitap", "Kitaba göre"], ["kayit", "Son kayıtlar"]] as const).map(([id, ad]) => (
               <button key={id} type="button" data-aktif={gorunum === id} onClick={() => { setGorunum(id); setAcik(null); }}>{ad}</button>

@@ -96,6 +96,9 @@ export default function RootLayout({
     <html
       lang="tr"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      // Aşağıdaki betik React'ten önce data-bk-oturum yazıyor; sunucu HTML'inde olmadığı
+      // için hydration uyarısı çıkıyordu. Yalnız <html>'in kendi özelliklerini susturur.
+      suppressHydrationWarning
     >
       <body className="min-h-full flex flex-col">
         {/* Boyamadan ÖNCE çalışır: bu tarayıcıda daha önce oturum açıldıysa <html>'e

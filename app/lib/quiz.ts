@@ -10,6 +10,7 @@
 
 import { get, ref as dbRef, set } from "firebase/database";
 import { kullaniciDb, quizDb } from "./firebase";
+import { gorevOlayiUygula } from "./gorevYaz";
 import { onbellekli } from "./onbellek";
 import { sinifSinirla, xpEkle } from "./veri";
 
@@ -176,6 +177,8 @@ export async function quizTamamla(
 
   await set(dbRef(kullaniciDb, quizBittiYolu(uid, g, dersKey, uniteKey)), true);
   await xpEkle(uid, g, XP_QUIZ_TAMAM, `quiz_${dersKey}_${uniteKey}`);
+  // "Bir quiz tamamla" görevi (quiz_complete) — yalnız ilk bitişte, XP'yi engellemesin
+  try { await gorevOlayiUygula(uid, { tip: "quiz_bitti", sinif: g }); } catch { /* görev yazılamazsa quiz yine bitti */ }
   return { ilkKez: true, xp: XP_QUIZ_TAMAM };
 }
 

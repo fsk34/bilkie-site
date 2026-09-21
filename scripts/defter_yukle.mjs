@@ -6,6 +6,7 @@
 // Yazılan yol: defterler/<grade>/subjects/<ders>/units/<unite>  → { title, pages }
 // Var olan kaydın ÜZERİNE yazar (set). Sonra dışa aktarımı yenileyip
 // scripts/defterleri_cikar.py ile data/icerik/defterler.json'u yeniden üret.
+import "./_node_referer.mjs";
 import { initializeApp } from "firebase/app";
 import { getAuth, signInWithEmailAndPassword } from "firebase/auth";
 import { getDatabase, ref, set, get } from "firebase/database";

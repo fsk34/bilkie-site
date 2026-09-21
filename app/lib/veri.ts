@@ -513,6 +513,7 @@ export function gorevHedefi(t: GorevTanim): number {
     case "combo_defter_test":  return Math.max(1, s("count") || s("target"));
     case "weekly_active_days": return Math.max(1, s("days"));
     case "yazili_correct":     return Math.max(1, s("minCorrect"));
+    case "quiz_complete":      return Math.max(1, s("count") || s("target"));
     default:                   return 1;
   }
 }

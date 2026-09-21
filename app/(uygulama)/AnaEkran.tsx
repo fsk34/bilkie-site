@@ -339,11 +339,13 @@ function BilkieAIKutusu({ sinif, uid, veri, devam, yazili, seri }: {
 
   return (
     <div className="bk-veri-kutu bk-koc">
-      <div className="bk-koc-bas">
+      {/* Başlığın kendisi İstatistik → Bilgie Koç'a gider; küçük › tıklanabilirliği söyler */}
+      <Link href="/istatistik?sekme=koc" className="bk-koc-bas" aria-label="Bilgie Koç'un tüm gözlemleri">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/bilkie-ikon.png" alt="" />
         <h3>Bilgie Koç</h3>
-      </div>
+        <span className="ok">›</span>
+      </Link>
       {plan == null && <UcNokta boyut={8} aralik={6} etiket="Bilgie düşünüyor" style={{ padding: "8px 0" }} />}
       {plan && <p className="bk-koc-mesaj" data-kural={plan.kural}>{plan.mesaj}</p>}
       {plan?.eylem && (

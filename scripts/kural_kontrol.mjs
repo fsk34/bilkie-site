@@ -2,6 +2,7 @@
 //   FIREBASE_PASS=<parola> node scripts/kural_kontrol.mjs [yol]
 // database@bilkie.com ile girer, KENDİ uid'sinin altındaki yola deneme değeri yazar,
 // okur, siler. Başka kullanıcıya dokunmaz. Varsayılan yol: league/seenLeague
+import "./_node_referer.mjs";
 import { initializeApp } from "firebase/app";
 import { getAuth, signInWithEmailAndPassword } from "firebase/auth";
 import { getDatabase, ref, set, get, remove } from "firebase/database";

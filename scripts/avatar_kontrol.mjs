@@ -2,6 +2,7 @@
 //   FIREBASE_PASS=<parola> node scripts/avatar_kontrol.mjs <kullanıcı_adı>
 // database@bilkie.com ile girer; usernames/{ad} → uid → users/{uid}/profile ve
 // leaderboards/leagues/grade{3..8}/{sezon}/{uid} okunur. Yalnız OKUR.
+import "./_node_referer.mjs";
 import { initializeApp } from "firebase/app";
 import { getAuth, signInWithEmailAndPassword } from "firebase/auth";
 import { getDatabase, ref, get } from "firebase/database";

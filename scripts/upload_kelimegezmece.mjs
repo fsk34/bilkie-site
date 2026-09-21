@@ -2,6 +2,7 @@
 // Requires: npm install firebase (already installed)
 // Signs in with email/pass then uploads the JSON to kelimezgezmece DB
 
+import "./_node_referer.mjs";
 import { initializeApp } from "firebase/app";
 import { getAuth, signInWithEmailAndPassword } from "firebase/auth";
 import { getDatabase, ref, set } from "firebase/database";
