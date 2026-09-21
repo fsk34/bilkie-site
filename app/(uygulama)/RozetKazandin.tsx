@@ -43,7 +43,13 @@ export default function RozetKazandin() {
   return <Sahne key={ay} ay={ay} onKapat={kapat} />;
 }
 
-function Sahne({ ay, onKapat }: { ay: number; onKapat: () => void }) {
+/**
+ * Kutlama sahnesi — rozet VE lig için ortak (21 Eyl: lig terfisi de bu sahneyle kutlanıyor).
+ * Zamanlama üstte; `gorsel` ortadaki madalya/kupa, üç satır yazı, düğme.
+ */
+export function KutlamaSahnesi({ gorsel, ust, ana, alt, etiket, onKapat }: {
+  gorsel: string; ust: string; ana: string; alt: string; etiket: string; onKapat: () => void;
+}) {
   const [fisek, setFisek] = useState(false);
   useEffect(() => {
     const z = window.setTimeout(() => setFisek(true), 2000);
@@ -51,22 +57,35 @@ function Sahne({ ay, onKapat }: { ay: number; onKapat: () => void }) {
   }, []);
 
   return (
-    <div className="bk-rozetk-ortu" role="dialog" aria-label={`${AY_AD[ay]} rozetini kazandın`}>
+    <div className="bk-rozetk-ortu" role="dialog" aria-label={etiket}>
       <div className="bk-rozetk-sahne">
         <div className="bk-rozetk-kutu">
           <div className="bk-rozetk-isinlar" />
           <div className="bk-rozetk-hale" />
           {fisek && <Lottie ad="fireworks" dongu className="bk-rozetk-fisek" />}
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img className="bk-rozetk-rozet" src={`/uygulama/rozet/${AY_ANAHTAR[ay]}rozet.webp`} alt="" />
+          <img className="bk-rozetk-rozet" src={gorsel} alt="" />
         </div>
         <div className="bk-rozetk-yazi">
-          <div className="ay">{AY_AD[ay].toLocaleUpperCase("tr")}</div>
-          <div className="ana">Rozeti kazandın!</div>
-          <div className="alt">Ayın tüm görevlerini tamamladın</div>
+          <div className="ay">{ust}</div>
+          <div className="ana">{ana}</div>
+          <div className="alt">{alt}</div>
         </div>
         <button className="bk-rozetk-dugme" type="button" onClick={onKapat}>Harika!</button>
       </div>
     </div>
+  );
+}
+
+function Sahne({ ay, onKapat }: { ay: number; onKapat: () => void }) {
+  return (
+    <KutlamaSahnesi
+      gorsel={`/uygulama/rozet/${AY_ANAHTAR[ay]}rozet.webp`}
+      ust={AY_AD[ay].toLocaleUpperCase("tr")}
+      ana="Rozeti kazandın!"
+      alt="Ayın tüm görevlerini tamamladın"
+      etiket={`${AY_AD[ay]} rozetini kazandın`}
+      onKapat={onKapat}
+    />
   );
 }
