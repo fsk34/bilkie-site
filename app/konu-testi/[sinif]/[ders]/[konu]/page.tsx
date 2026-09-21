@@ -54,6 +54,9 @@ export default async function TestSayfasi({
   const sonraki = i >= 0 && i < liste.length - 1 ? liste[i + 1] : null;
   const kapali = Math.max(0, b.test.toplam - b.test.sorular.length);
   const anlatim = testinUnitesi(b.sinif, b.ders, b.test);
+  // İngilizce testlerde sorular İngilizce; sayfa kabuğu (kırıntı, düğmeler) Türkçe.
+  // Soru listesi kendi dilini taşısın — ekran okuyucu ve şema tutarlı olsun.
+  const dil = b.ders.slug === "ingilizce" ? "en" : "tr";
 
   const yapisalVeri = {
     "@context": "https://schema.org",
@@ -61,7 +64,7 @@ export default async function TestSayfasi({
       {
         "@type": "Quiz",
         name: `${b.test.ad} Testi — ${b.sinif.sinif}. Sınıf ${b.ders.ad}`,
-        inLanguage: "tr",
+        inLanguage: dil,
         educationalLevel: `${b.sinif.sinif}. sınıf`,
         about: { "@type": "Thing", name: b.test.ad },
         numberOfQuestions: b.test.sorular.length,
@@ -118,7 +121,7 @@ export default async function TestSayfasi({
           </p>
         )}
 
-        <ol className="bk-test-liste">
+        <ol className="bk-test-liste" lang={dil}>
           {b.test.sorular.map((q, n) => (
             <Soru key={n} q={q} no={n + 1} />
           ))}

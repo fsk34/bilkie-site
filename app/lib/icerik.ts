@@ -18,6 +18,24 @@ import { konuAyristir, uniteler as katalogUniteleri } from "./katalog";
 
 /* ------------------------------------------------------------------ kaynak */
 
+/**
+ * İçerik dosyalarının SON DEĞİŞİM tarihi — site haritasındaki `lastmod` buradan.
+ *
+ * Neden sabit: 20 Eyl'e kadar sitemap `new Date()` yazıyordu; her deploy 1067
+ * sayfayı "bugün değişti" ilan ediyordu. Google tutarsız lastmod'u fark edince
+ * sitemap'e güvenmeyi bırakır, tarama sırasını kendi belirler (519 sayfa
+ * "Keşfedildi – dizine eklenmedi" kuyruğunun bir nedeni). Vercel'de git tarihi
+ * güvenilir değil (sığ klon), dosya mtime'ı da checkout anı; o yüzden elle.
+ *
+ * ⚠️ scripts/ ile JSON'lardan biri yeniden üretilince buradaki tarihi de güncelle.
+ */
+export const ICERIK_TARIHI = {
+  testler: new Date("2026-09-11"),
+  defterler: new Date("2026-09-16"),
+  atasozleri: new Date("2026-09-10"),
+} as const;
+
+
 let _defterler: Record<string, unknown> | null = null;
 let _testler: Record<string, unknown> | null = null;
 let _atasozleri: Record<string, unknown> | null = null;

@@ -1,5 +1,5 @@
 import { MetadataRoute } from "next";
-import { harfKumeleri, icerikAgaci, testAgaci } from "./lib/icerik";
+import { harfKumeleri, icerikAgaci, ICERIK_TARIHI, testAgaci } from "./lib/icerik";
 
 const KOK = "https://www.bilkie.com";
 
@@ -9,29 +9,33 @@ const KOK = "https://www.bilkie.com";
  *
  * `priority` bilerek dereceli: kök ve hub'lar taranmaya değer, tekil üniteler
  * içeriğin kendisi. (Google bunu bir öneri sayar, garanti değil.)
+ *
+ * `lastModified` = ilgili içerik dosyasının gerçek tarihi (ICERIK_TARIHI), deploy
+ * anı DEĞİL. Hub'lar altındaki en yeni içeriğin tarihini taşır.
  */
 export default function sitemap(): MetadataRoute.Sitemap {
-  const simdi = new Date();
+  const { testler, defterler, atasozleri } = ICERIK_TARIHI;
+  const enYeni = new Date(Math.max(+testler, +defterler, +atasozleri));
   const girisler: MetadataRoute.Sitemap = [
-    { url: KOK, lastModified: simdi, priority: 1 },
-    { url: `${KOK}/konu-anlatimi`, lastModified: simdi, priority: 0.9 },
-    { url: `${KOK}/atasozleri-ve-deyimler`, lastModified: simdi, priority: 0.9 },
-    { url: `${KOK}/konu-testi`, lastModified: simdi, priority: 0.9 },
+    { url: KOK, lastModified: enYeni, priority: 1 },
+    { url: `${KOK}/konu-anlatimi`, lastModified: defterler, priority: 0.9 },
+    { url: `${KOK}/atasozleri-ve-deyimler`, lastModified: atasozleri, priority: 0.9 },
+    { url: `${KOK}/konu-testi`, lastModified: testler, priority: 0.9 },
   ];
 
   // Konu testleri: sınıf → ders → test. Asıl içerik en alttaki katmanda.
   for (const s of testAgaci()) {
-    girisler.push({ url: `${KOK}/konu-testi/${s.slug}`, lastModified: simdi, priority: 0.8 });
+    girisler.push({ url: `${KOK}/konu-testi/${s.slug}`, lastModified: testler, priority: 0.8 });
     for (const d of s.dersler) {
       girisler.push({
         url: `${KOK}/konu-testi/${s.slug}/${d.slug}`,
-        lastModified: simdi,
+        lastModified: testler,
         priority: 0.7,
       });
       for (const t of d.testler) {
         girisler.push({
           url: `${KOK}/konu-testi/${s.slug}/${d.slug}/${t.slug}`,
-          lastModified: simdi,
+          lastModified: testler,
           priority: 0.7,
         });
       }
@@ -39,17 +43,17 @@ export default function sitemap(): MetadataRoute.Sitemap {
   }
 
   for (const s of icerikAgaci()) {
-    girisler.push({ url: `${KOK}/konu-anlatimi/${s.slug}`, lastModified: simdi, priority: 0.8 });
+    girisler.push({ url: `${KOK}/konu-anlatimi/${s.slug}`, lastModified: defterler, priority: 0.8 });
     for (const d of s.dersler) {
       girisler.push({
         url: `${KOK}/konu-anlatimi/${s.slug}/${d.slug}`,
-        lastModified: simdi,
+        lastModified: defterler,
         priority: 0.7,
       });
       for (const u of d.uniteler) {
         girisler.push({
           url: `${KOK}/konu-anlatimi/${s.slug}/${d.slug}/${u.slug}`,
-          lastModified: simdi,
+          lastModified: defterler,
           priority: 0.7,
         });
       }
@@ -59,14 +63,14 @@ export default function sitemap(): MetadataRoute.Sitemap {
   for (const h of harfKumeleri()) {
     girisler.push({
       url: `${KOK}/atasozleri-ve-deyimler/${h.slug}`,
-      lastModified: simdi,
+      lastModified: atasozleri,
       priority: 0.6,
     });
   }
 
   // Hukuki/yardım sayfaları — içerik değil ama taranmalı.
   for (const yol of ["/gizlilik", "/sartlar", "/hesap-silme", "/yardim"]) {
-    girisler.push({ url: `${KOK}${yol}`, lastModified: simdi, priority: 0.3 });
+    girisler.push({ url: `${KOK}${yol}`, lastModified: enYeni, priority: 0.3 });
   }
 
   return girisler;
