@@ -17,9 +17,8 @@ import { sendPasswordResetEmail } from "firebase/auth";
 import Kabuk from "../../Kabuk";
 import { auth } from "../../../lib/firebase";
 import { useOturum } from "../../../lib/oturum";
-import { AvatarSecimi } from "../../kayit/parcalar";
+import AvatarSecici from "../AvatarSecici";
 import {
-  avatarDegistir,
   KullaniciAdiAlinmis,
   kullaniciAdiDegistir,
   kullaniciAdiDurumu,
@@ -67,9 +66,8 @@ function Icerik() {
   const [hata, setHata] = useState<string | null>(null);
   const [bilgi, setBilgi] = useState<string | null>(null);
 
-  const [avatar, setAvatar] = useState(profil?.avatar || "profil0");
+  const avatar = profil?.avatar || "profil0";
   const [avatarAcik, setAvatarAcik] = useState(false);
-  const [avatarKaydediyor, setAvatarKaydediyor] = useState(false);
   const [parolaGonderiliyor, setParolaGonderiliyor] = useState(false);
 
   // Profil sonradan gelirse alanları bir kez doldur
@@ -78,7 +76,6 @@ function Icerik() {
     if (doldurulduRef.current || !profil) return;
     doldurulduRef.current = true;
     setAd(profil.kullaniciAdi ?? "");
-    setAvatar(profil.avatar || "profil0");
   }, [profil]);
 
   // Android'deki 500 ms gecikmeli müsaitlik kontrolü
@@ -139,29 +136,6 @@ function Icerik() {
     }
   }
 
-  // Android'de avatar seçiciye dokunulduğu AN kaydediliyor — ayrı Kaydet yok
-  async function avatarSec(yeni: string) {
-    if (!kullanici || avatarKaydediyor || yeni === avatar) return;
-    const onceki = avatar;
-    setAvatar(yeni);
-    setAvatarKaydediyor(true);
-    setHata(null);
-    setBilgi(null);
-    try {
-      // ⚠️ Lig satırına KAYITLI ad yazılır, kutuya yazılmış olan değil: kullanıcı yeni bir
-      // ad yazıp kaydetmeden avatara dokunursa sahiplenmediği ad liglerde görünürdü.
-      await avatarDegistir(kullanici.uid, yeni, kayitliAd || profil?.adSoyad || "Sen");
-      await profiliYenile();
-      setAvatarAcik(false);
-      setBilgi("Avatarın güncellendi.");
-    } catch {
-      setAvatar(onceki);
-      setHata("Avatar kaydedilemedi. Bağlantını kontrol edip tekrar dene.");
-    } finally {
-      setAvatarKaydediyor(false);
-    }
-  }
-
   // Uygulamada parola ekranda değiştiriliyor; web'de Firebase yeniden kimlik doğrulama
   // istediği için sıfırlama bağlantısı gönderiliyor (bağlantı /sifre-sifirla'ya düşüyor).
   async function parolaSifirlamaGonder() {
@@ -195,7 +169,6 @@ function Icerik() {
           type="button"
           onClick={() => setAvatarAcik(true)}
           aria-label="Avatarı değiştir"
-          disabled={avatarKaydediyor}
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={`/uygulama/avatar/${avatar}.png`} alt="" />
@@ -281,24 +254,11 @@ function Icerik() {
         </p>
       )}
 
-      {avatarAcik && (
-        <div className="bk-ortu" onClick={() => !avatarKaydediyor && setAvatarAcik(false)}>
-          <div className="bk-kart bk-soru-kutu" onClick={(e) => e.stopPropagation()}>
-            <h3>Avatarını Seç</h3>
-            <div style={{ opacity: avatarKaydediyor ? 0.6 : 1, marginTop: 12 }}>
-              <AvatarSecimi secili={avatar} sec={avatarSec} />
-            </div>
-            <button
-              className="bk-dugme acik tam"
-              style={{ marginTop: 14 }}
-              disabled={avatarKaydediyor}
-              onClick={() => setAvatarAcik(false)}
-            >
-              {avatarKaydediyor ? "Kaydediliyor…" : "Kapat"}
-            </button>
-          </div>
-        </div>
-      )}
+      <AvatarSecici
+        acik={avatarAcik}
+        kapat={() => setAvatarAcik(false)}
+        onSonuc={(r) => { setHata(null); setBilgi(null); (r.tamam ? setBilgi : setHata)(r.mesaj); }}
+      />
     </>
   );
 }

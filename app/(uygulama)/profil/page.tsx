@@ -3,7 +3,8 @@
 // Profil — uygulamadaki ProfileScreen'in web karşılığı:
 // avatar kartı, ad + kullanıcı adı + sınıf hapı, lig/seri/puan paneli.
 // Sınıf hapı TIKLANABİLİR: sınıf değişince uygulamanın tamamı (ders/ünite/konu/XP/lig/
-// istatistik) yeni sınıfa geçer. Avatar değiştirme hâlâ mobilde.
+// istatistik) yeni sınıfa geçer. Avatar kartındaki kalem seçiciyi açar (21 Eyl'e kadar
+// yalnız Hesap ekranındaydı; görsel değiştirmek için oraya gitmek gerekiyordu).
 
 import Link from "next/link";
 import { useState } from "react";
@@ -15,6 +16,8 @@ import { useBasarimlar, useRozetler, useUstBilgi } from "../../lib/canliVeri";
 import { ligBul } from "../../lib/veri";
 import { BASARIMLAR, onizlemeRozetleri, sonrakiEsik } from "../basarimlar/basarimlar";
 import BasarimSatiri from "../basarimlar/BasarimSatiri";
+import Bekleme from "../Bekleme";
+import AvatarSecici from "./AvatarSecici";
 
 const LIG_ADI: Record<string, string> = {
   baslangic: "BAŞLANGIÇ", gelisim: "GELİŞİM", ustalik: "USTALIK",
@@ -48,12 +51,15 @@ function Icerik() {
   const [sinifAcik, setSinifAcik] = useState(false);
   const [kaydediyor, setKaydediyor] = useState(false);
   const [sinifHatasi, setSinifHatasi] = useState<string | null>(null);
+  const [avatarAcik, setAvatarAcik] = useState(false);
   // Seri / puan CANLI (sağ rayla aynı kaynak, ikinci okuma yok).
   // Başarımlar ve rozetler kasten açılan detay → her açılışta taze okunuyor.
   const ust = useUstBilgi(sinif);
   // Başarım ve rozetler de CANLI: Başarımlar/Rozetler sayfalarıyla aynı abonelikleri
   // paylaşıyor, ekranlar arası gidip gelmek yeniden okuma yapmıyor.
-  const basarimlar = useBasarimlar(sinif) ?? {};
+  // `null` = henüz bilinmiyor → iskelet. Sıfırla çizilirse veri gelince çubuk 0→değer kayıyor ve
+  // "en yakın üç" seçimi değişip satırlar yer değiştiriyordu (sekmede ilk açılış).
+  const basarimlar = useBasarimlar(sinif);
   const rozetler = useRozetler() ?? [];
 
   if (!kullanici) {
@@ -78,7 +84,17 @@ function Icerik() {
       <div className="bk-avatar-kart">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={`/uygulama/avatar/${avatar}.png`} alt="" />
+        <button
+          type="button"
+          className="bk-avatar-duzenle"
+          onClick={() => setAvatarAcik(true)}
+          aria-label="Avatarı değiştir"
+          title="Avatarı değiştir"
+        >
+          ✎
+        </button>
       </div>
+      <AvatarSecici acik={avatarAcik} kapat={() => setAvatarAcik(false)} />
 
       <div className="bk-profil-ad">
         <div style={{ flex: 1, minWidth: 0 }}>
@@ -134,11 +150,15 @@ function Icerik() {
           <h3>Başarılar</h3>
           <Link href="/basarimlar">TÜMÜNÜ GÖSTER</Link>
         </div>
-        <div className="bk-basarim-liste">
-          {enYakinUcu(basarimlar).map((b) => (
-            <BasarimSatiri key={b.id} b={b} deger={basarimlar[b.id] ?? 0} />
-          ))}
-        </div>
+        {basarimlar === null ? (
+          <Bekleme satir={3} yukseklik={84} />
+        ) : (
+          <div className="bk-basarim-liste">
+            {enYakinUcu(basarimlar).map((b) => (
+              <BasarimSatiri key={b.id} b={b} deger={basarimlar[b.id] ?? 0} />
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Rozetler */}
@@ -168,8 +188,8 @@ function Icerik() {
         </div>
         <p className="bk-soluk" style={{ fontSize: 14, marginBottom: 14 }}>
           {profil?.eposta ? `${profil.eposta} · ` : ""}
-          Sınıfını yukarıdaki sınıf kutusundan, kullanıcı adını ve avatarını
-          Hesap ekranından değiştirebilirsin.
+          Sınıfını yukarıdaki sınıf kutusundan, avatarını üstteki kalemden,
+          kullanıcı adını Hesap ekranından değiştirebilirsin.
         </p>
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
           <Link className="bk-dugme" href="/profil/duzenle">Hesap</Link>
