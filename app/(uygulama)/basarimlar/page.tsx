@@ -6,6 +6,7 @@ import Link from "next/link";
 import Kabuk from "../Kabuk";
 import { useOturum } from "../../lib/oturum";
 import { useBasarimlar } from "../../lib/canliVeri";
+import Bekleme from "../Bekleme";
 import { BASARIMLAR } from "./basarimlar";
 import BasarimSatiri from "./BasarimSatiri";
 
@@ -46,11 +47,16 @@ function Icerik() {
         <h1>Tüm başarılar</h1>
       </div>
 
-      <div className="bk-basarim-liste">
-        {BASARIMLAR.map((b) => (
-          <BasarimSatiri key={b.id} b={b} deger={sayilar?.[b.id] ?? 0} />
-        ))}
-      </div>
+      {/* `null` = henüz bilinmiyor → iskelet; sıfırla çizilirse veri gelince çubuklar 0'dan kayıyordu */}
+      {sayilar === null ? (
+        <Bekleme satir={BASARIMLAR.length} yukseklik={84} />
+      ) : (
+        <div className="bk-basarim-liste">
+          {BASARIMLAR.map((b) => (
+            <BasarimSatiri key={b.id} b={b} deger={sayilar[b.id] ?? 0} />
+          ))}
+        </div>
+      )}
     </>
   );
 }

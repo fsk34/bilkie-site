@@ -189,9 +189,15 @@ function Icerik() {
                   </div>
                 </button>
 
-                {/* Konu Defteri | Quiz hapları (eski defter sayfasından); quiz bitince yeşil "Tamamlandı" stili */}
+                {/* Konu Defteri | Quiz hapları (eski defter sayfasından); bitince yeşil "Tamamlandı" stili.
+                    Defter için bu hal 21 Eyl'e kadar yoktu: okunan defter hap üstünde görünmüyordu
+                    (yalnız ünite çubuğuna yansıyordu). Quiz ile aynı kalıp. */}
                 <div className="bk-akordiyon-haplar">
-                  {!u.defterYok && (
+                  {!u.defterYok && (defter[defterAnahtari]?.bitti ? (
+                    <Link className="bk-konu-dugme" href={`/defter/${dersKey}/${defterAnahtari}`} data-durum="bitti">
+                      ✎ Konu Defteri ✔
+                    </Link>
+                  ) : (
                     <Link
                       className="bk-konu-dugme"
                       href={`/defter/${dersKey}/${defterAnahtari}`}
@@ -199,7 +205,7 @@ function Icerik() {
                     >
                       ✎ Konu Defteri
                     </Link>
-                  )}
+                  ))}
                   {bitenQuizler[quizAnahtari] ? (
                     <Link className="bk-konu-dugme" href={`/quiz/${dersKey}/${quizAnahtari}`} data-durum="bitti">
                       ✓ Quiz ✔

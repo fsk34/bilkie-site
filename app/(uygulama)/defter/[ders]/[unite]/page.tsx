@@ -6,6 +6,7 @@
 
 import Link from "next/link";
 import Perde from "../../../Perde";
+import UcNokta from "../../../UcNokta";
 import SonucAkisi, { type SeriArgs } from "../../../sonuc/SonucAkisi";
 import { gorevOlayiUygula, type GorevDegisimi } from "../../../../lib/gorevYaz";
 import { useParams } from "next/navigation";
@@ -216,9 +217,12 @@ export default function DefterOkuyucuSayfasi() {
           aria-label="Önceki sayfa"
         >‹</button>
 
+        {/* Son sayfa: kayıt sırasında metin yerine üç nokta (Android/iOS ile aynı); genişlik sabit
+            kalsın diye metin görünmez tutulur, noktalar üstüne biner. */}
         {sonSayfa ? (
-          <button className="bk-defter-bitir" onClick={bitir} disabled={kaydediliyor}>
-            {kaydediliyor ? "Kaydediliyor…" : "Devam Et"}
+          <button className="bk-defter-bitir" onClick={bitir} disabled={kaydediliyor} data-bekliyor={kaydediliyor}>
+            <span>Devam Et</span>
+            {kaydediliyor && <UcNokta boyut={8} aralik={6} etiket="Kaydediliyor" />}
           </button>
         ) : (
           <span className="bk-defter-sayac" style={{ minWidth: 70, textAlign: "center" }}>
