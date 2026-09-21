@@ -1,0 +1,102 @@
+{
+  "title": "Geometrik Nicelikler",
+  "pages": [
+    {
+      "pageNo": 1,
+      "blocks": [
+        { "type": "title", "text": "Ünite 4 Geometrik Nicelikler" },
+        { "type": "subtitle", "text": "1. Uzunluk Ölçme Birimleri" },
+        { "type": "paragraph", "text": "Uzunluk ölçmenin temel birimi metredir (m). Metrenin katları büyük uzunlukları, askatları küçük uzunlukları ölçmek için kullanılır. Birimler arasında geçiş yapılırken her basamak 10 kat büyür ya da küçülür." },
+        { "type": "table", "headers": ["Birim", "Kısaltma", "Metre Cinsinden"], "rows": [
+          ["Kilometre", "km", "1000 m"],
+          ["Metre", "m", "1 m"],
+          ["Desimetre", "dm", "0,1 m"],
+          ["Santimetre", "cm", "0,01 m"],
+          ["Milimetre", "mm", "0,001 m"]
+        ] },
+        { "type": "rule", "text": "Büyük birimden küçük birime geçerken ÇARPILIR, küçük birimden büyük birime geçerken BÖLÜNÜR. Her komşu basamak için çarpan 10'dur." },
+        { "type": "example", "text": "3,5 km kaç metredir? → 3,5 × 1000 = 3500 m. 250 cm kaç metredir? → 250 ÷ 100 = 2,5 m." },
+        { "type": "warning", "text": "Sonuç yazılırken birim mutlaka belirtilmelidir. \"3500\" tek başına bir uzunluk değildir; \"3500 m\" bir uzunluktur." }
+      ]
+    },
+    {
+      "pageNo": 2,
+      "blocks": [
+        { "type": "subtitle", "text": "2. Alan Ölçme Birimleri" },
+        { "type": "paragraph", "text": "Alan, bir yüzeyin kapladığı büyüklüktür ve kare birimlerle ölçülür. Temel alan birimi metrekaredir (m²): bir kenarı 1 m olan karenin alanı 1 m²'dir. Uzunluk birimleri arasında geçiş 10 katken, alan birimlerinde geçiş 100 kattır; çünkü hem en hem boy 10 kat değişir." },
+        { "type": "table", "headers": ["Birim", "Kısaltma", "Metrekare Cinsinden"], "rows": [
+          ["Kilometrekare", "km²", "1 000 000 m²"],
+          ["Metrekare", "m²", "1 m²"],
+          ["Desimetrekare", "dm²", "0,01 m²"],
+          ["Santimetrekare", "cm²", "0,0001 m²"]
+        ] },
+        { "type": "definition", "term": "Arazi Ölçüleri", "text": "Tarla, bahçe gibi büyük yüzeyler için kullanılan alan birimleridir. 1 ar (a) = 100 m², 1 dekar (daa, halk dilinde dönüm) = 1000 m², 1 hektar (ha) = 10 000 m²'dir." },
+        { "type": "example", "text": "2 m² kaç cm²'dir? → 1 m² = 10 000 cm² olduğundan 2 × 10 000 = 20 000 cm². 5 dönüm kaç m²'dir? → 5 × 1000 = 5000 m²." },
+        { "type": "warning", "text": "En sık yapılan hata alan dönüşümünde 10 ile çarpmaktır. 1 m² = 100 dm² = 10 000 cm²'dir; uzunluktaki 10 kat, alanda 100 kata dönüşür." }
+      ]
+    },
+    {
+      "pageNo": 3,
+      "blocks": [
+        { "type": "subtitle", "text": "3. Dikdörtgen ve Paralelkenarın Alanı" },
+        { "type": "definition", "term": "Dikdörtgenin Alanı", "text": "Dikdörtgenin alanı, uzun kenar ile kısa kenarın çarpımına eşittir. Karede bütün kenarlar eşit olduğu için alan, bir kenarın kendisiyle çarpımıdır." },
+        { "type": "formula", "text": "Dikdörtgen: Alan = uzun kenar × kısa kenar   |   Kare: Alan = kenar × kenar" },
+        { "type": "example", "text": "Uzun kenarı 8 cm, kısa kenarı 5 cm olan dikdörtgenin alanı: 8 × 5 = 40 cm²." },
+        { "type": "definition", "term": "Paralelkenarın Alanı", "text": "Paralelkenarın alanı, bir kenarı ile o kenara ait yüksekliğin çarpımıdır. Yükseklik, seçilen kenara karşı köşeden indirilen dik doğru parçasıdır; yan kenarın uzunluğu yükseklik DEĞİLDİR." },
+        { "type": "formula", "text": "Paralelkenar: Alan = taban × yükseklik" },
+        { "type": "paragraph", "text": "Bir paralelkenarın bir ucundaki üçgen kesilip diğer uca taşınırsa dikdörtgen elde edilir. Bu yüzden paralelkenarın alan formülü dikdörtgeninkiyle aynı mantığa dayanır." },
+        { "type": "example", "text": "Tabanı 12 cm, bu tabana ait yüksekliği 7 cm olan paralelkenarın alanı: 12 × 7 = 84 cm². Yan kenarı 9 cm olsa bile bu değer hesaba girmez." }
+      ]
+    },
+    {
+      "pageNo": 4,
+      "blocks": [
+        { "type": "subtitle", "text": "4. Üçgenin Alanı" },
+        { "type": "paragraph", "text": "Her paralelkenar bir köşegeniyle iki eş üçgene bölünür. Bu yüzden bir üçgenin alanı, aynı taban ve yüksekliğe sahip paralelkenarın alanının yarısıdır." },
+        { "type": "formula", "text": "Üçgen: Alan = (taban × yükseklik) ÷ 2" },
+        { "type": "rule", "text": "Yükseklik, seçilen tabana karşı köşeden tabana (ya da tabanın uzantısına) indirilen dik doğru parçasıdır. Üç kenardan hangisi taban seçilirse o kenara ait yükseklik kullanılır." },
+        { "type": "example", "text": "Tabanı 10 cm, yüksekliği 6 cm olan üçgenin alanı: (10 × 6) ÷ 2 = 30 cm²." },
+        { "type": "example", "text": "Dik üçgende dik kenarlardan biri taban, diğeri yükseklik olarak alınabilir. Dik kenarları 5 cm ve 12 cm olan dik üçgenin alanı: (5 × 12) ÷ 2 = 30 cm²." },
+        { "type": "problem", "title": "Vaka: Bileşik Şekil", "text": "Bir bahçe, 20 m × 15 m'lik bir dikdörtgen ile dikdörtgenin uzun kenarına bitişik, yüksekliği 8 m olan bir üçgenden oluşuyor. Bahçenin toplam alanı bulunacaktır." },
+        { "type": "steps", "title": "Çözüm Adımları", "steps": [
+          "Dikdörtgenin alanı: 20 × 15 = 300 m².",
+          "Üçgenin tabanı dikdörtgenin uzun kenarıdır: 20 m. Alanı: (20 × 8) ÷ 2 = 80 m².",
+          "Toplam alan: 300 + 80 = 380 m²."
+        ] }
+      ]
+    },
+    {
+      "pageNo": 5,
+      "blocks": [
+        { "type": "subtitle", "text": "5. Çember, Daire ve Çemberin Uzunluğu" },
+        { "type": "definition", "term": "Çember", "text": "Düzlemde sabit bir noktaya (merkez) eşit uzaklıktaki noktaların oluşturduğu kapalı eğridir. Çember yalnızca çizgidir; iç bölgesi yoktur." },
+        { "type": "definition", "term": "Daire", "text": "Çember ile çemberin iç bölgesinin birleşimidir. Çemberin uzunluğu, dairenin ise alanı hesaplanır." },
+        { "type": "definition", "term": "Yarıçap ve Çap", "text": "Merkezi çember üzerindeki bir noktaya birleştiren doğru parçası yarıçaptır (r). Merkezden geçen ve iki ucu çember üzerinde olan doğru parçası çaptır; çap yarıçapın 2 katıdır." },
+        { "type": "definition", "term": "Pi Sayısı (π)", "text": "Herhangi bir çemberin uzunluğunun çapına oranıdır. Çemberin büyüklüğü ne olursa olsun bu oran değişmez; yaklaşık 3,14 alınır. Sorularda genellikle π = 3 kabul edilir." },
+        { "type": "formula", "text": "Çemberin uzunluğu = 2 × π × r  =  π × çap" },
+        { "type": "example", "text": "Yarıçapı 7 cm olan çemberin uzunluğu (π = 3): 2 × 3 × 7 = 42 cm. Çapı 10 cm olan çemberin uzunluğu: 3 × 10 = 30 cm." },
+        { "type": "definition", "term": "Merkez Açı", "text": "Köşesi çemberin merkezinde olan açıdır. Merkez açı, gördüğü yayın ölçüsüne eşittir. Tam çember 360°'dir; 90°'lik merkez açı çemberin dörtte birini, 180°'lik merkez açı yarısını görür." },
+        { "type": "example", "text": "Yarıçapı 6 cm olan çemberde 60°'lik merkez açının gördüğü yayın uzunluğu: 60/360 = 1/6 olduğundan çemberin uzunluğunun altıda biri alınır. Çember uzunluğu 2 × 3 × 6 = 36 cm; yay uzunluğu 36 ÷ 6 = 6 cm." }
+      ]
+    },
+    {
+      "pageNo": 6,
+      "blocks": [
+        { "type": "subtitle", "text": "6. Dairenin Alanı ve Uygulama Stratejileri" },
+        { "type": "formula", "text": "Dairenin alanı = π × r × r" },
+        { "type": "example", "text": "Yarıçapı 5 cm olan dairenin alanı (π = 3): 3 × 5 × 5 = 75 cm². Çapı 8 cm verilmişse önce yarıçap bulunur: r = 4, alan = 3 × 4 × 4 = 48 cm²." },
+        { "type": "paragraph", "text": "Merkez açıyla sınırlanan daire dilimi, dairenin alanının açı oranı kadarıdır. 90°'lik dilimin alanı dairenin alanının dörtte biridir." },
+        { "type": "example", "text": "Yarıçapı 10 cm olan dairede 90°'lik dilimin alanı: daire alanı 3 × 10 × 10 = 300 cm², dilim 300 ÷ 4 = 75 cm²." },
+        { "type": "strategy", "title": "Öğrenme Stratejileri ve Tavsiyeler" },
+        { "type": "list", "items": [
+          "Soruya başlamadan bütün uzunlukları AYNI birime çevir; cm ile m karışık işleme girmez.",
+          "Çevre uzunluk birimiyle (cm, m), alan kare birimle (cm², m²) yazılır. Birim yanlışsa cevap yanlıştır.",
+          "Paralelkenar ve üçgende yükseklik ile yan kenarı karıştırma; formüle yalnız dik olan girer.",
+          "Çap verilmişse çember/daire formülüne girmeden önce ikiye bölerek yarıçapı bul.",
+          "Bileşik şekilleri dikdörtgen, üçgen, yarım daire gibi tanıdığın parçalara ayır; alanları topla ya da çıkar.",
+          "Merkez açı sorularında açının 360°'ye oranını bul; çember uzunluğunu ya da daire alanını bu oranla çarp."
+        ] }
+      ]
+    }
+  ]
+}
