@@ -98,9 +98,9 @@ export default function BilgieKocBolumu({ uid, sinif, dersKey, onDersSec }: { ui
 /* ------------------------------------------------------------ bölüm başlığı */
 /* Her bölüm aynı kalıp: simge kutusu + başlık (+ tek satır açıklama, + sağda bağlantı). */
 
-function Baslik({ simge, baslik, alt, sag }: { simge: ReactNode; baslik: string; alt?: string; sag?: ReactNode }) {
+function Baslik({ simge, baslik, alt, sag, maskot }: { simge: ReactNode; baslik: string; alt?: string; sag?: ReactNode; maskot?: boolean }) {
   return (
-    <div className="bk-koc-baslik">
+    <div className={maskot ? "bk-koc-baslik bk-koc-baslik-maskot" : "bk-koc-baslik"}>
       <span className="simge">{simge}</span>
       <div className="metin">
         <h3>{baslik}</h3>
@@ -118,7 +118,8 @@ function Gozlemler({ gozlemler }: { gozlemler: KocGozlem[] }) {
     <section className="bk-koc-bolum bk-koc-gozlemler">
       <Baslik
         /* eslint-disable-next-line @next/next/no-img-element */
-        simge={<img src="/bilkie-ikon.png" alt="" />}
+        simge={<img src="/bilgie-koc.png" alt="" />}
+        maskot
         baslik="Bilgie ne diyor?"
         alt={gozlemler.length === 0 ? "Bugün her şey yolunda görünüyor." : `Bugün sana ${gozlemler.length} şey söyleyeceğim.`}
       />

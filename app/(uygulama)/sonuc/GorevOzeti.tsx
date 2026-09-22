@@ -9,6 +9,7 @@
 // gösterilmez (akış onu zaten atlar).
 
 import { useEffect, useState } from "react";
+import { ayVurgu } from "../../lib/ayGorsel";
 import { sesCal } from "../ses";
 import type { GorevDegisimi } from "../../lib/gorevYaz";
 
@@ -18,8 +19,8 @@ const BOLUM_ADI: Record<GorevDegisimi["donem"], string> = {
   aylik: "Aylık Görevler",
 };
 
-/** Aylık dolgu renkleri — Görevler ekranındakiyle aynı (uygulamadaki monthFill). */
-const AY_RENK = ["#F8B9C3", "#F8B9C3", "#FFB63B", "#A7F432", "#FAD785", "#D3211B"];
+// Ay rengi tek kaynaktan (ayGorsel.ts): burada 6 aylık eski bir tablo duruyordu, Eylül'de
+// undefined → Ocak pembesine düşüyordu; ana ekran/Görevler turuncuydu (kullanıcı fark etti, 22 Eyl)
 
 export default function GorevOzeti({
   degisenler,
@@ -30,7 +31,7 @@ export default function GorevOzeti({
 }) {
   // Kaç satırın canlanması bittiğini tutar; sıradaki satır bir öncekini bekler.
   const [acikIndeks, setAcikIndeks] = useState(0);
-  const renk = AY_RENK[new Date().getMonth()] ?? AY_RENK[0];
+  const renk = ayVurgu(new Date().getMonth());
 
   const bolumler: GorevDegisimi["donem"][] = ["gunluk", "haftalik", "aylik"];
   const sirali = bolumler.flatMap((b) => degisenler.filter((d) => d.donem === b));

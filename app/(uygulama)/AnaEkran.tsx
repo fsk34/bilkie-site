@@ -342,7 +342,7 @@ function BilkieAIKutusu({ sinif, uid, veri, devam, yazili, seri }: {
       {/* Başlığın kendisi İstatistik → Bilgie Koç'a gider; küçük › tıklanabilirliği söyler */}
       <Link href="/istatistik?sekme=koc" className="bk-koc-bas" aria-label="Bilgie Koç'un tüm gözlemleri">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/bilkie-ikon.png" alt="" />
+        <img src="/bilgie-koc.png" alt="" />
         <h3>Bilgie Koç</h3>
         <span className="ok">›</span>
       </Link>

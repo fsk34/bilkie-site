@@ -10,7 +10,7 @@
 
 import { get, ref as dbRef, set } from "firebase/database";
 import { kullaniciDb, quizDb } from "./firebase";
-import { gorevOlayiUygula } from "./gorevYaz";
+import { gorevOlayiUygula, type GorevDegisimi } from "./gorevYaz";
 import { onbellekli } from "./onbellek";
 import { sinifSinirla, xpEkle } from "./veri";
 
@@ -163,7 +163,7 @@ export async function quizBitenler(
   }
 }
 
-export type QuizBitisSonucu = { ilkKez: boolean; xp: number };
+export type QuizBitisSonucu = { ilkKez: boolean; xp: number; gorevler: GorevDegisimi[] };
 
 /**
  * Quizi tamamla — Android: önce `quiz_done` okunur, daha önce bitmişse ÖDÜL VERİLMEZ.
@@ -173,13 +173,15 @@ export async function quizTamamla(
   uid: string, sinif: number, dersKey: string, uniteKey: string
 ): Promise<QuizBitisSonucu> {
   const g = sinifSinirla(sinif);
-  if (await quizBittiMi(uid, g, dersKey, uniteKey)) return { ilkKez: false, xp: 0 };
+  if (await quizBittiMi(uid, g, dersKey, uniteKey)) return { ilkKez: false, xp: 0, gorevler: [] };
 
   await set(dbRef(kullaniciDb, quizBittiYolu(uid, g, dersKey, uniteKey)), true);
   await xpEkle(uid, g, XP_QUIZ_TAMAM, `quiz_${dersKey}_${uniteKey}`);
-  // "Bir quiz tamamla" görevi (quiz_complete) — yalnız ilk bitişte, XP'yi engellemesin
-  try { await gorevOlayiUygula(uid, { tip: "quiz_bitti", sinif: g }); } catch { /* görev yazılamazsa quiz yine bitti */ }
-  return { ilkKez: true, xp: XP_QUIZ_TAMAM };
+  // "Bir quiz tamamla" görevi (quiz_complete) — yalnız ilk bitişte, XP'yi engellemesin.
+  // Değişimler sayfaya döner: test/defterdeki görev özeti sahnesi quizde de oynar (22 Eyl).
+  let gorevler: GorevDegisimi[] = [];
+  try { gorevler = await gorevOlayiUygula(uid, { tip: "quiz_bitti", sinif: g }); } catch { /* görev yazılamazsa quiz yine bitti */ }
+  return { ilkKez: true, xp: XP_QUIZ_TAMAM, gorevler };
 }
 
 /** Sınıfın TÜM derslerinin bitmiş quizleri tek okumada (canlı abonelik istemeyen yerler için). */

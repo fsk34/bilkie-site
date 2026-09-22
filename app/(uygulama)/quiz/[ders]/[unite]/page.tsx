@@ -21,6 +21,8 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Perde from "../../../Perde";
+import SonucAkisi from "../../../sonuc/SonucAkisi";
+import type { GorevDegisimi } from "../../../../lib/gorevYaz";
 import { useOturum } from "../../../../lib/oturum";
 import { sesCal } from "../../../ses";
 import {
@@ -31,7 +33,7 @@ import {
   type QuizUnitesi,
 } from "../../../../lib/quiz";
 
-type Durum = "yukleniyor" | "hata" | "oynaniyor" | "bitti";
+type Durum = "yukleniyor" | "hata" | "oynaniyor" | "kaydediliyor" | "bitti";
 
 /** Deterministik olmayan karıştırma (Android: `shuffled()`). */
 function karistir<T>(dizi: T[]): T[] {
@@ -85,25 +87,45 @@ export default function QuizSayfasi() {
     return veri.ciftler.slice(sayfa * veri.sayfaBoyu, (sayfa + 1) * veri.sayfaBoyu);
   }, [veri, sayfa]);
 
+  // Görev özeti (defter sayfasıyla aynı kalıp): quiz görevi ilerlediyse bitiş perdesinden ÖNCE oynar
+  const [gorevDegisimleri, setGorevDegisimleri] = useState<GorevDegisimi[]>([]);
+  const gorevSozu = useMemo(() => Promise.resolve(gorevDegisimleri), [gorevDegisimleri]);
+
   const bitir = useCallback(async () => {
-    setDurum("bitti");
-    if (!kullanici) return;
+    if (!kullanici) { setDurum("bitti"); return; }
+    // Yazma bitmeden "tamamlandı" perdesi gelmesin: önce görev özeti (varsa), sonra perde
+    setDurum("kaydediliyor");
     try {
       const s = await quizTamamla(kullanici.uid, sinif, dersKey, uniteKey);
       setKazanilanXp(s.xp);
       setIlkKez(s.ilkKez);
+      setGorevDegisimleri(s.gorevler);
     } catch {
       /* yazma hatası bitiş ekranını engellemesin */
     }
+    setDurum("bitti");
   }, [kullanici, sinif, dersKey, uniteKey]);
 
   if (durum === "yukleniyor") return <Perde metin="Quiz yükleniyor…" nokta />;
+  if (durum === "kaydediliyor") return <Perde metin="Kaydediliyor…" nokta />;
 
   if (durum === "hata") {
     return (
       <Perde metin="Bu ünite için quiz bulunamadı.">
         <Link className="bk-dugme" href={geriYolu}>Ünitelere dön</Link>
       </Perde>
+    );
+  }
+
+  if (gorevDegisimleri.length > 0) {
+    return (
+      <SonucAkisi
+        sonuc={null}
+        seriSozu={null}
+        gorevSozu={gorevSozu}
+        uid={kullanici?.uid ?? null}
+        onBitti={() => setGorevDegisimleri([])}
+      />
     );
   }
 
