@@ -477,7 +477,7 @@
   .bk-devam { padding: 14px; }
   .bk-devam h2 { font-size: 18px; }
   .bk-devam > img { display: none; }
-  /* Telefonda 2×2: "Ünite | Konu" / "Test Tamamlandı | Defter Bitti"; ayırıcı yalnız sağ sütunda */
+  /* Telefonda 2×2: "Ünite | Konu" / "Test Bitti | Defter Bitti"; ayırıcı yalnız sağ sütunda */
   .ozet-satir { display: grid; grid-template-columns: auto 1fr; gap: 8px 0; }
   .ozet-satir span:nth-child(odd)::before { display: none; }
   .ozet-satir span + span::before { margin: 0 10px; }

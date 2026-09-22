@@ -151,7 +151,7 @@ function Icerik() {
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <span><img src="/uygulama/ozet/konu.png" alt="" /><b>{konuSayisi}</b> Konu</span>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <span><img src="/uygulama/ozet/tamamlandi.png" alt="" /><b>{tamamlananTest}</b> Test Tamamlandı</span>
+            <span><img src="/uygulama/ozet/tamamlandi.png" alt="" /><b>{tamamlananTest}</b> Test Bitti</span>
             <span><b>{bitenDefter}</b> Defter Bitti</span>
           </div>
           <Link href={yaziliYolu} className="bk-sari-dugme" style={{ marginTop: 14 }}>📝 Yazılıya Hazırlık</Link>
