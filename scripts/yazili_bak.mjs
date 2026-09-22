@@ -1,0 +1,11 @@
+import "./_node_referer.mjs";
+import { initializeApp } from "firebase/app";
+import { getAuth, signInWithEmailAndPassword } from "firebase/auth";
+import { getDatabase, ref, get } from "firebase/database";
+const app = initializeApp({ apiKey: "AIzaSyCPam-DUCX9dbeXP0WQk6RSjDZxQiWztuA", authDomain: "turkce3-sinif.firebaseapp.com", projectId: "turkce3-sinif", appId: "1:899362595925:web:d288264eabeb402cf6a0dc" });
+await signInWithEmailAndPassword(getAuth(app), "database@bilkie.com", process.env.FIREBASE_PASS);
+const db = getDatabase(app, "https://yazililar.europe-west1.firebasedatabase.app");
+const y = "writtenQuestions/grade4/fen/term1_exam1/steps/step2/dogruyanlis";
+const v = (await get(ref(db, y))).val();
+console.log(y, "→", v ? JSON.stringify(v).slice(0,400) : v);
+process.exit(0);

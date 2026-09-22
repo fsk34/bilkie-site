@@ -1,0 +1,11 @@
+import "./_node_referer.mjs";
+import { initializeApp } from "firebase/app";
+import { getAuth, signInWithEmailAndPassword } from "firebase/auth";
+import { getDatabase, ref, get } from "firebase/database";
+const app = initializeApp({ apiKey: "AIzaSyCPam-DUCX9dbeXP0WQk6RSjDZxQiWztuA", authDomain: "turkce3-sinif.firebaseapp.com", projectId: "turkce3-sinif", appId: "1:899362595925:web:d288264eabeb402cf6a0dc" });
+await signInWithEmailAndPassword(getAuth(app), "database@bilkie.com", process.env.FIREBASE_PASS);
+const db = getDatabase(app, "https://okbulmaca.europe-west1.firebasedatabase.app");
+const v = { b0: (await get(ref(db, "bolumler/0"))).val(), b119: (await get(ref(db, "bolumler/119"))).val() };
+console.log("ilk bölüm:", JSON.stringify(v.b0).slice(0,150));
+console.log("son bölüm:", JSON.stringify(v.b119).slice(0,150));
+process.exit(0);
