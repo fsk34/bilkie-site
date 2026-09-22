@@ -4,15 +4,18 @@
 // Bölümler, satırlar, bağlantılar ve düğmeler birebir; renkler uygulamadan
 // (kart #10264A, çerçeve #28486B, vurgu #55C7FF, tehlike #FF4444).
 //
-// Web'de karşılığı olmayan iki satır:
+// Web'de karşılığı olmayan satır:
 //  • Bildirimler — tarayıcı bildirimi yok, ayar telefondaki uygulamada.
-//  • HESABI SİL — geri alınamaz ve yeniden kimlik doğrulaması gerektiriyor;
-//    web'den yapılmıyor, site zaten /hesap-silme sayfasında adımları anlatıyor.
+// HESABI SİL 22 Eyl 2026'dan beri web'de de çalışıyor (lib/hesapSil.ts, Android HesapSilme.kt ile
+// aynı liste): parola kullanıcısından parola istenir, Google kullanıcısı popup ile doğrulanır.
 
 import Link from "next/link";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Kabuk from "../Kabuk";
 import { useOturum } from "../../lib/oturum";
+import { hesabiTamamenSil, parolaGerekli, yenidenDogrula } from "../../lib/hesapSil";
+import { kayitHataMetni } from "../../lib/kayit";
 
 const BAGLANTILAR = [
   { ad: "ŞARTLAR", yol: "/sartlar" },
@@ -30,8 +33,36 @@ export default function AyarlarSayfasi() {
 
 function Icerik() {
   const { kullanici, cikisYap } = useOturum();
+  const router = useRouter();
   const [silmeUyarisi, setSilmeUyarisi] = useState(false);
   const [bildirimNotu, setBildirimNotu] = useState(false);
+  const [silmeParolasi, setSilmeParolasi] = useState("");
+  const [siliniyor, setSiliniyor] = useState(false);
+  const [silmeHatasi, setSilmeHatasi] = useState<string | null>(null);
+  const parolaIste = kullanici ? parolaGerekli(kullanici) : false;
+
+  // Android MainActivity onDeleteAccount: önce yeniden doğrula, sonra tüm izler, en son Auth
+  async function hesabiSil() {
+    if (!kullanici || siliniyor) return;
+    setSiliniyor(true);
+    setSilmeHatasi(null);
+    try {
+      await yenidenDogrula(kullanici, parolaIste ? silmeParolasi : null);
+      await hesabiTamamenSil(kullanici);
+      setSilmeUyarisi(false);
+      await cikisYap().catch(() => {});
+      router.replace("/giris");
+    } catch (err) {
+      const kod = (err as { code?: string })?.code ?? "";
+      setSilmeHatasi(
+        kod === "auth/wrong-password" || kod === "auth/invalid-credential"
+          ? "Parola yanlış, hesap silinmedi."
+          : (err as Error)?.message && !kod ? (err as Error).message : kayitHataMetni(err),
+      );
+    } finally {
+      setSiliniyor(false);
+    }
+  }
 
   return (
     <div className="bk-ayarlar">
@@ -87,12 +118,32 @@ function Icerik() {
       )}
 
       {silmeUyarisi && (
-        <Uyari
-          baslik="Hesabı Sil"
-          metin="Hesap silme geri alınamaz ve kimliğini yeniden doğrulamanı gerektiriyor; bu yüzden tarayıcıdan yapılmıyor. Adımlar hesap silme sayfasında anlatılıyor."
-          onKapat={() => setSilmeUyarisi(false)}
-          eylem={{ ad: "Nasıl silinir?", yol: "/hesap-silme" }}
-        />
+        <div className="bk-oyun-ortu hafif" onClick={() => !siliniyor && setSilmeUyarisi(false)}>
+          <div className="bk-oyun-onay" onClick={(e) => e.stopPropagation()}>
+            <div className="sor">Hesabı Sil</div>
+            <div className="not">
+              Hesabını silmek istediğine emin misin? Tüm ilerleme, başarılar ve verilerin kalıcı olarak silinecek ve kurtarılamayacak.
+            </div>
+            {parolaIste && (
+              <input
+                className="bk-onay-giris"
+                type="password"
+                placeholder="Parolan"
+                autoComplete="current-password"
+                value={silmeParolasi}
+                onChange={(e) => setSilmeParolasi(e.target.value)}
+                disabled={siliniyor}
+              />
+            )}
+            {silmeHatasi && <div className="not" style={{ color: "#ff6b6b" }}>{silmeHatasi}</div>}
+            <div className="ikili">
+              <button className="hayir" disabled={siliniyor} onClick={() => { setSilmeUyarisi(false); setSilmeParolasi(""); setSilmeHatasi(null); }}>Vazgeç</button>
+              <button className="evet" disabled={siliniyor || (parolaIste && !silmeParolasi)} onClick={hesabiSil}>
+                {siliniyor ? "Siliniyor…" : "Evet, Sil"}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

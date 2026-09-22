@@ -14,13 +14,17 @@
 
 import { useEffect, useRef } from "react";
 import { REKLAM_ISTEMCI, REKLAM_SLOT_OYUN, reklamAcikMi } from "../../lib/reklam";
+import { usePremium } from "../../lib/premium";
 
 export default function Reklam() {
   const yerRef = useRef<HTMLModElement | null>(null);
   const itildiRef = useRef(false);
+  // Tek reklam kapısı: premium'da hiç çizilmez (yer de ayrılmaz) — lib/premium
+  const { aktif: premium } = usePremium();
+  const goster = reklamAcikMi() && !premium;
 
   useEffect(() => {
-    if (!reklamAcikMi() || itildiRef.current || !yerRef.current) return;
+    if (!goster || itildiRef.current || !yerRef.current) return;
     itildiRef.current = true;   // React geliştirme kipi effect'i iki kez çağırıyor
     try {
       const w = window as unknown as { adsbygoogle?: unknown[] };
@@ -28,10 +32,10 @@ export default function Reklam() {
     } catch {
       /* reklam yüklenemezse oyun etkilenmesin */
     }
-  }, []);
+  }, [goster]);
 
-  // Slot tanımlı değilse hiçbir şey çizilmez — boş gri kutu görünmesin
-  if (!reklamAcikMi()) return null;
+  // Slot tanımlı değilse ya da premium ise hiçbir şey çizilmez — boş gri kutu görünmesin
+  if (!goster) return null;
 
   return (
     <div className="bk-reklam">

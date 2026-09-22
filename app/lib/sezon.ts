@@ -34,6 +34,11 @@ const LIG_DONEMLERI: [string, string][] = [
 /** Tablodaki ilk dönemden önceki tarihler için (mevcut veri burada). */
 const LIG_ESKI = "2025_2026_guz";
 
+/** Bugüne kadar var olmuş TÜM lig anahtarları (hesap silmede lig satırlarını dolaşmak için). Android: Sezon.tumLigAnahtarlari */
+export function tumLigAnahtarlari(): string[] {
+  return [LIG_ESKI, ...LIG_DONEMLERI.map(([, ad]) => ad)];
+}
+
 export function ligAnahtari(simdi: Date = new Date()): string {
   const bugun = gunAnahtari(simdi); // ISO biçimi → dize karşılaştırması tarih sırasıdır
   let anahtar = LIG_ESKI;

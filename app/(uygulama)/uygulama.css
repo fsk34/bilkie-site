@@ -418,7 +418,8 @@
 .bk-koc .bk-koc-dugme, .bk-yanlislarim .bk-koc-dugme { align-self: center; }
 /* Başlık = bağlantı (İstatistik → Bilgie Koç): ikon + ad ortada, yanında küçük yuvarlak › */
 .bk-koc-bas { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 10px; text-decoration: none; color: inherit; }
-.bk-koc-bas img { width: 34px; height: 34px; border-radius: 10px; }
+/* Bilgie Koç maskotu (gözlüklü, kitaplı kedi — 22 Eyl): şeffaf PNG, karo yok; 34px'te parmak/balon eriyordu → 56px */
+.bk-koc-bas img { width: 56px; height: 56px; }
 .bk-koc-bas h3 { margin: 0; }
 .bk-koc-bas .ok {
   width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; margin-left: 2px;
@@ -723,6 +724,13 @@
 }
 .bk-oyun-onay .hayir { background: #1e2a4a; }
 .bk-oyun-onay .evet { background: #ff4444; }
+.bk-oyun-onay .ikili button:disabled { opacity: .5; cursor: default; }
+/* Hesap silme: parola kullanıcısında yeniden doğrulama alanı */
+.bk-onay-giris {
+  width: 100%; height: 44px; padding: 0 12px; box-sizing: border-box; border-radius: 10px;
+  border: 1px solid #28486b; background: #10264a; color: #fff; font-size: 15px;
+}
+.bk-onay-giris:focus { outline: none; border-color: #55c7ff; }
 
 /* -------------------------------------------------------------- blok patla */
 /* Android BlockBlastGame: zemin #3A4F8C (blast'ta parçanın koyusu), tahta %94 en,
@@ -3248,6 +3256,9 @@ html[data-bk-oturum="1"] .bk-oturum-sayfa[data-durum="bilinmiyor"] .bk-oturum-be
   display: grid; place-items: center; font-size: 19px; line-height: 1; overflow: hidden;
 }
 .bk-koc-baslik .simge img { width: 38px; height: 38px; object-fit: cover; }
+/* "Bilgie ne diyor?" başlığında maskot: karo yok, 56px (ana ekran kartıyla aynı) */
+.bk-koc-baslik-maskot .simge { flex-basis: 56px; width: 56px; height: 56px; background: none; border-radius: 0; }
+.bk-koc-baslik-maskot .simge img { width: 56px; height: 56px; object-fit: contain; }
 .bk-koc-baslik .metin { flex: 1; min-width: 0; }
 .bk-koc-baslik h3 { font-size: 16px; margin: 0; }
 .bk-koc-baslik .metin .bk-soluk { margin: 2px 0 0; font-size: 12px; }

@@ -6,12 +6,12 @@ export const metadata: Metadata = {
 };
 
 const steps = [
-  "Bilkie uygulamasını açın ve hesabınıza giriş yapın.",
+  "Bilkie uygulamasını (telefon ya da bilkie.com) açın ve hesabınıza giriş yapın.",
   "Alt menüden Profil sekmesine gidin.",
   "Sağ üst köşedeki ayarlar simgesine dokunun.",
   "\"HESABI SİL\" butonuna dokunun.",
   "Açılan onay penceresinde \"Evet, Sil\" seçeneğini onaylayın.",
-  "Google ile giriş yaptıysanız kimliğinizi doğrulamanız istenecektir.",
+  "Güvenlik için kimliğinizi doğrulamanız istenir: parolanız ya da Google hesabınız.",
 ];
 
 const deletedData = [
@@ -21,6 +21,8 @@ const deletedData = [
   "XP puanı ve lig sıralaması",
   "Seri ve günlük aktivite verileri",
   "Görev geçmişi ve istatistikler",
+  "Notlar ve not görselleri",
+  "Kullanıcı adı ve kısa kimlik kaydı",
 ];
 
 export default function HesapSilmePage() {
