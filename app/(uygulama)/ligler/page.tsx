@@ -51,16 +51,17 @@ export default function LiglerSayfasi() {
 }
 
 function Icerik() {
-  const { kullanici, sinif } = useOturum();
+  const { kullanici, profil, sinif } = useOturum();
   // Tablo CANLI: başka öğrenci puan aldığında sıralama kendiliğinden güncellenir
   // (uygulamada da dinleyici var). Kendi puanımız da bu tablodan okunuyor.
   const satirlar = useLigTablosu(sinif);
 
   // Ekran açılınca kendi satırını tazele — uygulamadaki davranış; sonucu dinleyici getirir.
+  // Profil gelmeden çağırma: sınıf varsayılan 3'e düşüyor ve yanlış tabloya satır yazılıyordu.
   useEffect(() => {
-    if (!kullanici) return;
+    if (!kullanici || !profil) return;
     void ligKendiniYayinla(kullanici.uid, sinif).catch(() => {});
-  }, [kullanici, sinif]);
+  }, [kullanici, profil, sinif]);
 
   if (!kullanici) {
     return (

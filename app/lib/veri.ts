@@ -833,10 +833,16 @@ export async function ligTablosu(uid: string, sinif: number): Promise<LigSatiri[
 export async function ligKendiniYayinla(uid: string, sinif: number): Promise<void> {
   const g = sinifSinirla(sinif);
   const [prof, ust] = await Promise.all([profilOku(uid), ustBilgiOku(uid, g)]);
-  const ad = prof?.kullaniciAdi?.trim() || prof?.adSoyad?.trim() || "Kullanıcı";
+  // Profil gelmeden YAZMA. Ligler ekranı açılışta çağırıyor; profil henüz yüklenmemişken
+  // satır "Kullanıcı · profil0 · 0 puan" ve sınıf da varsayılan 3 olarak düşüyordu
+  // (22 Eyl 2026: canlı tabloda 7 böyle satır bulundu, biri bu sezonda). Satırı bir sonraki
+  // açılış/XP değişimi zaten yazar, kayıp olmaz.
+  if (!prof) return;
+  const ad = prof.kullaniciAdi?.trim() || prof.adSoyad?.trim() || "";
+  if (!ad) return;
   await update(dbRef(kullaniciDb, `leaderboards/leagues/grade${g}/${SEZON()}/${uid}`), {
     name: ad,
-    avatar: prof?.avatar || "profil0",
+    avatar: prof.avatar || "profil0",
     points: ust.xp,
     grade: g,
     season: SEZON(),
