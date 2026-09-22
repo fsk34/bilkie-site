@@ -49,6 +49,7 @@ export const ingSozlukDb = getDatabase(app, "https://ingsozluk.europe-west1.fire
 export const dunyaHarikalariDb = getDatabase(app, "https://dunyaharikalari.europe-west1.firebasedatabase.app");
 export const mesleklerDb = getDatabase(app, "https://meslekler.europe-west1.firebasedatabase.app");
 export const turkiyeyiKesfetDb = getDatabase(app, "https://turkiyeyikesfet.europe-west1.firebasedatabase.app");
+export const okBulmacaDb = getDatabase(app, "https://okbulmaca.europe-west1.firebasedatabase.app");
 
 /* Veritabanı örneklerinin SABİT adları.
    Canlı katman son bilinen değeri `localStorage`'a bu adla yazıyor; ad çağrı sırasına
@@ -68,4 +69,5 @@ export const VERITABANI_ADLARI = new Map<Database, string>([
   [dunyaHarikalariDb, "dunyaHarikalari"],
   [mesleklerDb, "meslekler"],
   [turkiyeyiKesfetDb, "turkiyeyiKesfet"],
+  [okBulmacaDb, "okBulmaca"],
 ]);

@@ -17,11 +17,15 @@ import { useOturum } from "../../../lib/oturum";
 import { oyunBolumu, oyunBolumuYaz } from "../../../lib/veri";
 import { sesCal } from "../../ses";
 import veri from "./oklar.json";
+import { get, ref as dbRef } from "firebase/database";
+import { okBulmacaDb } from "../../../lib/firebase";
 
 type Hucre = [number, number];
 type Bolum = { satir: number; sutun: number; oklar: { hucreler: Hucre[] }[] };
-const BOLUMLER = (veri as unknown as { bolumler: Bolum[] }).bolumler;
-const OK_BOLUM_SAYISI = BOLUMLER.length;
+// Kaynak: `okbulmaca` veritabanı (`bolumler`); buradaki oklar.json ilk kare + çevrimdışı
+// yedeği (22 Eyl 2026: içerik DB'ye taşındı, yeni bölüm için yayın gerekmiyor).
+// Sayfa paketteki listeyle ANINDA açılır, DB yanıtı gelince liste tazelenir.
+const YEDEK_BOLUMLER = (veri as unknown as { bolumler: Bolum[] }).bolumler;
 
 const LACIVERT = "#2B3350", KIRMIZI = "#E0483F", NOKTA = "#BCC3D4";
 const HAK = 3;
@@ -101,6 +105,8 @@ export default function OkBulmaca() {
   const [hakBitti, setHakBitti] = useState(false);
   const [cikisSor, setCikisSor] = useState(false);
   const zamanlayicilar = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const [BOLUMLER, setBolumler] = useState<Bolum[]>(YEDEK_BOLUMLER);
+  const OK_BOLUM_SAYISI = BOLUMLER.length;
   // Çıkan okların yol boyunca ilerlemesi (hücre birimi); rAF ile güncellenir
   const [cikis, setCikis] = useState<Record<number, number>>({});
   const cikisRef = useRef<Record<number, { basla: number; sure: number; mesafe: number }>>({});
@@ -113,6 +119,17 @@ export default function OkBulmaca() {
     oyunBolumu(kullanici.uid, "okbulmaca").then((b) => { if (!iptal) { setIlerleme(b); setAsama("secim"); } });
     return () => { iptal = true; };
   }, [kullanici, yukleniyor, router]);
+  useEffect(() => {
+    let iptal = false;
+    get(dbRef(okBulmacaDb, "bolumler"))
+      .then((snap) => {
+        const v = snap.val();
+        const liste: Bolum[] = Array.isArray(v) ? v.filter(Boolean) : v ? Object.values(v) : [];
+        if (!iptal && liste.length >= YEDEK_BOLUMLER.length) setBolumler(liste);
+      })
+      .catch(() => { /* okunamazsa paketteki liste kalır */ });
+    return () => { iptal = true; };
+  }, []);
   useEffect(() => () => { zamanlayicilar.current.forEach(clearTimeout); if (rafRef.current != null) cancelAnimationFrame(rafRef.current); }, []);
 
   const bolum = BOLUMLER[Math.min(bolumNo, OK_BOLUM_SAYISI) - 1];
@@ -121,7 +138,8 @@ export default function OkBulmaca() {
     const n = Math.min(Math.max(1, no), OK_BOLUM_SAYISI);
     setBolumNo(n); setOklar(oklariKur(BOLUMLER[n - 1])); setHak(HAK); setCikis({}); cikisRef.current = {};
     setKazandi(false); setHakBitti(false); setAsama("oyun");
-  }, []);
+    // BOLUMLER artık durum: DB listesi sonradan gelirse eski dizi kapanışta kalmasın.
+  }, [BOLUMLER, OK_BOLUM_SAYISI]);
 
   /** Ok başının önündeki hat kenara kadar boş mu? */
   const onuAcik = useCallback((a: Ok, liste: Ok[]) => {
