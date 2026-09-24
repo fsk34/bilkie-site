@@ -1,6 +1,6 @@
 // Android: domain/HesapSilme.kt — hesabı TAMAMEN siler; kullanıcının izi olan her yer tek listede (22 Eyl 2026):
 //   1. Storage  notlar/{uid}/…                          (not görselleri)
-//   2. leaderboards/leagues/{sınıf}/{sezon}/{uid}        (tüm sınıflar × tüm sezonlar)
+//   2. leaderboards/leagues/grade{sınıf}/{sezon}/{uid}        (tüm sınıflar × tüm sezonlar)
 //   3. userIds/{kısaKimlik}, usernames/{ad}, emails/{eposta}   (dizinler)
 //   4. users/{uid}                                      (profil, ilerleme, görev, seri, notlar…)
 //   5. Firebase Auth kaydı
@@ -61,7 +61,7 @@ export async function hesabiTamamenSil(user: User): Promise<void> {
   // 2. Lig satırları — tek çok-yollu yazma; her yol `auth.uid === $uid` kuralından geçer
   const yollar: Record<string, null> = {};
   for (const sinif of SINIFLAR) for (const sezon of tumLigAnahtarlari()) {
-    yollar[`leaderboards/leagues/${sinif}/${sezon}/${uid}`] = null;
+    yollar[`leaderboards/leagues/grade${sinif}/${sezon}/${uid}`] = null;
   }
   try { await update(kok, yollar); } catch { /* best-effort */ }
 

@@ -32,8 +32,8 @@ const yollar = {
   [`usernames/${kadi}`]: uid,
   [`emails/${epostaAnah}`]: uid,
   [`userIds/${shortId}`]: uid,
-  [`leaderboards/leagues/3/2026_2027_guz/${uid}`]: { points: 5 },
-  [`leaderboards/leagues/5/2025_2026_guz/${uid}`]: { points: 1 },
+  [`leaderboards/leagues/grade3/2026_2027_guz/${uid}`]: { points: 5 },
+  [`leaderboards/leagues/grade5/2025_2026_guz/${uid}`]: { points: 1 },
 };
 for (const [y, v] of Object.entries(yollar)) await set(ref(db, y), v);
 let storageYazildi = false;
