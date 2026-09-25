@@ -135,7 +135,7 @@ function Icerik() {
             {dersAdi.toLocaleUpperCase("tr")}
           </button>
           {/* Kâğıtta çözülen testler (20 Eyl): elle giriş → Bilgie Koç da görür; XP/lig yok */}
-          <div className="bk-ist-evde-kap"><Link href="/evde" className="bk-ist-evde">📝 Evde çözdüm — ekle</Link></div>
+          <div className="bk-ist-evde-kap"><Link href={ders ? `/evde?ders=${encodeURIComponent(ders)}` : "/evde"} className="bk-ist-evde">📝 Evde çözdüm — ekle</Link></div>
 
           {yukleniyor ? (
             <Noktalar />
@@ -428,13 +428,24 @@ function YaziliBolumu({
   cubuklar: Dilim[]; dersKey: string | null;
 }) {
   const hazir = test?.hazirlananYazili ?? 0;
-  const var_ = hazir > 0;
+  // Hiç yazılı yoksa "—" satırları ve boş çubuklar yerine yönlendiren boş durum (Android 24 Eyl)
+  if (hazir <= 0) {
+    return (
+      <div className="bk-bevel">
+        <div className="bk-bevel-ic bk-ist-bos">
+          <div className="simge" aria-hidden>📝</div>
+          <h3>{dersKey ? "Bu derste henüz yazılıya hazırlanmadın" : "Henüz yazılıya hazırlanmadın"}</h3>
+          <p>Yazılı çöz; başarı oranın ve ortalama süren burada görünsün.</p>
+        </div>
+      </div>
+    );
+  }
   return (
     <div className="bk-bevel">
       <div className="bk-bevel-ic bk-ist-olcu">
         <div>Hazırlanan Yazılı Sayısı: {hazir}</div>
-        <div>Başarı Oranı: {var_ ? `%${yazili?.basariOrani ?? 0}` : "—"}</div>
-        <div>Ortalama Süre: {var_ ? sureMetni(yazili?.ortalamaSaniye ?? 0) : "—"}</div>
+        <div>Başarı Oranı: %{yazili?.basariOrani ?? 0}</div>
+        <div>Ortalama Süre: {sureMetni(yazili?.ortalamaSaniye ?? 0)}</div>
 
         {!dersKey && cubuklar.length > 0 && (
           <>

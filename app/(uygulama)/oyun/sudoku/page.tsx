@@ -20,6 +20,7 @@ import Reklam from "../Reklam";
 import {
   SUDOKU_BOLUM_SAYISI,
   sudokuBulmaca,
+  sudokuIlerlemeSifirla,
   sudokuIlerlemeYaz,
   sudokuIlerlemesi,
   type SudokuBulmaca,
@@ -56,15 +57,26 @@ export default function Sudoku() {
   const [bulmaca, setBulmaca] = useState<SudokuBulmaca | null>(null);
   const [bolum, setBolum] = useState(1);
   const [ilerleme, setIlerleme] = useState<Record<SudokuZorluk, number>>({ easy: 1, medium: 1, hard: 1 });
+  // İlerleme okunana (ya da zaman aşımına) kadar kartlar kilitli; sıfırlama yalnız sunucudan
+  // gerçekten okunmuş "hepsi bitti" üstüne (Android 24 Eyl)
+  const [ilerlemeHazir, setIlerlemeHazir] = useState(false);
+  const [ilerlemeOkundu, setIlerlemeOkundu] = useState(false);
 
   useEffect(() => {
     if (!kullanici) return;
     let iptal = false;
-    sudokuIlerlemesi(kullanici.uid)
-      .then((v) => { if (!iptal) setIlerleme(v); })
-      .catch(() => {});
+    sudokuIlerlemesi(kullanici.uid).then((v) => {
+      if (iptal) return;
+      if (v) {
+        // Bu arada kazanılmış bir bölüm varsa geri düşmesin
+        setIlerleme((p) => ({ easy: Math.max(p.easy, v.easy), medium: Math.max(p.medium, v.medium), hard: Math.max(p.hard, v.hard) }));
+        setIlerlemeOkundu(true);
+      }
+      setIlerlemeHazir(true);
+    });
     return () => { iptal = true; };
   }, [kullanici]);
+  const kartlarHazir = !kullanici || ilerlemeHazir;
 
   const cik = useCallback(() => router.push("/oyunlar"), [router]);
 
@@ -76,22 +88,24 @@ export default function Sudoku() {
   }, []);
 
   const sec = useCallback((z: SudokuZorluk) => {
+    if (!kartlarHazir) return;
     const seviye = ilerleme[z];
     if (seviye > SUDOKU_BOLUM_SAYISI) {
       setIlerleme((p) => ({ ...p, [z]: 1 }));
-      if (kullanici) void sudokuIlerlemeYaz(kullanici.uid, z, 1).catch(() => {});
+      if (kullanici && ilerlemeOkundu) sudokuIlerlemeSifirla(kullanici.uid, z);
       yukle(z, 1);
     } else {
       yukle(z, Math.min(SUDOKU_BOLUM_SAYISI, seviye));
     }
-  }, [ilerleme, kullanici, yukle]);
+  }, [ilerleme, kullanici, yukle, kartlarHazir, ilerlemeOkundu]);
 
   /** Bölüm kazanılınca ilerlemeyi bir artır (uygulamadaki saveProgress). */
   const kazanildi = useCallback(() => {
-    const sonraki = ilerleme[zorluk] + 1;
-    setIlerleme((p) => ({ ...p, [zorluk]: sonraki }));
-    if (kullanici) void sudokuIlerlemeYaz(kullanici.uid, zorluk, sonraki).catch(() => {});
-  }, [ilerleme, zorluk, kullanici]);
+    // Yazılacak değer OYNANAN bulmacadan hesaplanır (okunmamış/eski yerel değerden değil)
+    const sonraki = bolum + 1;
+    setIlerleme((p) => ({ ...p, [zorluk]: Math.max(p[zorluk], sonraki) }));
+    if (kullanici) sudokuIlerlemeYaz(kullanici.uid, zorluk, sonraki);
+  }, [bolum, zorluk, kullanici]);
 
   const sonrakiBolum = useCallback(() => {
     const simdiki = ilerleme[zorluk];
@@ -158,7 +172,8 @@ export default function Sudoku() {
                   <button
                     key={z.key}
                     className="bk-sdk-kart"
-                    style={{ borderColor: `${z.renk}4D` }}
+                    style={{ borderColor: `${z.renk}4D`, opacity: kartlarHazir ? 1 : 0.5 }}
+                    disabled={!kartlarHazir}
                     onClick={() => sec(z.key)}
                   >
                     <div className="ust">

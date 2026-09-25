@@ -95,7 +95,8 @@ export default function BlokPatla() {
     if (!kullanici) return;
     let iptal = false;
     enIyiSkorOku(kullanici.uid, "blockBlast")
-      .then((v) => { if (!iptal) { enIyiRef.current = v; setEnIyi(v); } })
+      // Okuma gelmeden oynanan oyunun rekoru daha büyükse onu koru
+      .then((v) => { if (!iptal && v != null) { const m = Math.max(enIyiRef.current, v); enIyiRef.current = m; setEnIyi(m); } })
       .catch(() => {});
     return () => { iptal = true; };
   }, [kullanici]);
@@ -422,12 +423,23 @@ export default function BlokPatla() {
     setSkor(yeni);
     if (yeni > enIyiRef.current) {
       enIyiRef.current = yeni;
-      setEnIyi(yeni);
-      if (kullanici) void enIyiSkorYaz(kullanici.uid, "blockBlast", yeni).catch(() => {});
+      setEnIyi(yeni);   // yalnız yerelde; sunucu yazması oyun sonunda / çıkışta (rekoruGonder)
     }
     setSkorZipla(true);
     window.setTimeout(() => setSkorZipla(false), 220);
+  }, []);
+
+  // Rekor sunucuya yalnız oyun bitince / çıkarken, TEK SEFER ve "büyükse yaz" ile (Android 24 Eyl)
+  const yazilanSkor = useRef(0);
+  const rekoruGonder = useCallback(() => {
+    const s = skorRef.current;
+    if (!kullanici || s <= 0 || s <= yazilanSkor.current) return;
+    yazilanSkor.current = s;
+    enIyiSkorYaz(kullanici.uid, "blockBlast", s);
   }, [kullanici]);
+  const rekorRef = useRef(rekoruGonder);
+  useEffect(() => { rekorRef.current = rekoruGonder; }, [rekoruGonder]);
+  useEffect(() => () => rekorRef.current(), []);
 
   const bitisKontrol = useCallback((g: Izgara, t: (Parca | null)[]) => {
     if (temizRef.current) return;
@@ -436,6 +448,7 @@ export default function BlokPatla() {
     if (kalan.every((p) => !birYereUyarMi(g, p.sekil))) {
       setBitti(true);
       setZemin(BB_ZEMIN);
+      rekorRef.current();
     }
   }, []);
 
@@ -557,6 +570,8 @@ export default function BlokPatla() {
     const t = yeniTepsi(g);
     izgaraRef.current = g;
     tepsiRef.current = t;
+    rekorRef.current();   // yeni oyundan önce önceki oyunun rekoru
+    yazilanSkor.current = 0;
     skorRef.current = 0;
     setIzgara(g);
     setTepsi(t);

@@ -8,7 +8,11 @@
 
 import { get, increment, ref as dbRef, update } from "firebase/database";
 import { kullaniciDb } from "./firebase";
+import { sessizHata, tavanli } from "./hata";
 import { sinifSinirla, sorulariGetir, type Soru } from "./veri";
+
+/** Okuma tavanı: çevrimdışıyken get() uzun bekleyebilir (Android OKUMA_SN) */
+const OKUMA_MS = 8000;
 
 /** Yanlış yapılan soru bu kadar gün sonra "olgunlaşır" (aralıklı tekrar: hemen değil, unutmaya yakın) */
 export const HATA_OLGUNLASMA_GUN = 3;
@@ -41,13 +45,15 @@ export function hatalariCoz(ham: unknown): Hata[] {
   return out;
 }
 
+/** Okunamazsa boş liste (koç/ana ekran sayıları için). Ayırt etmek gerekiyorsa hatalariOkuVeyaNull. */
 export async function hatalariOku(uid: string, sinif: number): Promise<Hata[]> {
-  try {
-    const snap = await get(dbRef(kullaniciDb, hatalarYolu(uid, sinif)));
-    return hatalariCoz(snap.val());
-  } catch {
-    return [];
-  }
+  return (await hatalariOkuVeyaNull(uid, sinif)) ?? [];
+}
+
+/** Okunamazsa (çevrimdışı / zaman aşımı / hata) null — "hiç yanlışın yok" ile karışmasın. */
+export async function hatalariOkuVeyaNull(uid: string, sinif: number): Promise<Hata[] | null> {
+  const snap = await tavanli(get(dbRef(kullaniciDb, hatalarYolu(uid, sinif))), OKUMA_MS);
+  return snap ? hatalariCoz(snap.val()) : null;
 }
 
 /** Olgunlaşmış (≥3 gün) hatalar — eskisi önce. */
@@ -74,25 +80,46 @@ export async function hataDegisimleriYaz(uid: string, sinif: number, ders: strin
 /** Hata Turu'nun sorusu: içerik + kimlik. */
 export type TurSorusu = Soru & { ders: string; konu: string; adim: number };
 
+/** Tur hazırlığı: sorular + içerikte artık bulunmayan (silinmiş/yeniden adlandırılmış) hata kayıtları. */
+export type TurHazirlik = {
+  sorular: TurSorusu[];
+  yetimler: Hata[];
+  /** En az bir adım okunamadı (ağ / zaman aşımı) — tur boşsa "bağlantı yok" demek için */
+  okunamayanVar: boolean;
+};
+
 /**
  * Hata Turu için soruları içerik DB'sinden toplar (adım başına tek okuma, önbellekli).
- * Olgun hatalar önce; azsa yeni hatalarla tamamlanır. Silinmiş/bulunamayan soru atlanır.
+ * Olgun hatalar önce; azsa yeni hatalarla tamamlanır.
+ * Okuma BAŞARILI olup soru yoksa kayıt "yetim" sayılır (bkz. yetimleriSil) — yoksa koç "N soru
+ * bekliyor" der, tur hep eksik gelir. Okuma hatasında adım atlanır, kayıt yetim SAYILMAZ (24 Eyl 2026).
  */
-export async function turSorulariniHazirla(sinif: number, hatalar: Hata[], simdi: number): Promise<TurSorusu[]> {
+export async function turSorulariniHazirla(sinif: number, hatalar: Hata[], simdi: number): Promise<TurHazirlik> {
   const olgun = olgunHatalar(hatalar, simdi);
   const olgunSet = new Set(olgun);
   const sira = [...olgun, ...hatalar.filter((h) => !olgunSet.has(h)).sort((a, b) => a.zaman - b.zaman)].slice(0, HATA_TUR_SORU);
   const out: TurSorusu[] = [];
-  const adimOnbellek = new Map<string, Soru[]>();
+  const yetimler: Hata[] = [];
+  const adimOnbellek = new Map<string, Soru[] | null>();   // null = okunamadı
   for (const h of sira) {
     const k = `${h.ders}/${h.konu}/${h.adim}`;
     let sorular = adimOnbellek.get(k);
-    if (!sorular) {
-      try { sorular = await sorulariGetir(sinif, h.ders, h.konu, h.adim); } catch { sorular = []; }
+    if (sorular === undefined) {
+      sorular = (await tavanli(sorulariGetir(sinif, h.ders, h.konu, h.adim), OKUMA_MS)) ?? null;
       adimOnbellek.set(k, sorular);
     }
+    if (sorular === null) continue;
     const soru = sorular.find((s) => s.anahtar === h.soruKey);
     if (soru) out.push({ ...soru, ders: h.ders, konu: h.konu, adim: h.adim });
+    else yetimler.push(h);
   }
-  return out;
+  return { sorular: out, yetimler, okunamayanVar: [...adimOnbellek.values()].some((v) => v === null) };
+}
+
+/** İçerikte bulunmayan hata kayıtlarını siler (tek update). Beklenmez, hata fırlatmaz. */
+export function yetimleriSil(uid: string, sinif: number, yetimler: Hata[]): void {
+  if (yetimler.length === 0) return;
+  const degisim: Record<string, null> = {};
+  for (const h of yetimler) degisim[`${h.ders}/${h.konu}/${h.adim}_${h.soruKey}`] = null;
+  update(dbRef(kullaniciDb, hatalarYolu(uid, sinif)), degisim).catch((e) => sessizHata("yetimHata", e));
 }

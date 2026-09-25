@@ -270,7 +270,7 @@ function Oyun({
   const devam = useCallback(() => {
     const sonMu = bolumNo >= KG_BOLUM_SAYISI;
     const sonraki = sonMu ? 1 : bolumNo + 1;
-    if (!sonMu) void kgSeviyeYaz(uid, sonraki).catch(() => {});
+    if (!sonMu) kgSeviyeYaz(uid, sonraki);
     setKutlamaKarti(false); setDevamGorunur(false);
     onSonrakiBolum(sonraki);
   }, [bolumNo, uid, onSonrakiBolum]);

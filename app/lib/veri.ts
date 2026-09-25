@@ -8,16 +8,23 @@
 //   ilerleme.ts · gorevYaz.ts · istatistikYaz.ts
 
 import {
+  endAt,
   get,
+  limitToLast,
+  orderByChild,
   ref as dbRef,
   runTransaction,
   serverTimestamp,
   set,
+  startAt,
   update,
+  type QueryConstraint,
 } from "firebase/database";
+import type { CanliSorgu } from "./canli";
 import { defterlerDb, gorevKatalogDb, kelimeGezmeceDb, kullaniciDb, sudokuDb, testlerDb, wordleDb, yazililarDb } from "./firebase";
 import { ayAnahtari, gunAnahtari, gunNo, dunMu, haftaGunIndeksi, seriyiCoz } from "./tarih";
 import { onbellekli } from "./onbellek";
+import { sessizHata, tavanli } from "./hata";
 import { ligAnahtari, rozetYiliAnahtari } from "./sezon";
 import { AY_ANAHTAR } from "./ayGorsel";
 import {
@@ -123,27 +130,33 @@ export async function ustBilgiOku(uid: string, sinif: number): Promise<UstBilgi>
 
 /* -------------------------------------------------------------------- can  */
 
-/** Günü değişmişse canı 3'e çeker; güncel kalan canı döndürür. */
-export async function canlariTazele(uid: string): Promise<number> {
+/**
+ * Canlarda TEK yazma yolu (Android LivesRepository.degistir, 24 Eyl 2026): transaction — gün
+ * değiştiyse önce {3, 0, bugün}, sonra `delta` (yanlış: -1) 0..3 içinde; `odul` ise rewardedToday +1.
+ * Mutlak değer YAZILMAZ → iki cihaz / bayat ekran değeri birbirini ezmez. Ateşle-unut: çevrimdışında
+ * yerelde uygulanır (canlı dinleyici hemen görür), bağlantı gelince sunucuda yeniden koşar.
+ * `delta = 0` → yalnız gün sıfırlaması (aynı günse yazma yok).
+ */
+export function canDegistir(uid: string, delta: number, odul = false): void {
+  if (!uid) return;
   const bugun = gunAnahtari();
-  const snap = await get(dbRef(kullaniciDb, `users/${uid}/lives`));
-  const v = snap.val() ?? {};
-  if (v.lastReset !== bugun) {
-    await update(dbRef(kullaniciDb, `users/${uid}/lives`), {
-      remaining: CAN_LIMITI,
-      rewardedToday: 0,
-      lastReset: bugun,
-    });
-    return CAN_LIMITI;
-  }
-  return Math.max(0, Math.min(CAN_LIMITI, sayi(v.remaining)));
-}
-
-export async function canYaz(uid: string, kalan: number): Promise<void> {
-  await update(dbRef(kullaniciDb, `users/${uid}/lives`), {
-    remaining: Math.max(0, Math.min(CAN_LIMITI, kalan)),
-    lastReset: gunAnahtari(),
-  });
+  const sinirla = (n: number) => Math.max(0, Math.min(CAN_LIMITI, n));
+  runTransaction(dbRef(kullaniciDb, `users/${uid}/lives`), (mevcut) => {
+    const d = { ...((mevcut ?? {}) as Record<string, unknown>) };
+    if (d.lastReset !== bugun) {
+      d.remaining = CAN_LIMITI;
+      d.rewardedToday = 0;
+      d.lastReset = bugun;
+    } else if (delta === 0 && !odul) {
+      return undefined;   // aynı gün, değişiklik yok → iptal
+    }
+    if (delta !== 0) {
+      const cur = d.remaining == null ? CAN_LIMITI : sinirla(sayi(d.remaining));
+      d.remaining = sinirla(cur + delta);
+    }
+    if (odul) d.rewardedToday = Math.min(CAN_LIMITI, sinirla(sayi(d.rewardedToday)) + 1);
+    return d;
+  }).catch((e) => sessizHata("can", e));
 }
 
 /* --------------------------------------------------------------- ilerleme  */
@@ -198,25 +211,29 @@ export async function adimSonucuYaz(params: {
   const g = sinifSinirla(params.sinif);
   const kok = `users/${uid}/progress_test/grade${g}/${dersKey}/${konuKey}`;
 
-  // Adım sonucu — Android TestScreens.kt ile aynı alanlar.
+  // Üç yazma AYNI ANDA başlar, sırayla beklenmez (Android testBitisiniYaz, 24 Eyl 2026):
+  // çevrimdışıyken ilk söz dönmediği için sıralı zincirde completedSteps hiç yazılmıyordu.
+  // 1) completedSteps EN BAŞTA — TRANSACTION + max: düz yazımda, web sayfası açıkken telefondan
+  // bir adım bitirilirse web'in elindeki bayat değer telefonun ilerlemesini geri alıyordu.
+  const adimlar = runTransaction(dbRef(kullaniciDb, `${kok}/completedSteps`), (m) =>
+    Math.min(ADIM_SAYISI, Math.max(sayi(m), adim))
+  );
+
+  // 2) Adım sonucu — Android TestScreens.kt ile aynı alanlar.
   // ⚠️ score = doğru × XP_DOGRU_TEST (2). Eskiden burada ×5 yazılıyordu; telefon ×2
   // yazdığı için aynı test iki cihazda farklı puanla kaydediliyordu.
-  await update(dbRef(kullaniciDb), {
+  const sonuc = update(dbRef(kullaniciDb), {
     [`${kok}/step${adim}/correct`]: dogru,
     [`${kok}/step${adim}/total`]: toplam,
     [`${kok}/step${adim}/score`]: dogru * XP_DOGRU_TEST,
     [`${kok}/step${adim}/completedAt`]: serverTimestamp(),
   });
 
-  // Deneme sayacı — Android'de transaction (bu adım kaç kez çözüldü)
-  await runTransaction(dbRef(kullaniciDb, `${kok}/step${adim}/attempts`), (m) => sayi(m) + 1);
+  // 3) Deneme sayacı — Android'de transaction (bu adım kaç kez çözüldü)
+  const deneme = runTransaction(dbRef(kullaniciDb, `${kok}/step${adim}/attempts`), (m) => sayi(m) + 1);
 
-  // ⚠️ completedSteps TRANSACTION + max olmalı: düz yazımda, web sayfası açıkken
-  // telefondan bir adım bitirilirse web'in elindeki bayat değer telefonun
-  // ilerlemesini geri alıyordu (Android: max(mevcut, adım)).
-  await runTransaction(dbRef(kullaniciDb, `${kok}/completedSteps`), (m) =>
-    Math.min(ADIM_SAYISI, Math.max(sayi(m), adim))
-  );
+  await Promise.all([adimlar, sonuc, deneme]);
+
 }
 
 /* ---------------------------------------------- ilerleme (canlı dinlenir) */
@@ -312,29 +329,10 @@ export async function xpEkle(
   );
   // Zaman damgası transaction dışında (sentinel'in transaction içinde yeniden
   // çalıştırılması değeri kaydırabiliyor)
-  await update(ref, { updatedAt: serverTimestamp() });
-  await ligPuaniYansit(uid, g, yeni);
+  update(ref, { updatedAt: serverTimestamp() }).catch((e) => sessizHata("xp", e));
+  // Lig satırı: tek yazıcı, puan asla düşmez, ad/avatar'a dokunmaz (beklenmez — çevrimdışı dönmez)
+  void ligSatiriYaz(uid, g, yeni, null);
   return yeni;
-}
-
-/** Lig tablosuna puanı yansıtır (iOS XpManager.mirrorLeaguePoints). */
-async function ligPuaniYansit(uid: string, sinif: number, puan: number): Promise<void> {
-  const g = sinifSinirla(sinif);
-  const guvenli = Math.max(0, puan);
-  const prof = await profilOku(uid);
-  // Lig tablosu kullanıcı adını gösterir; yoksa ad-soyada düşer.
-  const ad = prof?.kullaniciAdi?.trim() || prof?.adSoyad?.trim() || "Kullanıcı";
-  const avatar = prof?.avatar || "profil0";
-
-  await update(dbRef(kullaniciDb, `users/${uid}/league`), {
-    seasonKey: SEZON(),
-    [`seasonPoints/grade${g}`]: guvenli,
-    updatedAt: serverTimestamp(),
-  });
-  await update(
-    dbRef(kullaniciDb, `leaderboards/leagues/grade${g}/${SEZON()}/${uid}`),
-    { points: guvenli, name: ad, avatar, atMs: serverTimestamp() }   // alan adı Android ile aynı (LeagueScreen.kt)
-  );
 }
 
 /* ------------------------------------------------------------------- seri  */
@@ -439,8 +437,10 @@ export async function sorulariGetir(
 
       let secenekler: string[] = [];
       const secenekDugumu = c.a ?? c.options ?? c.opts ?? null;
+      // Şık metni konsolda sayı girilmiş olabilir (ör. 12) — metne çevrilir, atılmaz (Android soruMetni)
+      const metne = (x: unknown): string => (typeof x === "string" ? x : typeof x === "number" ? String(x) : "");
       if (Array.isArray(secenekDugumu)) {
-        secenekler = secenekDugumu.filter((x) => typeof x === "string" && x.trim());
+        secenekler = secenekDugumu.map(metne).filter((x) => x.trim());
       } else if (secenekDugumu && typeof secenekDugumu === "object") {
         const ks = Object.keys(secenekDugumu);
         const sayisal = ks.every((x) => !Number.isNaN(Number.parseInt(x, 10)));
@@ -448,24 +448,16 @@ export async function sorulariGetir(
           ? ks.sort((x, y) => Number.parseInt(x, 10) - Number.parseInt(y, 10))
           : ["a", "b", "c", "d", "A", "B", "C", "D"].filter((x) => ks.includes(x));
         secenekler = sirali
-          .map((x) => secenekDugumu[x])
-          .filter((x: unknown) => typeof x === "string" && x.trim());
+          .map((x) => metne(secenekDugumu[x]))
+          .filter((x) => x.trim());
       } else {
         for (const harf of ["a", "b", "c", "d", "A", "B", "C", "D"]) {
-          const v = c[harf];
-          if (typeof v === "string" && v.trim()) secenekler.push(v);
+          const v = metne(c[harf]);
+          if (v.trim()) secenekler.push(v);
         }
       }
 
-      let indeks: number | null = null;
-      for (const alan of ["correct", "correctIndex", "correct_index"]) {
-        if (typeof c[alan] === "number") { indeks = c[alan]; break; }
-      }
-      if (indeks == null) {
-        const harf = String(c.answer ?? c.dogru ?? "").trim().toUpperCase();
-        indeks = { A: 0, B: 1, C: 2, D: 3 }[harf as "A" | "B" | "C" | "D"] ?? 0;
-      }
-      const son = Math.max(0, Math.min(secenekler.length - 1, indeks));
+      const son = Math.max(0, Math.min(secenekler.length - 1, dogruIndeksiCoz(c) ?? 0));
 
       if (metin && secenekler.length > 0) {
         out.push({ anahtar: k, metin, secenekler, dogruIndeks: son });
@@ -473,6 +465,29 @@ export async function sorulariGetir(
     }
     return out;
   });
+}
+
+/**
+ * Doğru şık indeksi (Android soruDogruIndeksi, 24 Eyl 2026): correct / correctIndex / correct_index
+ * sayı (0 tabanlı) ya da metin ("2" ya da "A".."D"); yoksa answer / dogru harfi. Çözülemezse null.
+ * Eskiden yalnız sayı kabul ediliyordu: konsoldan "2" metni girilen soruda doğru şık A sayılıyordu.
+ */
+export function dogruIndeksiCoz(c: Record<string, unknown>): number | null {
+  const harf = (t: string): number | null => ({ A: 0, B: 1, C: 2, D: 3 } as Record<string, number>)[t.trim().toUpperCase()] ?? null;
+  for (const alan of ["correct", "correctIndex", "correct_index"]) {
+    const v = c[alan];
+    if (typeof v === "number" && Number.isFinite(v)) return Math.trunc(v);
+    if (typeof v === "string" && v.trim()) {
+      const n = /^-?\d+$/.test(v.trim()) ? Number.parseInt(v.trim(), 10) : harf(v);
+      if (n != null) return n;
+    }
+  }
+  for (const alan of ["answer", "dogru"]) {
+    const v = c[alan];
+    const t = v == null ? "" : String(v);
+    if (t.trim()) return harf(t) ?? 0;
+  }
+  return null;
 }
 
 /* ------------------------------------------------------------------- lig  */
@@ -743,11 +758,13 @@ export async function defterTamamla(
   uid: string, sinif: number, dersKey: string, uniteKey: string, toplamSayfa: number
 ): Promise<DefterBitisSonucu> {
   const g = sinifSinirla(sinif);
-  await update(dbRef(kullaniciDb, defterYolu(uid, sinif, dersKey, uniteKey)), {
+  // Beklenmez: çevrimdışıyken söz dönmez, tamamlama işareti ve seri de başlasın (24 Eyl 2026)
+  update(dbRef(kullaniciDb, defterYolu(uid, sinif, dersKey, uniteKey)), {
     currentPage: toplamSayfa,
     totalPages: toplamSayfa,
-  });
+  }).catch((e) => sessizHata("defterSayfa", e));
 
+  const seriIs = seriIsaretle(uid, ACT_DEFTER);
   const isaret = dbRef(kullaniciDb, `users/${uid}/progress_defter_done/grade${g}/${dersKey}/${uniteKey}`);
   let ilkKez = false;
   try {
@@ -760,10 +777,11 @@ export async function defterTamamla(
     ilkKez = false;
   }
 
-  const seri = await seriIsaretle(uid, ACT_DEFTER);
+  const seri = await seriIs;
   if (!ilkKez) return { ilkKez: false, xp: 0, seri };
 
-  await xpEkle(uid, g, XP_DEFTER_TAMAM, "defter_complete");   // Android: reason "defter_complete"
+  // Android: reason "defter_complete" — beklenmez
+  xpEkle(uid, g, XP_DEFTER_TAMAM, "defter_complete").catch((e) => sessizHata("xp", e));
   return { ilkKez: true, xp: XP_DEFTER_TAMAM, seri };
 }
 
@@ -776,7 +794,12 @@ export type LigSatiri = {
   puan: number;
   avatar: string;
   sensin: boolean;
+  /** Liste ligin ilk LIG_LISTE_LIMITI kişisi; "Sen" onların dışındaysa gerçek sıra bilinmez → "50+" */
+  disarida?: boolean;
 };
+
+/** Lig listesi: ligin puan aralığında en yüksek N kişi (sunucuda süzülür — Android LIG_LISTE_LIMITI) */
+export const LIG_LISTE_LIMITI = 50;
 
 /**
  * Sezon sıralaması: leaderboards/leagues/grade{N}/{sezon}
@@ -786,68 +809,166 @@ export const ligTablosuYolu = (sinif: number) =>
   `leaderboards/leagues/grade${sinifSinirla(sinif)}/${SEZON()}`;
 
 /**
- * Ham lig düğümünü sıralı satırlara çevirir (saf) — okuma ve canlı dinleme ortak kullanır.
- *
- * ⚠️ Lig tablosu sınıfın TAMAMINI tek düğümde tutuyor; ekranda gösterilen ise yalnızca
- * KENDİ LİG KADEMEN. Android `LeagueScreen.displayedRows` bunu şöyle yapıyor:
- *   kendi puanından kademeni bul → aynı kademedekileri süz → yeniden sırala → 1'den numarala
- * Bu süzgeç web'de yoktu: sınıfın tamamı listeleniyordu, bu yüzden 1. sıradaki kişi
- * telefondakinden farklı çıkıyordu (web sınıfın zirvesini, telefon kademenin zirvesini
- * gösteriyordu). Kademesi bulunamayan (listede satırı olmayan) kullanıcı 0 XP sayılır.
+ * Lig sorgusunun kısıtları (Android LeagueScreen, 24 Eyl 2026): orderByChild("points") + ligin
+ * aralığı (startAt/endAt) + limitToLast(50). Eskiden sınıf+sezon düğümünün TAMAMI iniyordu.
+ * `.indexOn: points` kuralı yayınlanmasa da çalışır (istemci süzer, yalnız uyarı).
  */
-export function ligSatirlariCoz(hamDugum: unknown, uid: string): LigSatiri[] {
-  if (hamDugum == null) return [];
-  const ham = hamDugum as Record<string, any>;
-  const satirlar = Object.keys(ham).map((k) => {
+export function ligSorgusu(lig: Lig): CanliSorgu {
+  const kisitlar: QueryConstraint[] = [orderByChild("points"), startAt(lig.min)];
+  if (lig.max != null) kisitlar.push(endAt(lig.max));   // en üst ligde üst sınır yok
+  kisitlar.push(limitToLast(LIG_LISTE_LIMITI));
+  return { anahtar: `lig:${lig.key}:${LIG_LISTE_LIMITI}`, kisitlar };
+}
+
+/**
+ * Sorgu sonucunu sıralı satırlara çevirir (saf). Sorgu zaten kendi ligini getiriyor; yine de ligin
+ * dışında kalanlar süzülür (kural yayınlanmamışsa / puan arada değiştiyse). Kendi satırın yoksa
+ * `benim` ile eklenir; liste dolu ve puanın en düşükten büyük değilse `disarida` ("50+").
+ */
+export function ligSatirlariCoz(
+  hamDugum: unknown, uid: string, lig: Lig, benim: { ad: string; avatar: string; puan: number } | null
+): LigSatiri[] {
+  const ham = (hamDugum ?? {}) as Record<string, any>;
+  let enDusuk = Number.POSITIVE_INFINITY;
+  const satirlar: LigSatiri[] = Object.keys(ham).map((k) => {
     const c = ham[k] ?? {};
-    const ad = String(c.name ?? "").trim() || `@${k.slice(0, 6)}`;
-    return {
-      uid: k,
-      sira: 0,
-      ad,
-      puan: Math.max(0, sayi(c.points)),
-      avatar: String(c.avatar ?? "").trim() || "profil0",
-      sensin: k === uid,
-    };
+    const puan = Math.max(0, sayi(c.points));
+    if (puan < enDusuk) enDusuk = puan;
+    const ad = String(c.name ?? c.username ?? c.kullaniciAdi ?? "").trim() || (k === uid ? (benim?.ad || "Sen") : `@${k.slice(0, 6)}`);
+    return { uid: k, sira: 0, ad, puan, avatar: String(c.avatar ?? "").trim() || "profil0", sensin: k === uid };
   });
-
-  const benimKademem = ligBul(satirlar.find((s) => s.sensin)?.puan ?? 0).key;
-  const kademedekiler = satirlar.filter((s) => ligBul(s.puan).key === benimKademem);
-
-  // Eşitlikte ada göre — ama Türkçe harmanlama DEĞİL, düz karşılaştırma:
-  // Android `thenBy { it.name }` ve iOS `$0.name < $1.name` ikisi de kod noktası
-  // sırasını kullanıyor. localeCompare("tr") kullanılırsa "Çigdem" gibi adlar web'de
-  // başka, telefonda başka sırada çıkıyordu.
+  const toplamGelen = satirlar.length;
+  const kademedekiler = satirlar.filter((s) => ligBul(s.puan).key === lig.key);
+  if (!kademedekiler.some((s) => s.sensin) && benim) {
+    kademedekiler.push({
+      uid, sira: 0, ad: benim.ad || "Sen", puan: Math.max(0, benim.puan), avatar: benim.avatar || "profil0", sensin: true,
+      disarida: toplamGelen >= LIG_LISTE_LIMITI && benim.puan <= enDusuk,
+    });
+  }
+  // Eşitlikte ada göre — Türkçe harmanlama DEĞİL, düz karşılaştırma (Android thenBy { it.name },
+  // iOS `<` ikisi de kod noktası sırası); "50+" satırı en sonda.
   kademedekiler.sort((a, b) =>
-    a.puan !== b.puan ? b.puan - a.puan : a.ad < b.ad ? -1 : a.ad > b.ad ? 1 : 0
+    Number(!!a.disarida) - Number(!!b.disarida) ||
+    (a.puan !== b.puan ? b.puan - a.puan : a.ad < b.ad ? -1 : a.ad > b.ad ? 1 : 0)
   );
   return kademedekiler.map((s, i) => ({ ...s, sira: i + 1 }));
 }
 
-export async function ligTablosu(uid: string, sinif: number): Promise<LigSatiri[]> {
-  const snap = await get(dbRef(kullaniciDb, ligTablosuYolu(sinif)));
-  return ligSatirlariCoz(snap.val(), uid);
+/* ---- kendi satırın: TEK okuma kuralı + TEK yazıcı (Android XpManager.ligSatiriYaz, 24 Eyl 2026) ---- */
+
+export type LigKimlik = { name: string; avatar: string };
+
+/**
+ * Profil düğümünden lig adı/avatarı: username → kullaniciAdi → "Kullanıcı".
+ * ⚠️ Ad-soyad (fullName/name) lig tablosuna ASLA yazılmaz — sınıftaki herkes okuyor.
+ * Profil yoksa null (yazma yapılmaz: "Kullanıcı · profil0" hayaleti olmasın).
+ */
+export function ligKimligiCoz(profilHam: unknown): LigKimlik | null {
+  if (profilHam == null || typeof profilHam !== "object") return null;
+  const p = profilHam as Record<string, unknown>;
+  const metin = (k: string) => (typeof p[k] === "string" ? (p[k] as string).trim() : "");
+  return { name: metin("username") || metin("kullaniciAdi") || "Kullanıcı", avatar: metin("avatar") || "profil0" };
 }
 
-/** Ekran açılınca kendi satırını tazeler (uygulamadaki loadLeague adım 2). */
-export async function ligKendiniYayinla(uid: string, sinif: number): Promise<void> {
+const LIG_OKUMA_MS = 8000;
+// Sunucuda olduğunu bildiğimiz son satır ("uid|gradeN|sezon") — aynı değer için yazma/transaction yok
+const bilinenSatirlar = new Map<string, { puan: number; kimlik: LigKimlik }>();
+// Profil kimliği bellek önbelleği: yalnız satır YOKSA / adsızsa kullanılır, var olan adı ezmez
+let kimlikOnbellek: { uid: string; kimlik: LigKimlik } | null = null;
+
+function satirAnahtari(uid: string, g: number) { return `${uid}|grade${g}|${SEZON()}`; }
+
+/** Ekranın dinleyicisi kendi satırını görünce: aynı değerler için bir daha yazılmaz. */
+export function ligSatiriGoruldu(uid: string, sinif: number, puan: number, ad: string, avatar: string): void {
+  if (!uid || !ad) return;
+  bilinenSatirlar.set(satirAnahtari(uid, sinifSinirla(sinif)), { puan: Math.max(0, puan), kimlik: { name: ad, avatar: avatar || "profil0" } });
+}
+
+async function kimlikGetir(uid: string): Promise<LigKimlik | null> {
+  if (kimlikOnbellek?.uid === uid) return kimlikOnbellek.kimlik;
+  const snap = await tavanli(get(dbRef(kullaniciDb, profilYolu(uid))), LIG_OKUMA_MS);
+  const k = snap ? ligKimligiCoz(snap.val()) : null;
+  if (k) kimlikOnbellek = { uid, kimlik: k };
+  return k;
+}
+
+/**
+ * Sınıfın lig puanı — TEK kaynak (ustBilgiCoz ile aynı kural): max(stats/grade{g}/score/totalXp,
+ * xp/grade{g}/total|totalXp). Yalnız bu iki küçük düğüm. Hiçbiri okunamazsa null → çağıran YAZMAMALI.
+ */
+export async function ligPuaniOku(uid: string, sinif: number): Promise<number | null> {
+  if (!uid) return null;
   const g = sinifSinirla(sinif);
-  const [prof, ust] = await Promise.all([profilOku(uid), ustBilgiOku(uid, g)]);
-  // Profil gelmeden YAZMA. Ligler ekranı açılışta çağırıyor; profil henüz yüklenmemişken
-  // satır "Kullanıcı · profil0 · 0 puan" ve sınıf da varsayılan 3 olarak düşüyordu
-  // (22 Eyl 2026: canlı tabloda 7 böyle satır bulundu, biri bu sezonda). Satırı bir sonraki
-  // açılış/XP değişimi zaten yazar, kayıp olmaz.
-  if (!prof) return;
-  const ad = prof.kullaniciAdi?.trim() || prof.adSoyad?.trim() || "";
-  if (!ad) return;
-  await update(dbRef(kullaniciDb, `leaderboards/leagues/grade${g}/${SEZON()}/${uid}`), {
-    name: ad,
-    avatar: prof.avatar || "profil0",
-    points: ust.xp,
-    grade: g,
-    season: SEZON(),
-    atMs: serverTimestamp(),
-  });
+  const [stats, xp] = await Promise.all([
+    tavanli(get(dbRef(kullaniciDb, `users/${uid}/stats/grade${g}/score/totalXp`)), LIG_OKUMA_MS),
+    tavanli(get(dbRef(kullaniciDb, `users/${uid}/xp/grade${g}`)), LIG_OKUMA_MS),
+  ]);
+  if (!stats && !xp) return null;
+  const x = (xp?.val() ?? {}) as Record<string, unknown>;
+  return Math.max(0, stats ? sayi(stats.val()) : 0, sayi(x.total), sayi(x.totalXp));
+}
+
+/**
+ * Lig satırını yazar — YALNIZ bir şey değiştiyse ve puanı ASLA düşürmeden (transaction:
+ * max(sunucu, yeni); hiçbir alan değişmiyorsa iptal → ağa yazma gitmez; `atMs` yalnız gerçek yazmada).
+ * `kimlik` verilirse ad/avatar ona çekilir (taze profil okuyan çağıran); null ise satırdakiler korunur,
+ * yalnız eksikse profil ile doldurulur. Hata fırlatmaz; çevrimdışıyken 10 sn'de bırakılır.
+ */
+export async function ligSatiriYaz(uid: string, sinif: number, puan: number, kimlik: LigKimlik | null): Promise<void> {
+  if (!uid) return;
+  try {
+    const g = sinifSinirla(sinif);
+    const hedef = Math.max(0, Math.round(puan));
+    const anahtar = satirAnahtari(uid, g);
+    const bilinen = bilinenSatirlar.get(anahtar);
+    if (bilinen && bilinen.puan >= hedef && (!kimlik || (kimlik.name === bilinen.kimlik.name && kimlik.avatar === bilinen.kimlik.avatar))) return;
+
+    const yedek = kimlik ?? (await kimlikGetir(uid));
+    if (!yedek) return;   // profil okunamadı: hayalet satır yazma
+    const sezon = SEZON();
+    const sonuc = await tavanli(runTransaction(dbRef(kullaniciDb, `${ligTablosuYolu(g)}/${uid}`), (mevcut) => {
+      const d = { ...((mevcut ?? {}) as Record<string, unknown>) };
+      const varOlan = mevcut != null;
+      const eskiPuan = Math.max(0, sayi(d.points));
+      const eskiAd = typeof d.name === "string" ? d.name.trim() : "";
+      const eskiAvatar = typeof d.avatar === "string" ? d.avatar.trim() : "";
+      const yeniPuan = Math.max(eskiPuan, hedef);   // asla düşme
+      const yeniAd = kimlik?.name ?? (eskiAd || yedek.name);
+      const yeniAvatar = kimlik?.avatar ?? (eskiAvatar || yedek.avatar);
+      const degisti = !varOlan || d.points == null || yeniPuan !== eskiPuan || yeniAd !== eskiAd ||
+        yeniAvatar !== eskiAvatar || d.grade == null || d.season == null;
+      if (!degisti) return undefined;   // iptal
+      return { ...d, points: yeniPuan, name: yeniAd, avatar: yeniAvatar, grade: g, season: sezon, atMs: serverTimestamp() };
+    }), 10000);
+    if (!sonuc) return;
+    const v = (sonuc.snapshot.val() ?? {}) as Record<string, unknown>;
+    if (!sonuc.snapshot.exists()) return;
+    const satir = {
+      puan: Math.max(0, sayi(v.points)),
+      kimlik: { name: (typeof v.name === "string" && v.name.trim()) || yedek.name, avatar: (typeof v.avatar === "string" && v.avatar.trim()) || yedek.avatar },
+    };
+    bilinenSatirlar.set(anahtar, satir);
+    // Kullanıcı altında sezon puanı (debug / stats) — yalnız gerçek yazmada, beklenmez
+    if (sonuc.committed) {
+      update(dbRef(kullaniciDb, `users/${uid}/league`), {
+        seasonKey: sezon, [`seasonPoints/grade${g}`]: satir.puan, updatedAt: serverTimestamp(),
+      }).catch((e) => sessizHata("lig", e));
+    }
+  } catch (e) {
+    sessizHata("lig", e);
+  }
+}
+
+/** Ekran açılınca kendi satırı (Android LeagueScreen adım 1-3): profil + puan TAZE okunur;
+    ikisi de okunduysa yazılır (değişiklik yoksa yazma gitmez). Profil kimliği önbelleğe bildirilir. */
+export async function ligKendiniYayinla(uid: string, sinif: number): Promise<void> {
+  const [profSnap, puan] = await Promise.all([
+    tavanli(get(dbRef(kullaniciDb, profilYolu(uid))), LIG_OKUMA_MS),
+    ligPuaniOku(uid, sinif),
+  ]);
+  const kimlik = profSnap ? ligKimligiCoz(profSnap.val()) : null;
+  if (kimlik) kimlikOnbellek = { uid, kimlik };
+  if (puan != null && kimlik) await ligSatiriYaz(uid, sinif, puan, kimlik);
 }
 
 /* ------------------------------------------------------------------ yazılı */
@@ -1085,19 +1206,24 @@ export async function yaziliTamamla(params: {
   const puan = Math.max(0, dogru) * XP_DOGRU_YAZILI;
   const kok = `users/${uid}/progress_yazili/grade${g}/${dersKey}/${sinavKey}`;
 
-  await runTransaction(dbRef(kullaniciDb, `${kok}/completedSteps`), (m) =>
-    Math.min(YAZILI_ADIM_SAYISI, Math.max(sayi(m), tamamlanan))
-  );
-  await update(dbRef(kullaniciDb, kok), {
-    correct: Math.max(0, dogru),
-    total: Math.max(0, toplam),
-    score: puan,
-    completedAt: serverTimestamp(),
-  });
+  // İlerleme, XP ve seri AYNI ANDA başlar, sırayla beklenmez (24 Eyl 2026): çevrimdışıyken ilk
+  // transaction dönmediği için sıralı zincirde sonrakiler hiç başlamıyordu. completedSteps önce.
+  void Promise.all([
+    runTransaction(dbRef(kullaniciDb, `${kok}/completedSteps`), (m) =>
+      Math.min(YAZILI_ADIM_SAYISI, Math.max(sayi(m), tamamlanan))
+    ),
+    update(dbRef(kullaniciDb, kok), {
+      correct: Math.max(0, dogru),
+      total: Math.max(0, toplam),
+      score: puan,
+      completedAt: serverTimestamp(),
+    }),
+  ]).catch((e) => sessizHata("yaziliIlerleme", e));
 
   // XP bir kez — Android awardYaziliXpAndAddOnce (abort = daha önce verilmiş)
-  let ilkKez = false;
-  if (puan > 0) {
+  const xpIs = (async () => {
+    if (puan <= 0) return false;
+    let ilkKez = false;
     try {
       const once = await runTransaction(
         dbRef(kullaniciDb, `users/${uid}/xp_once/yazili/grade${g}/${dersKey}/${sinavKey}/${adim}`),
@@ -1107,10 +1233,11 @@ export async function yaziliTamamla(params: {
     } catch {
       ilkKez = false;
     }
-    if (ilkKez) await xpEkle(uid, g, puan, "yazili");
-  }
+    if (ilkKez) xpEkle(uid, g, puan, "yazili").catch((e) => sessizHata("xp", e));
+    return ilkKez;
+  })();
 
-  const seri = await seriIsaretle(uid, ACT_YAZILI);
+  const [ilkKez, seri] = await Promise.all([xpIs, seriIsaretle(uid, ACT_YAZILI)]);
   return { xp: ilkKez ? puan : 0, ilkKez, seri };
 }
 
@@ -1397,14 +1524,32 @@ export function yaziliDersCubuklariCoz(agacHam: unknown): Dilim[] {
 
 /* ---------------------------------------------------------------- oyunlar */
 
-/** Oyunun en iyi skoru — uygulamayla AYNI düğüm (users/{uid}/{oyun}/bestScore). */
-export async function enIyiSkorOku(uid: string, oyun: string): Promise<number> {
-  const snap = await get(dbRef(kullaniciDb, `users/${uid}/${oyun}/bestScore`));
-  return Math.max(0, sayi(snap.val()));
+/**
+ * Oyun ilerlemesi / rekoru için "büyükse yaz" (Android oyunBuyukseYaz, 24 Eyl 2026): mevcut değer
+ * yeniden küçükse (ya da yoksa) yazar, değilse transaction'ı bırakır — okuma gelmeden/başarısızken
+ * yapılan yazma gerçek değeri EZMEZ. Ateşle-unut: çevrimdışında dönmez, beklenmez. `tavan` aşılmaz.
+ */
+export function buyukseYaz(yol: string, yeni: number, tavan?: number): void {
+  const hedef = Math.round(tavan != null ? Math.min(yeni, tavan) : yeni);
+  runTransaction(dbRef(kullaniciDb, yol), (m) => {
+    const mevcut = typeof m === "number" ? m : typeof m === "string" && m.trim() !== "" ? Number(m) : null;
+    if (mevcut != null && Number.isFinite(mevcut) && mevcut >= hedef) return undefined;
+    return hedef;
+  }).catch((e) => sessizHata("oyunIlerleme", e));
 }
 
-export async function enIyiSkorYaz(uid: string, oyun: string, skor: number): Promise<void> {
-  await set(dbRef(kullaniciDb, `users/${uid}/${oyun}/bestScore`), Math.max(0, Math.round(skor)));
+/** Oyun ilerlemesi okuma tavanı (Android 6 sn) */
+const OYUN_OKUMA_MS = 6000;
+
+/** Oyunun en iyi skoru — uygulamayla AYNI düğüm (users/{uid}/{oyun}/bestScore). Okunamazsa null. */
+export async function enIyiSkorOku(uid: string, oyun: string): Promise<number | null> {
+  const snap = await tavanli(get(dbRef(kullaniciDb, `users/${uid}/${oyun}/bestScore`)), OYUN_OKUMA_MS);
+  return snap ? Math.max(0, sayi(snap.val())) : null;
+}
+
+/** Rekor — "büyükse yaz" (okuma gelmemiş olsa bile sunucudaki rekor ezilmez). */
+export function enIyiSkorYaz(uid: string, oyun: string, skor: number): void {
+  if (skor > 0) buyukseYaz(`users/${uid}/${oyun}/bestScore`, Math.max(0, skor));
 }
 
 /* ----------------------------------------------------------------- wordle */
@@ -1426,20 +1571,16 @@ export async function wordleKelime(indeks: number): Promise<string> {
 
 export const wordleSeviyeYolu = (uid: string) => `users/${uid}/wordle/currentLevel`;
 
+/** Sıradaki bölüm (1..300; 300'ü aşmış eski kayıt 300'e sınırlanır — "301/300" olmasın). Okunamazsa 1. */
 export async function wordleSeviyeOku(uid: string): Promise<number> {
-  try {
-    const snap = await get(dbRef(kullaniciDb, wordleSeviyeYolu(uid)));
-    const v = sayi(snap.val());
-    return v >= 1 ? v : 1;
-  } catch {
-    return 1;
-  }
+  const snap = await tavanli(get(dbRef(kullaniciDb, wordleSeviyeYolu(uid))), 8000);
+  const v = snap ? sayi(snap.val()) : 1;
+  return Math.min(WORDLE_BOLUM_SAYISI, v >= 1 ? v : 1);
 }
 
-/** Bölüm bitince seviyeyi bir artırır (uygulamadaki gibi 300'de durur). */
-export async function wordleSeviyeIlerlet(uid: string, mevcut: number): Promise<void> {
-  if (mevcut >= WORDLE_BOLUM_SAYISI) return;
-  await set(dbRef(kullaniciDb, wordleSeviyeYolu(uid)), mevcut + 1);
+/** Bölüm bitince: oynanan bölümden hesaplanır (mevcut + 1), 300 tavanlı, "büyükse yaz" (Android wlAdvanceLevel). */
+export function wordleSeviyeIlerlet(uid: string, mevcut: number): void {
+  buyukseYaz(wordleSeviyeYolu(uid), mevcut + 1, WORDLE_BOLUM_SAYISI);
 }
 
 /* ----------------------------------------------------------------- sudoku */
@@ -1473,22 +1614,26 @@ export async function sudokuBulmaca(zorluk: string, idx: number): Promise<Sudoku
 
 export const sudokuIlerlemeYolu = (uid: string) => `users/${uid}/sudoku`;
 
-export async function sudokuIlerlemesi(uid: string): Promise<Record<SudokuZorluk, number>> {
-  try {
-    const snap = await get(dbRef(kullaniciDb, sudokuIlerlemeYolu(uid)));
-    const v = snap.val() ?? {};
-    return {
-      easy: Math.max(1, sayi(v.easy) || 1),
-      medium: Math.max(1, sayi(v.medium) || 1),
-      hard: Math.max(1, sayi(v.hard) || 1),
-    };
-  } catch {
-    return { easy: 1, medium: 1, hard: 1 };
-  }
+/** İlerleme (sıradaki bulmaca, 1 tabanlı). Okunamazsa null — (1,1,1) ile ezilmesin. */
+export async function sudokuIlerlemesi(uid: string): Promise<Record<SudokuZorluk, number> | null> {
+  const snap = await tavanli(get(dbRef(kullaniciDb, sudokuIlerlemeYolu(uid))), OYUN_OKUMA_MS);
+  if (!snap) return null;
+  const v = snap.val() ?? {};
+  return {
+    easy: Math.max(1, sayi(v.easy) || 1),
+    medium: Math.max(1, sayi(v.medium) || 1),
+    hard: Math.max(1, sayi(v.hard) || 1),
+  };
 }
 
-export async function sudokuIlerlemeYaz(uid: string, zorluk: string, bolum: number): Promise<void> {
-  await set(dbRef(kullaniciDb, `users/${uid}/sudoku/${zorluk}`), bolum);
+/** Bitirilen bulmacadan sonraki bölüm — "büyükse yaz", ilerleme geriye düşmez. */
+export function sudokuIlerlemeYaz(uid: string, zorluk: string, bolum: number): void {
+  buyukseYaz(`users/${uid}/sudoku/${zorluk}`, bolum);
+}
+
+/** Yalnız "hepsi bitti → baştan": bilinçli geri alma, sunucudan OKUNMUŞ değere göre çağrılır. */
+export function sudokuIlerlemeSifirla(uid: string, zorluk: string): void {
+  set(dbRef(kullaniciDb, `users/${uid}/sudoku/${zorluk}`), 1).catch((e) => sessizHata("sudoku", e));
 }
 
 /* --------------------------------------------------------- kelime gezmece */
@@ -1534,18 +1679,15 @@ export async function kgBolum(anahtar: string): Promise<KgBolum | null> {
 
 export const kgSeviyeYolu = (uid: string) => `users/${uid}/kelimeGezmece/currentLevel`;
 
+/** Okunamazsa 1 (yazma "büyükse yaz" olduğu için gerçek ilerleme ezilmez). */
 export async function kgSeviyeOku(uid: string): Promise<number> {
-  try {
-    const snap = await get(dbRef(kullaniciDb, kgSeviyeYolu(uid)));
-    const v = sayi(snap.val());
-    return v >= 1 ? v : 1;
-  } catch {
-    return 1;
-  }
+  const snap = await tavanli(get(dbRef(kullaniciDb, kgSeviyeYolu(uid))), OYUN_OKUMA_MS);
+  const v = snap ? sayi(snap.val()) : 1;
+  return v >= 1 ? v : 1;
 }
 
-export async function kgSeviyeYaz(uid: string, bolum: number): Promise<void> {
-  await set(dbRef(kullaniciDb, kgSeviyeYolu(uid)), Math.max(1, bolum));
+export function kgSeviyeYaz(uid: string, bolum: number): void {
+  buyukseYaz(kgSeviyeYolu(uid), Math.max(1, bolum));
 }
 
 /* ------------------------------------------------------- haftalık / aylık */
@@ -1608,7 +1750,7 @@ async function gorevleriOkuVeBirlestir(tanimlar: GorevTanim[], yol: string): Pro
 export async function haftalikGorevTanimlari(): Promise<GorevTanim[]> {
   // Yaz tatili (Temmuz, Ağustos): haftalık görev YOK — Android `loadWeeklyDefsFromCatalog`
   // ve iOS'taki karşılığı bu kapıyı uyguluyor. Katalogda yaz haftaları zaten boş, kapı yedek.
-  const ay0 = new Date().getMonth();
+  const ay0 = Number(gunAnahtari().slice(5, 7)) - 1;   // İstanbul takvimi (görev günü = seri günü)
   if (ay0 === 6 || ay0 === 7) return [];
 
   // Döngü yok: eski `% 21` aynı görevi 21 hafta sonra alakasız bir haftada tekrar gösteriyordu.
@@ -1775,13 +1917,12 @@ export async function rozetAylari(uid: string): Promise<number[]> {
 
 export type BolumluOyun = "okbulmaca" | "yapboz";
 
+/** Okunamazsa (çevrimdışı / 6 sn) 1 — yazma "büyükse yaz" olduğu için gerçek ilerleme ezilmez. */
 export async function oyunBolumu(uid: string, oyun: BolumluOyun): Promise<number> {
-  try {
-    const snap = await get(dbRef(kullaniciDb, `users/${uid}/${oyun}`));
-    return Math.max(1, sayi(snap.val()) || 1);
-  } catch { return 1; }
+  const snap = await tavanli(get(dbRef(kullaniciDb, `users/${uid}/${oyun}`)), OYUN_OKUMA_MS);
+  return snap ? Math.max(1, sayi(snap.val()) || 1) : 1;
 }
 
-export async function oyunBolumuYaz(uid: string, oyun: BolumluOyun, bolum: number): Promise<void> {
-  await set(dbRef(kullaniciDb, `users/${uid}/${oyun}`), bolum);
+export function oyunBolumuYaz(uid: string, oyun: BolumluOyun, bolum: number): void {
+  buyukseYaz(`users/${uid}/${oyun}`, bolum);
 }

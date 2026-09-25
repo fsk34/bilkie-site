@@ -6,7 +6,7 @@
 // Bilgie Koç zayıf/güçlü hesabında sayar ve bunu söyler ("evde çözdüklerin dahil").
 // Yanlış soru numaraları Hata Turu'na giremez (soru metni yok), Yanlışlarım'da liste olarak durur.
 
-import { get, push, ref as dbRef, set } from "firebase/database";
+import { get, push, ref as dbRef, remove, set } from "firebase/database";
 import { kullaniciDb } from "./firebase";
 import { sinifSinirla } from "./veri";
 
@@ -58,14 +58,28 @@ export async function evdeKayitlariOku(uid: string, sinif: number): Promise<Evde
   }
 }
 
+/**
+ * Kaydı yazar. push() anahtarı yerelde üretilir; sunucu onayı en çok 3 sn beklenir — çevrimdışıyken
+ * onay hiç gelmez ama yazma yerel kuyrukta durur, bu yüzden zaman aşımı BAŞARI sayılır (yoksa
+ * "Kaydediliyor…"da takılıp çık-gir ikinci kayıt = çift kayıt oluyordu; Android 24 Eyl). Sunucu
+ * reddederse (kural) fırlatır.
+ */
 export async function evdeKayitYaz(uid: string, sinif: number, k: Omit<EvdeKayit, "id" | "zaman">): Promise<void> {
   const yeni = push(dbRef(kullaniciDb, evdeYolu(uid, sinif)));
-  await set(yeni, {
+  const yazma = set(yeni, {
     ders: k.ders, konu: k.konu, dogru: k.dogru, yanlis: k.yanlis,
     ...(k.kaynak ? { kaynak: k.kaynak } : {}),
     ...(k.yanlisNolar.length > 0 ? { yanlisNolar: k.yanlisNolar } : {}),
     zaman: Date.now(),
   });
+  await Promise.race([yazma, new Promise<void>((coz) => setTimeout(coz, 3000))]);
+}
+
+/** Tek kaydı siler (yanlış girilen kayıt koç hesabını kalıcı bozmasın). Ret olursa fırlatır;
+    çevrimdışıyken söz dönmez ama silme yerelde hemen uygulanır — çağıran beklememeli. */
+export function evdeKayitSil(uid: string, sinif: number, id: string): Promise<void> {
+  if (!id) return Promise.resolve();
+  return remove(dbRef(kullaniciDb, `${evdeYolu(uid, sinif)}/${id}`));
 }
 
 /** ders → konu → {dogru, soru} toplamı (konusuz kayıtlar ders toplamına girer, konuya değil). */

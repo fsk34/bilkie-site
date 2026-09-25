@@ -138,14 +138,30 @@ export default function Oyun2048() {
     if (!kullanici) return;
     let iptal = false;
     enIyiSkorOku(kullanici.uid, "game2048")
-      .then((v) => { if (!iptal) { enIyiRef.current = v; setEnIyi(v); } })
+      // Okuma gelmeden oynanan skor daha büyükse onu koru
+      .then((v) => { if (!iptal && v != null) { const m = Math.max(enIyiRef.current, v); enIyiRef.current = m; setEnIyi(m); } })
       .catch(() => {});
     return () => { iptal = true; };
   }, [kullanici]);
 
   const cik = useCallback(() => router.push("/oyunlar"), [router]);
 
+  // Rekor sunucuya yalnız oyun bitince / yeni oyunda / çıkarken, TEK SEFER ve "büyükse yaz" ile
+  // (Android 24 Eyl; eskiden her kaydırmada yazılıyordu, okuma gelmeden de eziliyordu)
+  const yazilanSkor = useRef(0);
+  const kullaniciRef = useRef(kullanici);
+  useEffect(() => { kullaniciRef.current = kullanici; }, [kullanici]);
+  const rekoruGonder = useRef(() => {
+    const s = skorRef.current, k = kullaniciRef.current;
+    if (!k || s <= 0 || s <= yazilanSkor.current) return;
+    yazilanSkor.current = s;
+    enIyiSkorYaz(k.uid, "game2048", s);
+  });
+  useEffect(() => { const f = rekoruGonder.current; return () => f(); }, []);
+
   const yeniOyun = useCallback(() => {
+    rekoruGonder.current();
+    yazilanSkor.current = 0;
     sonrakiId = 0;
     const baslangic = yeniTaslar();
     taslarRef.current = baslangic;
@@ -171,13 +187,12 @@ export default function Oyun2048() {
     setSkor(yeniSkor);
     if (yeniSkor > enIyiRef.current) {
       enIyiRef.current = yeniSkor;
-      setEnIyi(yeniSkor);
-      if (kullanici) void enIyiSkorYaz(kullanici.uid, "game2048", yeniSkor).catch(() => {});
+      setEnIyi(yeniSkor);   // yalnız yerelde; sunucu yazması rekoruGonder'de
     }
 
     if (eklenmis.some((t) => t.deger === 2048)) setKazandi(true);
-    if (!hamleVarMi(eklenmis)) setBitti(true);
-  }, [kullanici]);
+    if (!hamleVarMi(eklenmis)) { setBitti(true); rekoruGonder.current(); }
+  }, []);
 
   const kilitli = bitti || (kazandi && !devam);
 

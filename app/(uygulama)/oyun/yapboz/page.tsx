@@ -107,7 +107,7 @@ export default function Yapboz() {
 
   const devam = useCallback(() => {
     const sonraki = bolumNo + 1;
-    if (kullanici && sonraki > ilerleme) { setIlerleme(sonraki); oyunBolumuYaz(kullanici.uid, "yapboz", sonraki).catch(() => {}); }
+    if (kullanici && sonraki > ilerleme) { setIlerleme(sonraki); oyunBolumuYaz(kullanici.uid, "yapboz", sonraki); }
     if (sonraki > toplam) setAsama("secim"); else basla(sonraki);
   }, [bolumNo, ilerleme, kullanici, toplam, basla]);
 

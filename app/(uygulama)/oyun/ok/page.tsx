@@ -25,7 +25,41 @@ type Bolum = { satir: number; sutun: number; oklar: { hucreler: Hucre[] }[] };
 // Kaynak: `okbulmaca` veritabanı (`bolumler`); buradaki oklar.json ilk kare + çevrimdışı
 // yedeği (22 Eyl 2026: içerik DB'ye taşındı, yeni bölüm için yayın gerekmiyor).
 // Sayfa paketteki listeyle ANINDA açılır, DB yanıtı gelince liste tazelenir.
-const YEDEK_BOLUMLER = (veri as unknown as { bolumler: Bolum[] }).bolumler;
+/**
+ * Bölüm oynanabilir mi (Android okBolumGecerli, 24 Eyl 2026): ızgara > 0, en az bir ok; her ok ≥ 2
+ * hücre, hücreler ızgara içinde, ardışık hücreler komşu. Aynı hücre tekrarı → yön (0,0) → sonsuz
+ * döngü; boş ok → çökme.
+ */
+function bolumGecerli(b: Bolum): boolean {
+  if (!b || !(b.satir > 0) || !(b.sutun > 0) || !Array.isArray(b.oklar) || b.oklar.length === 0) return false;
+  return b.oklar.every((ok) => {
+    const h = ok?.hucreler;
+    return Array.isArray(h) && h.length >= 2 &&
+      h.every(([r, c]) => Number.isInteger(r) && Number.isInteger(c) && r >= 0 && r < b.satir && c >= 0 && c < b.sutun) &&
+      h.every((x, i) => i === 0 || Math.abs(x[0] - h[i - 1][0]) + Math.abs(x[1] - h[i - 1][1]) === 1);
+  });
+}
+
+/** DB'deki ham bölüm → Bolum; eksik/bozuk koordinat -1 olur (doğrulamada elenir). */
+function bolumCoz(v: unknown): Bolum {
+  const o = (v ?? {}) as Record<string, unknown>;
+  const dizi = (x: unknown): unknown[] => (Array.isArray(x) ? x : x && typeof x === "object" ? Object.values(x) : []);
+  const n = (x: unknown) => (typeof x === "number" ? x : -1);
+  return {
+    satir: n(o.satir), sutun: n(o.sutun),
+    oklar: dizi(o.oklar).map((ok) => ({
+      hucreler: dizi((ok as Record<string, unknown>)?.hucreler).map((h) => { const p = dizi(h); return [n(p[0]), n(p[1])] as Hucre; }),
+    })),
+  };
+}
+
+/** İlk geçersiz bölümde listeyi keser — numaralar kaymasın diye aradan atlamak yerine. */
+function gecerliOnEk(l: Bolum[]): Bolum[] {
+  const i = l.findIndex((b) => !bolumGecerli(b));
+  return i < 0 ? l : l.slice(0, i);
+}
+
+const YEDEK_BOLUMLER = gecerliOnEk((veri as unknown as { bolumler: Bolum[] }).bolumler);
 
 const LACIVERT = "#2B3350", KIRMIZI = "#E0483F", NOKTA = "#BCC3D4";
 const HAK = 3;
@@ -124,7 +158,9 @@ export default function OkBulmaca() {
     get(dbRef(okBulmacaDb, "bolumler"))
       .then((snap) => {
         const v = snap.val();
-        const liste: Bolum[] = Array.isArray(v) ? v.filter(Boolean) : v ? Object.values(v) : [];
+        const ham: unknown[] = Array.isArray(v) ? v.filter(Boolean) : v ? Object.values(v) : [];
+        // Bozuk bölümden sonrası atılır; paketten kısa kalırsa paketteki liste kullanılır
+        const liste = gecerliOnEk(ham.map(bolumCoz));
         if (!iptal && liste.length >= YEDEK_BOLUMLER.length) setBolumler(liste);
       })
       .catch(() => { /* okunamazsa paketteki liste kalır */ });
@@ -145,6 +181,7 @@ export default function OkBulmaca() {
   const onuAcik = useCallback((a: Ok, liste: Ok[]) => {
     const dolu = new Set<string>();
     for (const o of liste) if (o.id !== a.id && (o.durum === "duruyor" || o.durum === "carpti")) for (const [r, c] of o.hucreler) dolu.add(`${r},${c}`);
+    if (a.yon[0] === 0 && a.yon[1] === 0) return true;   // bozuk yön: sonsuz döngüye girme
     let [r, c] = a.hucreler[a.hucreler.length - 1];
     for (;;) {
       r += a.yon[0]; c += a.yon[1];
@@ -201,7 +238,7 @@ export default function OkBulmaca() {
 
   const devam = useCallback(() => {
     const sonraki = bolumNo + 1;
-    if (kullanici && sonraki > ilerleme) { setIlerleme(sonraki); oyunBolumuYaz(kullanici.uid, "okbulmaca", sonraki).catch(() => {}); }
+    if (kullanici && sonraki > ilerleme) { setIlerleme(sonraki); oyunBolumuYaz(kullanici.uid, "okbulmaca", sonraki); }
     if (sonraki > OK_BOLUM_SAYISI) setAsama("secim"); else basla(sonraki);
   }, [bolumNo, ilerleme, kullanici, basla]);
 

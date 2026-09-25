@@ -129,7 +129,8 @@ async function tumGunlukGorevlerBittiyseOdullendir(uid: string, tanimlar: GorevT
 
 /** Android `setMonthlyBadgeEarned` — aylık görev bitince o ayın rozeti işaretlenir. */
 async function aylikRozetVer(uid: string): Promise<void> {
-  const ayAdi = AY_ADLARI[new Date().getMonth()];
+  // Ay İstanbul takviminden (görev ayı = seri ayı); cihaz saatiyle gece yarısı kayıyordu
+  const ayAdi = AY_ADLARI[Number(ayAnahtari().slice(5, 7)) - 1];
   if (!ayAdi) return;
   try {
     await set(dbRef(kullaniciDb, `users/${uid}/badges/${rozetYiliAnahtari()}/${ayAdi}`), true);
@@ -158,6 +159,26 @@ export type GorevDonemi = "gunluk" | "haftalik" | "aylik";
 type BolumSonucu = { degisenler: GorevDegisimi[]; yeniBitenler: GorevTanim[] };
 
 /**
+ * Bu olay bu kind'ı ilerletebilir mi? (Android TaskManager.olayIlgili, 24 Eyl 2026) — ilgisiz
+ * tanıma transaction açılmasın, olmayan düğüm yaratılmasın. Aşağıdaki dallara yeni kind/olay
+ * eklenirse BURAYA da eklenmeli.
+ */
+function olayIlgili(kind: string, tip: GorevOlayTipi): boolean {
+  switch (kind) {
+    case "weekly_active_days": return true;                         // her olay aktif günü sayar
+    case "streak_any": return tip !== "oyun_girildi";               // oyun çalışma sayılmaz
+    case "notebook_pages": return tip === "defter_sayfa";
+    case "notebook_complete": return tip === "defter_bitti";
+    case "combo_defter_test": return tip === "defter_bitti" || tip === "test_bitti";
+    case "take_test": case "test_correct": case "test_wrong_max": case "test_total_correct": return tip === "test_bitti";
+    case "yazili_complete": case "yazili_correct": return tip === "yazili_bitti";
+    case "quiz_complete": return tip === "quiz_bitti";
+    case "game_play": return tip === "oyun_girildi";
+    default: return false;
+  }
+}
+
+/**
  * Bir dönemin (günlük/haftalık/aylık) görevlerini olaya göre ilerletir.
  * Android'deki `applyTo` ile birebir: her görev tek transaction, hedefe ulaşınca completed.
  */
@@ -174,6 +195,8 @@ async function bolumeUygula(
 
   for (const def of tanimlar) {
     const kind = (def.kind || "").toLowerCase();
+    // İlgisiz tanım: eskiden de ilerlemiyordu (yalnız aynı değer yeniden yazılıyordu) → atla
+    if (!olayIlgili(kind, o.tip)) continue;
     const hedef = Math.max(1, gorevHedefi(def));
     let oncedenBitmisti = false;
     // Transaction birden fazla kez çalışabilir; bu değerler her denemede yeniden
@@ -187,10 +210,8 @@ async function bolumeUygula(
 
         const oncekiIlerleme = sayi(d.progress);
         oncekiKayit = oncekiIlerleme;
-        if (oncedenBitmisti) {
-          d.target = hedef;
-          return d;
-        }
+        // Tamamlanmış görev: yazacak bir şey yok → iptal (committed=false; XP/rozet tekrar tetiklenmez)
+        if (oncedenBitmisti) return undefined;
 
         let yeni = oncekiIlerleme;
 

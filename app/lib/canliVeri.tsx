@@ -14,7 +14,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { kullaniciDb } from "./firebase";
-import { useCanli } from "./canli";
+import { useCanli, useCanliSorgu } from "./canli";
+import { tavanli } from "./hata";
 import { sonDokunulanCoz, type SonDokunulan } from "./anaEkran";
 import { quizBitenlerYolu, quizBitenleriCoz } from "./quiz";
 import { useKullanici, useKullaniciDugumleri, useKullaniciDugumu } from "./kullaniciVerisi";
@@ -31,7 +32,9 @@ import {
   haftalikGorevDurumYolu,
   istatistikAgaciYolu,
   haftalikGorevTanimlari,
+  ligBul,
   ligSatirlariCoz,
+  ligSorgusu,
   ligTablosuYolu,
   profilCoz,
   profilYolu,
@@ -179,27 +182,36 @@ const GOREV_KAYNAKLARI: Record<GorevTuru, {
   aylik:    { tanimlar: aylikGorevTanimlari,    yol: aylikGorevDurumYolu },
 };
 
+/** Görev listesi + okuma durumu. `hata` = katalog okunamadı ("görev yok" ile karışmasın). */
+export type GorevDurumu = { gorevler: Gorev[] | null; hata: boolean; tekrarDene: () => void };
+
 /** Görev TANIMLARI katalogdan (içerik, önbellekli); İLERLEME kullanıcının kendi verisi. */
-export function useGorevler(tur: GorevTuru): Gorev[] | null {
+export function useGorevDurumu(tur: GorevTuru): GorevDurumu {
   const kaynak = GOREV_KAYNAKLARI[tur];
-  const [tanimlar, setTanimlar] = useState<GorevTanim[] | null>(null);
+  // null = yükleniyor; "hata" = okunamadı (çevrimdışı / zaman aşımı) — Android TaskManager.okumaHatasi
+  const [tanimlar, setTanimlar] = useState<GorevTanim[] | "hata" | null>(null);
+  const [deneme, setDeneme] = useState(0);
 
   useEffect(() => {
     let iptal = false;
-    kaynak.tanimlar()
-      .then((t) => { if (!iptal) setTanimlar(t); })
-      .catch(() => { if (!iptal) setTanimlar([]); });
+    tavanli(kaynak.tanimlar(), 8000).then((t) => { if (!iptal) setTanimlar(t ?? "hata"); });
     return () => { iptal = true; };
-  }, [kaynak]);
+  }, [kaynak, deneme]);
 
   const ilerleme = useKullaniciDugumu<Record<string, unknown>>(
     kullaniciDb, kaynak.yol, (ham) => (ham ?? {}) as Record<string, unknown>, {}
   );
 
   return useMemo(() => {
-    if (tanimlar === null || ilerleme === null) return null;
-    return gorevleriBirlestir(tanimlar, ilerleme);
+    const tekrarDene = () => { setTanimlar(null); setDeneme((d) => d + 1); };
+    if (tanimlar === "hata") return { gorevler: null, hata: true, tekrarDene };
+    if (tanimlar === null || ilerleme === null) return { gorevler: null, hata: false, tekrarDene };
+    return { gorevler: gorevleriBirlestir(tanimlar, ilerleme), hata: false, tekrarDene };
   }, [tanimlar, ilerleme]);
+}
+
+export function useGorevler(tur: GorevTuru): Gorev[] | null {
+  return useGorevDurumu(tur).gorevler;
 }
 
 export const useGunlukGorevler = () => useGorevler("gunluk");
@@ -209,16 +221,23 @@ export const useGunlukGorevler = () => useGorevler("gunluk");
 /**
  * Lig tablosu — BAŞKASININ değiştirdiği veri, o yüzden canlı ama YEREL ÖNCE değil:
  * eski sıralamayı göstermek yanlış olur, tablo gelene kadar boş kalır.
- * ⚠️ Ölçek: sınıftaki herkes bu düğümde; biri puan alınca tamamı tüm dinleyicilere iner.
- * Öğrenci sayısı büyürse ilk kısılacak yer burası (sayfalama / sunucu tarafı sıralama).
+ * 24 Eyl 2026 (Android LeagueScreen): yalnız KENDİ LİGİN sorgulanır — orderByChild("points") +
+ * ligin aralığı + limitToLast(50), sunucuda süzülür. Lig, XP'den (ustBilgi: stats/xp düğümlerinin
+ * büyüğü = lige yazılan kural) bulunur; XP bilinene kadar sorgu kurulmaz. XP eşiği geçip lig
+ * değişince sorgu anahtarı değişir, abonelik yenilenir. Ligin dışındaysan "Sen" satırı "50+".
  */
 export function useLigTablosu(sinif: number): LigSatiri[] | null {
   const { hazir, uid } = useKullanici();
-  const { veri, yuklendi } = useCanli<unknown>(kullaniciDb, hazir && uid ? ligTablosuYolu(sinif) : null);
+  const ust = useUstBilgi(sinif);
+  const profil = useProfil();
+  const lig = ust ? ligBul(ust.xp) : null;
+  const sorgu = useMemo(() => (lig ? ligSorgusu(lig) : null), [lig]);
+  const { veri, yuklendi } = useCanliSorgu<unknown>(kullaniciDb, hazir && uid ? ligTablosuYolu(sinif) : null, sorgu);
   return useMemo(() => {
     if (!hazir) return null;
     if (!uid) return [];
-    if (!yuklendi) return null;
-    return ligSatirlariCoz(veri, uid);
-  }, [hazir, uid, veri, yuklendi]);
+    if (!lig || !yuklendi) return null;
+    const benim = { ad: profil?.kullaniciAdi?.trim() || "Sen", avatar: profil?.avatar || "profil0", puan: ust?.xp ?? 0 };
+    return ligSatirlariCoz(veri, uid, lig, benim);
+  }, [hazir, uid, veri, yuklendi, lig, profil, ust]);
 }

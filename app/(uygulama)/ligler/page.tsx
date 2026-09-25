@@ -8,7 +8,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import Kabuk from "../Kabuk";
 import { useOturum } from "../../lib/oturum";
 import { useLigTablosu } from "../../lib/canliVeri";
-import { ligBul, ligKendiniYayinla } from "../../lib/veri";
+import { LIG_LISTE_LIMITI, ligBul, ligKendiniYayinla, ligSatiriGoruldu } from "../../lib/veri";
 
 // Uygulamadaki lig adları ve kupa görselleri (sırayla)
 const LIGLER = [
@@ -84,7 +84,13 @@ function Icerik() {
   const benimSatirim = satirlar?.find((s) => s.sensin);
   const lig = ligBul(benimSatirim?.puan ?? 0);
   const indeks = Math.max(0, LIGLER.findIndex((l) => l.key === lig.key));
-  const benimSiram = benimSatirim?.sira;
+  const benimSiram = benimSatirim ? (benimSatirim.disarida ? `${LIG_LISTE_LIMITI}+` : benimSatirim.sira) : undefined;
+
+  // Sunucudaki kendi satırını yazıcıya öğret → aynı değerler için tekrar transaction yok
+  useEffect(() => {
+    if (!kullanici || !benimSatirim || benimSatirim.disarida) return;
+    ligSatiriGoruldu(kullanici.uid, sinif, benimSatirim.puan, benimSatirim.ad, benimSatirim.avatar);
+  }, [kullanici, sinif, benimSatirim]);
 
   /* ---- kupa terfi animasyonu (Android: trophyPromotionTrigger) ---- */
   const [gosterilen, setGosterilen] = useState(indeks);
@@ -278,7 +284,7 @@ function Icerik() {
             ref={s.sensin ? benimRef : undefined}
           >
             <span className="bk-lig-sira">
-              {s.sira <= 3 ? (
+              {s.disarida ? `${LIG_LISTE_LIMITI}+` : s.sira <= 3 ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={`/uygulama/lig/${["birinci", "ikinci", "ucuncu"][s.sira - 1]}.png`} alt={`${s.sira}.`} />
               ) : (

@@ -41,7 +41,7 @@ export default function AvatarSecici({
     try {
       // ⚠️ Lig satırına KAYITLI kullanıcı adı yazılır (Hesap'ta kutuya yazılmış ama
       // kaydedilmemiş ad değil) — sahiplenilmemiş ad liglerde görünmesin.
-      await avatarDegistir(kullanici.uid, yeni, profil?.kullaniciAdi || profil?.adSoyad || "Sen");
+      await avatarDegistir(kullanici.uid, yeni, profil?.kullaniciAdi || "Kullanıcı");
       await profiliYenile();
       setSecili(null);
       kapat();

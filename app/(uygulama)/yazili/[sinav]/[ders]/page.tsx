@@ -12,11 +12,12 @@ import type { GorevDegisimi } from "../../../../lib/gorevYaz";
 import { useParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useOturum } from "../../../../lib/oturum";
+import { useUstBilgi } from "../../../../lib/canliVeri";
+import { sessizHata, tavanli } from "../../../../lib/hata";
 import {
   CAN_LIMITI,
   acikCevapDogruMu,
-  canYaz,
-  canlariTazele,
+  canDegistir,
   siralamaKarsilastir,
   yaziliAcikSorulari,
   yaziliDersCoz,
@@ -63,7 +64,11 @@ export default function YaziliCalismaSayfasi() {
   const [bolumler, setBolumler] = useState<Bolum[]>([]);
   const [bolumIndeks, setBolumIndeks] = useState(0);
   const [indeks, setIndeks] = useState(0);
-  const [can, setCan] = useState(CAN_LIMITI);
+  // Can CANLI dinleyiciden; yazma transaction'la (canDegistir), yerelde anında yansır
+  const ust = useUstBilgi(sinif);
+  const can = kullanici ? (ust?.can ?? CAN_LIMITI) : CAN_LIMITI;
+  // Son soruda "Devam Et" çift dokunuşu: ikinci basış bitişi (XP/görev/istatistik) iki kez yazmasın
+  const bitirildi = useRef(false);
 
   // cevap durumları
   const [havuz, setHavuz] = useState<string[]>([]);
@@ -102,14 +107,11 @@ export default function YaziliCalismaSayfasi() {
         const icerikDers = await yaziliDersCoz(sinif, dersKey, sinavKey);
         let siradaki: "step1" | "step2" = "step1";
         if (kullanici) {
-          const [ilerleme, kalanCan] = await Promise.all([
-            // ⚠️ ilerleme SADE ders anahtarıyla tutulur
-            yaziliIlerlemesi(kullanici.uid, sinif, [dersKey], sinavKey),
-            canlariTazele(kullanici.uid),
-          ]);
+          canDegistir(kullanici.uid, 0);   // gün değiştiyse canlar 3'e (tek transaction, beklenmez)
+          // ⚠️ ilerleme SADE ders anahtarıyla tutulur
+          const ilerleme = await yaziliIlerlemesi(kullanici.uid, sinif, [dersKey], sinavKey);
           if (iptal) return;
           siradaki = yaziliSiradakiAdim(ilerleme[dersKey] ?? 0);
-          setCan(kalanCan);
         }
         setAdim(siradaki);
 
@@ -166,12 +168,27 @@ export default function YaziliCalismaSayfasi() {
   const baslangicRef = useRef(Date.now());
 
   const bitir = useCallback(async (dyDogru: number) => {
+    if (bitirildi.current) return;
+    bitirildi.current = true;
     setDurum("bitti");
     if (!kullanici) return;
-    try {
-      const sonuc = await yaziliTamamla({
-        uid: kullanici.uid, sinif, dersKey, sinavKey, adim, dogru: dyDogru, toplam: dy.length,
-      });
+    const uid = kullanici.uid;
+    // Başarımlar + görevler + istatistik — Android onYaziliCompleted zinciri; ilerleme/XP/seri
+    // yazmasından BAĞIMSIZ başlar (çevrimdışıyken biri dönmese de diğeri yürür).
+    // Doğru/toplam yalnız SON halkadan (doğru-yanlış) geliyor; XP de öyle veriliyor.
+    const gorevIs = yaziliBittiIsle({
+      uid, sinif, dersKey, sinavKey,
+      dogru: dyDogru, toplam: dy.length,
+      sureSn: Math.max(1, Math.round((Date.now() - baslangicRef.current) / 1000)),
+      puan: Math.max(0, dyDogru) * XP_DOGRU_YAZILI,
+      // Android: incrementCounter = stepKey == "step1" — hazırlanan yazılı sayacı adım 2'de artmaz
+      sayaciArtir: adim === "step1",
+    }).catch(() => [] as GorevDegisimi[]);
+    // Çevrimdışıyken yazma sözleri dönmez → en çok 6 sn beklenir (Android), iş arkada sürer
+    const sonuc = await tavanli(yaziliTamamla({
+      uid, sinif, dersKey, sinavKey, adim, dogru: dyDogru, toplam: dy.length,
+    }), 6000);
+    if (sonuc) {
       setKazanilanXp(sonuc.xp);
       setTekrarCozum(!sonuc.ilkKez);
       if (sonuc.seri?.basarili) {
@@ -179,29 +196,17 @@ export default function YaziliCalismaSayfasi() {
         if (sonuc.seri.ilkAktiviteBugun) {
           setSeriAkisi({ sayi: sonuc.seri.sayi, maske: sonuc.seri.maske, tetik: ACT_YAZILI });
         }
-        if (sonuc.seri.sayi > 0) {
-          await enUzunSeriGuncelle(kullanici.uid, sinif, sonuc.seri.sayi);
-        }
+        // En uzun seri rekoru: tek yazma, sınıfa göre kırpılmış (beklenmez)
+        if (sonuc.seri.sayi > 0) void enUzunSeriGuncelle(uid, sinif, sonuc.seri.sayi).catch((e) => sessizHata("seriRekor", e));
       }
-      // Başarımlar + görevler + istatistik — Android onYaziliCompleted zinciri.
-      // Doğru/toplam yalnız SON halkadan (doğru-yanlış) geliyor; XP de öyle veriliyor.
-      setGorevDegisimleri(await yaziliBittiIsle({
-        uid: kullanici.uid, sinif, dersKey, sinavKey,
-        dogru: dyDogru, toplam: dy.length,
-        sureSn: Math.max(1, Math.round((Date.now() - baslangicRef.current) / 1000)),
-        puan: Math.max(0, dyDogru) * XP_DOGRU_YAZILI,
-        // Android: incrementCounter = stepKey == "step1" — hazırlanan yazılı sayacı adım 2'de artmaz
-        sayaciArtir: adim === "step1",
-      }));
-    } catch {
-      /* yazma hatası akışı durdurmasın */
     }
+    const gorevler = await tavanli(gorevIs, 3000);
+    if (gorevler && gorevler.length > 0) setGorevDegisimleri(gorevler);
   }, [kullanici, sinif, dersKey, sinavKey, adim, dy.length]);
 
   function canAzalt() {
-    const yeni = Math.max(0, can - 1);
-    setCan(yeni);
-    if (kullanici) canYaz(kullanici.uid, yeni).catch(() => {});
+    // Gün kontrolü + 1 azaltma tek transaction'da (mutlak değer yazılmaz); ekran dinleyiciden
+    if (kullanici) canDegistir(kullanici.uid, -1);
   }
 
   function kontrolEt() {

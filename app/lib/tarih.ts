@@ -25,6 +25,13 @@ function gunSayisi(anahtar: string): number | null {
   return Math.floor(Date.UTC(+m[1], +m[2] - 1, +m[3], 12) / 86400000);
 }
 
+/** İki gün anahtarı arasındaki gün farkı (b − a); anahtar bozuksa null. */
+export function gunFarki(oncekiAnahtar: string, sonrakiAnahtar: string): number | null {
+  const a = gunSayisi(oncekiAnahtar);
+  const b = gunSayisi(sonrakiAnahtar);
+  return a == null || b == null ? null : b - a;
+}
+
 /** a, b'den tam bir gün önce mi? */
 export function dunMu(oncekiAnahtar: string, bugunAnahtari: string): boolean {
   const a = gunSayisi(oncekiAnahtar);

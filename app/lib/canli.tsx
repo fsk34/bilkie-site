@@ -12,7 +12,7 @@
 // (sorular, defter sayfaları, katalog) `onbellek.ts`e, derin detay ekranları ise
 // her açılışta taze okumaya bırakılır.
 
-import { onValue, ref as dbRef, type Database } from "firebase/database";
+import { onValue, query, ref as dbRef, type Database, type QueryConstraint } from "firebase/database";
 import { VERITABANI_ADLARI } from "./firebase";
 import { useMemo, useSyncExternalStore } from "react";
 
@@ -86,8 +86,11 @@ function dbAdi(db: Database): string {
   return ad;
 }
 
-function kayitAl(db: Database, yol: string, hatirla = false): Kayit {
-  const anahtar = `${dbAdi(db)}|${yol}`;
+/** Sunucu tarafı süzme (orderBy/startAt/limit…) — `anahtar` kısıtları tek anlamlı adlandırır. */
+export type CanliSorgu = { anahtar: string; kisitlar: QueryConstraint[] };
+
+function kayitAl(db: Database, yol: string, hatirla = false, sorgu?: CanliSorgu): Kayit {
+  const anahtar = `${dbAdi(db)}|${yol}${sorgu ? `?${sorgu.anahtar}` : ""}`;
   const mevcut = kayitlar.get(anahtar);
   if (mevcut) {
     if (mevcut.zamanlayici !== null) {
@@ -113,7 +116,7 @@ function kayitAl(db: Database, yol: string, hatirla = false): Kayit {
   };
 
   kayit.kapat = onValue(
-    dbRef(db, yol),
+    sorgu ? query(dbRef(db, yol), ...sorgu.kisitlar) : dbRef(db, yol),
     (snap) => yaz(snap.val()),
     () => {
       // Kural reddi / bağlantı hatası. Hatırlanan bir değer varsa ONA DOKUNMA:
@@ -126,8 +129,8 @@ function kayitAl(db: Database, yol: string, hatirla = false): Kayit {
   return kayit;
 }
 
-function abone(db: Database, yol: string, bildir: () => void, hatirla = false): () => void {
-  const kayit = kayitAl(db, yol, hatirla);
+function abone(db: Database, yol: string, bildir: () => void, hatirla = false, sorgu?: CanliSorgu): () => void {
+  const kayit = kayitAl(db, yol, hatirla, sorgu);
   kayit.aboneler.add(bildir);
   return () => {
     kayit.aboneler.delete(bildir);
@@ -139,6 +142,25 @@ function abone(db: Database, yol: string, bildir: () => void, hatirla = false): 
       for (const [a, k] of kayitlar) if (k === kayit) kayitlar.delete(a);
     }, BEKLEME_MS);
   };
+}
+
+/**
+ * Sorgulu canlı dinleme (ör. lig: orderByChild + aralık + limitToLast). Aynı yol + aynı sorgu
+ * anahtarı tek aboneliği paylaşır. `sorgu` null ise abone olmaz. Hatırlama yok (başkasının verisi).
+ */
+export function useCanliSorgu<T = unknown>(db: Database, yol: string | null, sorgu: CanliSorgu | null): CanliDurum<T> {
+  const sorguAnahtari = sorgu?.anahtar ?? "";
+  const kanca = useMemo(() => {
+    if (!yol || !sorgu) {
+      return { abone: () => () => {}, oku: () => BOS as CanliDurum<T> };
+    }
+    return {
+      abone: (bildir: () => void) => abone(db, yol, bildir, false, sorgu),
+      oku: () => kayitAl(db, yol, false, sorgu).durum as CanliDurum<T>,
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [db, yol, sorguAnahtari]);
+  return useSyncExternalStore(kanca.abone, kanca.oku, () => BOS as CanliDurum<T>);
 }
 
 /** Teşhis: şu an açık olan abonelikler (yol → dinleyen bileşen sayısı). */

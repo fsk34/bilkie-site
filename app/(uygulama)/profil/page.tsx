@@ -226,8 +226,8 @@ function Icerik() {
                         uid: kullanici.uid,
                         eskiSinif: sinif,
                         yeniSinif: s,
-                        // Lig satırında görünen ad: uygulamadaki gibi kullanıcı adı öncelikli
-                        ad: profil?.kullaniciAdi || profil?.adSoyad || "Sen",
+                        // Lig satırında görünen ad: YALNIZ kullanıcı adı — ad-soyad lige ASLA yazılmaz (24 Eyl)
+                        ad: profil?.kullaniciAdi || "Kullanıcı",
                         avatar: profil?.avatar || "profil0",
                       });
                       // Profil bağlamı tazelenince tüm ekranlar yeni sınıfa geçer

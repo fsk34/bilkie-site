@@ -12,6 +12,7 @@
 import { get, onValue, push, ref, update, type DataSnapshot } from "firebase/database";
 import { deleteObject, getDownloadURL, listAll, ref as storageRef, uploadBytes } from "firebase/storage";
 import { kullaniciDb, storage } from "./firebase";
+import { sessizHata, tavanli } from "./hata";
 
 export const NOT_KOORDINAT_OLCEK = 1000;
 export const NOT_RENKLER = ["#111827", "#2563EB", "#E11D2D", "#16A34A", "#E74F1E", "#7C3AED"];
@@ -136,11 +137,22 @@ function toSayfa(snap: DataSnapshot): NotSayfa {
   return { bloklar, ink };
 }
 
+/** Sayfa anahtarları 0..n-1 dizisi olmayan notlar: sayfa-başı kayıt yanlış düğüme yazar → bir kez tam yazılır. */
+const duzensizNotlar = new Set<string>();
+
+/**
+ * ⚠️ Okunamazsa FIRLATIR (çevrimdışı + önbellekte yok, ya da 10 sn zaman aşımı). Boş sayfa
+ * DÖNDÜRMEZ: editör boş sayfayla açılıp otomatik kaydederse notun TÜM sayfaları silinirdi
+ * (Android NotRepo, 24 Eyl 2026). Okuma başarılı ama düğüm boşsa tek boş sayfa döner.
+ */
 export async function notSayfalari(uid: string, notId: string): Promise<NotSayfa[]> {
-  const snap = await get(ref(kullaniciDb, `users/${uid}/notSayfalari/${notId}`));
+  const snap = await tavanli(get(ref(kullaniciDb, `users/${uid}/notSayfalari/${notId}`)), 10000);
+  if (!snap) throw new Error("Not okunamadı");
   const cocuklar: DataSnapshot[] = [];
   snap.forEach((c) => { cocuklar.push(c); });
-  const out = cocuklar.sort((a, b) => (Number(a.key) || 0) - (Number(b.key) || 0)).map(toSayfa);
+  const sirali = cocuklar.sort((a, b) => (Number(a.key) || 0) - (Number(b.key) || 0));
+  if (sirali.some((c, i) => c.key !== String(i))) duzensizNotlar.add(notId); else duzensizNotlar.delete(notId);
+  const out = sirali.map(toSayfa);
   return out.length ? out : [bosSayfa()];
 }
 
@@ -153,8 +165,29 @@ function onizleme(sayfalar: NotSayfa[]): string {
   return "";
 }
 
-/** Liste düğümü + tüm sayfalar tek çok-yollu update: yarım not kalmaz. */
-export async function notKaydet(uid: string, not: NotOzet, sayfalar: NotSayfa[]): Promise<NotOzet> {
+function sayfaDugumu(p: NotSayfa): Record<string, unknown> {
+  // Yüklemesi bitmemiş (geçici yollu) görsel DB'ye yazılmaz — editör zaten yüklemeleri bekler, bu emniyet
+  return {
+    bloklar: p.bloklar
+      .filter((b) => !(b.t === "gorsel" && b.yol.startsWith(YEREL_ONEK)))
+      .map((b) => (b.t === "metin" ? { t: "metin", v: b.v } : { t: "gorsel", yol: b.yol, boyut: b.boyut })),
+    ink: p.ink.map((o) => ({ ...(o.a ? { a: o.a } : {}), ...(o.s ? { s: o.s } : {}), ...(o.k ? { k: o.k } : {}), r: o.r, n: o.n })),
+  };
+}
+
+/**
+ * Liste düğümü + sayfalar tek çok-yollu update: yarım not kalmaz.
+ *
+ * `onceki` = en son yazılan sayfalar. Verilirse YALNIZ değişen sayfalar yazılır
+ * (`notSayfalari/{id}/{i}`), sondan eksilen sayfalar null'lanır — her otomatik kayıtta tüm çizim
+ * noktalarını yeniden göndermemek için (şema aynı). null ise (ilk kayıt) sayfaların tamamı yazılır.
+ *
+ * Beklemesiz (Android kaydetBaslat, 24 Eyl 2026): yazma hemen yerel kuyruğa girer, liste dinleyicisi
+ * anında görür. Dönen `yazma` sözü çevrimdışıyken HİÇ çözülmez — çağıran onu beklemeye mecbur değil.
+ */
+export function notKaydetBaslat(
+  uid: string, not: NotOzet, sayfalar: NotSayfa[], onceki: NotSayfa[] | null
+): { guncel: NotOzet; yazma: Promise<void> } {
   const simdi = Date.now();
   const guncel: NotOzet = {
     ...not,
@@ -169,27 +202,37 @@ export async function notKaydet(uid: string, not: NotOzet, sayfalar: NotSayfa[])
     sayfaSayisi: guncel.sayfaSayisi, onizleme: guncel.onizleme,
     kagit: guncel.kagit, kagitRenk: guncel.kagitRenk,
   };
-  const sayfaMap: Record<string, unknown> = {};
-  sayfalar.forEach((p, i) => {
-    // Yüklemesi bitmemiş (geçici yollu) görsel DB'ye yazılmaz — editör zaten yüklemeleri bekler, bu emniyet
-    sayfaMap[String(i)] = {
-      bloklar: p.bloklar
-        .filter((b) => !(b.t === "gorsel" && b.yol.startsWith(YEREL_ONEK)))
-        .map((b) => (b.t === "metin" ? { t: "metin", v: b.v } : { t: "gorsel", yol: b.yol, boyut: b.boyut })),
-      ink: p.ink.map((o) => ({ ...(o.a ? { a: o.a } : {}), ...(o.s ? { s: o.s } : {}), ...(o.k ? { k: o.k } : {}), r: o.r, n: o.n })),
-    };
-  });
-  await update(kullanici(uid), { [`notlar/${not.id}`]: ozet, [`notSayfalari/${not.id}`]: sayfaMap });
-  return guncel;
+  const degisim: Record<string, unknown> = { [`notlar/${not.id}`]: ozet };
+  if (onceki == null || duzensizNotlar.delete(not.id)) {
+    const sayfaMap: Record<string, unknown> = {};
+    sayfalar.forEach((p, i) => { sayfaMap[String(i)] = sayfaDugumu(p); });
+    degisim[`notSayfalari/${not.id}`] = sayfaMap;
+  } else {
+    sayfalar.forEach((p, i) => { if (onceki[i] !== p) degisim[`notSayfalari/${not.id}/${i}`] = sayfaDugumu(p); });
+    for (let i = sayfalar.length; i < onceki.length; i++) degisim[`notSayfalari/${not.id}/${i}`] = null;
+  }
+  return { guncel, yazma: update(kullanici(uid), degisim) };
 }
 
-/** İki düğüm birlikte; Storage görselleri best-effort. */
-export async function notSil(uid: string, notId: string): Promise<void> {
-  await update(kullanici(uid), { [`notlar/${notId}`]: null, [`notSayfalari/${notId}`]: null });
-  try {
-    const liste = await listAll(storageRef(storage, `notlar/${uid}/${notId}`));
-    await Promise.all(liste.items.map((i) => deleteObject(i).catch(() => {})));
-  } catch { /* yetim dosya kalabilir */ }
+/**
+ * İki düğüm birlikte; Storage görselleri best-effort. Beklemesiz: DB silmesi yerel kuyruğa girer
+ * (çevrimdışı da liste anında güncellenir), Storage temizliği arkada sürer.
+ */
+export function notSil(uid: string, notId: string): void {
+  update(kullanici(uid), { [`notlar/${notId}`]: null, [`notSayfalari/${notId}`]: null }).catch((e) => sessizHata("notSil", e));
+  void (async () => {
+    try {
+      const liste = await listAll(storageRef(storage, `notlar/${uid}/${notId}`));
+      await Promise.all(liste.items.map((i) => deleteObject(i).catch(() => {})));
+    } catch { /* yetim dosya kalabilir */ }
+  })();
+}
+
+/** Tek görsel dosyasını sil (blok/sayfa silindi, taslaktan vazgeçildi) — best-effort, arkada. */
+export function notGorselSil(yol: string): void {
+  if (!yol || yol.startsWith(YEREL_ONEK)) return;
+  urlOnbellek.delete(yol);
+  deleteObject(storageRef(storage, yol)).catch(() => { /* yetim kalabilir */ });
 }
 
 // ---------------------------------------------------------------- görsel
@@ -205,11 +248,12 @@ export async function notGorselUrl(yol: string): Promise<string | null> {
   if (y) return y;
   const c = urlOnbellek.get(yol);
   if (c) return c;
-  try {
-    const u = await getDownloadURL(storageRef(storage, yol));
-    urlOnbellek.set(yol, u);
-    return u;
-  } catch { return null; }
+  if (yol.startsWith(YEREL_ONEK)) return null;   // yüklemesi bitmemiş
+  // Storage çevrimdışı uzun süre yeniden dener → tavan; null = "görsel yüklenemedi"
+  const u = await tavanli(getDownloadURL(storageRef(storage, yol)), 15000);
+  if (!u) return null;
+  urlOnbellek.set(yol, u);
+  return u;
 }
 
 /**
@@ -229,11 +273,23 @@ export async function notGorselYukle(uid: string, notId: string, gecici: string)
   const blob = bekleyenBlob.get(gecici);
   if (!blob) throw new Error("Görsel bulunamadı");
   const yol = `notlar/${uid}/${notId}/${gecici.slice(YEREL_ONEK.length)}.jpg`;
-  await uploadBytes(storageRef(storage, yol), blob, { contentType: "image/jpeg" });
+  try {
+    await uploadBytes(storageRef(storage, yol), blob, { contentType: "image/jpeg" });
+  } catch (e) {
+    notGorselVazgec(gecici);   // başarısız yükleme baytları bellekte kalmasın
+    throw e;
+  }
   const u = yerelUrl.get(gecici);
   if (u) yerelUrl.set(yol, u);
   bekleyenBlob.delete(gecici);
   return yol;
+}
+
+/** Yüklemesi bitmemiş görseli bellekten at (yükleme başarısız / vazgeçildi). */
+export function notGorselVazgec(gecici: string): void {
+  bekleyenBlob.delete(gecici);
+  const u = yerelUrl.get(gecici);
+  if (u) { URL.revokeObjectURL(u); yerelUrl.delete(gecici); }
 }
 
 function kucult(dosya: File): Promise<Blob> {

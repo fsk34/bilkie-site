@@ -8,8 +8,9 @@ import Link from "next/link";
 import Kabuk from "../Kabuk";
 import UcNokta from "../UcNokta";
 import { useOturum } from "../../lib/oturum";
-import { useGorevler } from "../../lib/canliVeri";
-import { ayaKalanGun, type Gorev } from "../../lib/veri";
+import { useGorevDurumu, type GorevDurumu } from "../../lib/canliVeri";
+import { ayaKalanGun } from "../../lib/veri";
+import { gunAnahtari } from "../../lib/tarih";
 import { ayAdi, ayBanner, ayVurgu, ayYaziRengi } from "../../lib/ayGorsel";
 
 // Ay adı/banner/renk artık `lib/ayGorsel` içinde, 12 ay için — Android `AyGorsel.kt` ile
@@ -28,11 +29,11 @@ function Icerik() {
   const { kullanici } = useOturum();
   // Katalog önbellekten, ilerleme canlı — mobilde görev tamamlanınca burada da güncellenir.
   const uid = kullanici?.uid ?? null;
-  const gunluk = useGorevler("gunluk");
-  const haftalik = useGorevler("haftalik");
-  const aylik = useGorevler("aylik");
+  const gunluk = useGorevDurumu("gunluk");
+  const haftalik = useGorevDurumu("haftalik");
+  const aylik = useGorevDurumu("aylik");
 
-  const ayIndeks = new Date().getMonth();
+  const ayIndeks = Number(gunAnahtari().slice(5, 7)) - 1;   // İstanbul takvimi (görev ayı)
   const banner = ayBanner(ayIndeks);          // Temmuz/Ağustos'ta null — görsel yok
   const renk = ayVurgu(ayIndeks);
   const yaziRengi = ayYaziRengi(ayIndeks);
@@ -76,13 +77,21 @@ function Icerik() {
   );
 }
 
-function Bolum({ ad, gorevler, renk }: { ad: string; gorevler: Gorev[] | null; renk: string }) {
+function Bolum({ ad, gorevler: durum, renk }: { ad: string; gorevler: GorevDurumu; renk: string }) {
+  const gorevler = durum.gorevler;
   return (
     <>
       <h2 className="bk-gorev-bolum">{ad}</h2>
       <div className="bk-gorev-kutu">
-        {gorevler == null && (
+        {gorevler == null && !durum.hata && (
           <div className="bk-gorev-satir"><UcNokta /></div>
+        )}
+        {/* Okunamadı (çevrimdışı): "görev yok" DEME — Android TasksScreen 24 Eyl */}
+        {durum.hata && (
+          <div className="bk-gorev-satir">
+            <span className="bk-soluk" style={{ fontSize: 14 }}>Görevler yüklenemedi.</span>
+            <button type="button" className="bk-dugme acik" style={{ marginTop: 8 }} onClick={durum.tekrarDene}>Tekrar dene</button>
+          </div>
         )}
         {gorevler != null && gorevler.length === 0 && (
           <div className="bk-gorev-satir">

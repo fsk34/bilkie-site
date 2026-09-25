@@ -23,7 +23,7 @@ import UcNokta from "./UcNokta";
 import { useOturum } from "../lib/oturum";
 import { uniteler } from "../lib/katalog";
 import {
-  useDefterIlerlemesi, useGorevler, useGunlukGorevler, useIstatistikAgaci, useQuizBitenler, useSonDokunulan, useTestIlerlemesi, useUstBilgi,
+  useDefterIlerlemesi, useGorevDurumu, useGorevler, useIstatistikAgaci, useQuizBitenler, useSonDokunulan, useTestIlerlemesi, useUstBilgi,
 } from "../lib/canliVeri";
 import { type Gorev } from "../lib/veri";
 import { istatistikBirlestir, kocIstatistikCoz, kocPlaniHesapla, type KocIstatistik, type KocPlani } from "../lib/koc";
@@ -31,6 +31,7 @@ import { evdeKayitlariOku, evdeOzetle, type EvdeOzet } from "../lib/evde";
 import { HATA_OLGUNLASMA_GUN, hatalariOku, olgunHatalar } from "../lib/hatalar";
 import { acilisMetni, yaziliTakvimi, type YaziliSinav } from "../lib/yaziliTakvim";
 import { ayVurgu } from "../lib/ayGorsel";
+import { gunAnahtari } from "../lib/tarih";
 import AyRozetiKutusu from "./AyRozeti";
 import {
   DERS_SIRASI, dersEkli, dersEtiketi, dersOranlari, devamKartiHesapla, type DevamKarti as DevamKartiVerisi, type DevamVerisi,
@@ -69,7 +70,7 @@ function Icerik() {
   const son = useSonDokunulan(sinif);
   const defter = useDefterIlerlemesi(sinif);
   const quiz = useQuizBitenler(sinif);
-  const gunluk = useGunlukGorevler();
+  const gunlukDurum = useGorevDurumu("gunluk");
   const haftalik = useGorevler("haftalik");
   const yazili = useYaziliDurumu();
 
@@ -105,7 +106,7 @@ function Icerik() {
 
       {devam && <DevamKarti sinif={sinif} devam={devam} />}
 
-      <HedefKarti gunluk={gunluk} haftalik={haftalik} />
+      <HedefKarti gunluk={gunlukDurum.gorevler} hata={gunlukDurum.hata} tekrarDene={gunlukDurum.tekrarDene} haftalik={haftalik} />
       {/* Bu ayın rozeti masaüstünde sağ rayda (Kabuk); ray gizliyken (≤1260px) Hedef'in altında */}
       <div className="bk-hedef"><AyRozetiKutusu /></div>
 
@@ -217,8 +218,8 @@ function DevamKarti({ sinif, devam }: { sinif: number; devam: DevamKartiVerisi }
 /* Sağ raydaki Günlük Görevler kartının içerik-içi kopyası; CSS yalnız ≤1260px'te gösterir.
    Görev v4'te günde tek görev var → altına haftalık görevin ilkini de koyuyoruz. */
 
-function HedefKarti({ gunluk, haftalik }: { gunluk: Gorev[] | null; haftalik: Gorev[] | null }) {
-  const renk = ayVurgu(new Date().getMonth());
+function HedefKarti({ gunluk, hata, tekrarDene, haftalik }: { gunluk: Gorev[] | null; hata: boolean; tekrarDene: () => void; haftalik: Gorev[] | null }) {
+  const renk = ayVurgu(Number(gunAnahtari().slice(5, 7)) - 1);
   const satir = (g: Gorev, onek?: string) => {
     const oran = Math.min(100, (g.ilerleme / Math.max(1, g.hedef)) * 100);
     return (
@@ -238,7 +239,12 @@ function HedefKarti({ gunluk, haftalik }: { gunluk: Gorev[] | null; haftalik: Go
         <h3>Bugünkü Hedef</h3>
         <Link href="/gorevler">TÜMÜNÜ GÖSTER</Link>
       </div>
-      {gunluk == null && <UcNokta boyut={8} aralik={6} etiket="Görevler yükleniyor" style={{ padding: "8px 0" }} />}
+      {gunluk == null && !hata && <UcNokta boyut={8} aralik={6} etiket="Görevler yükleniyor" style={{ padding: "8px 0" }} />}
+      {hata && (
+        <p className="bk-soluk" style={{ fontSize: 13 }}>
+          Görevler yüklenemedi. <button type="button" className="bk-metin-dugme" onClick={tekrarDene}>Tekrar dene</button>
+        </p>
+      )}
       {gunluk != null && gunluk.length === 0 && <p className="bk-soluk" style={{ fontSize: 13 }}>Bugün için görev bulunmuyor.</p>}
       {gunluk?.slice(0, 2).map((g) => satir(g))}
       {haftalik?.slice(0, 1).map((g) => satir(g, "BU HAFTA"))}

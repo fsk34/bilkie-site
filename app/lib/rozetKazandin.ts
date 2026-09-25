@@ -7,7 +7,7 @@ import { kullaniciDb } from "./firebase";
 import { rozetYiliAnahtari } from "./sezon";
 import { AY_ANAHTAR } from "./ayGorsel";
 import { ROZET_YILI } from "../(uygulama)/basarimlar/basarimlar";
-import { sessizHata } from "./hata";
+import { sessizHata, tavanli } from "./hata";
 
 /** Bu oturumda kutlananlar — yazım sunucuya varmadan yeniden tetiklenmesin. */
 const buOturumdaKutlanan = new Set<string>();
@@ -17,10 +17,12 @@ export async function bekleyenRozetAylari(uid: string): Promise<number[]> {
   if (!uid) return [];
   const yil = rozetYiliAnahtari();
   try {
+    // Zaman aşımı: okunamazsa kutlama yok (bir sonraki kontrolde yeniden denenir)
     const [kazanilan, gorulen] = await Promise.all([
-      get(dbRef(kullaniciDb, `users/${uid}/badges/${yil}`)),
-      get(dbRef(kullaniciDb, `users/${uid}/badges_seen/${yil}`)),
+      tavanli(get(dbRef(kullaniciDb, `users/${uid}/badges/${yil}`)), 8000),
+      tavanli(get(dbRef(kullaniciDb, `users/${uid}/badges_seen/${yil}`)), 8000),
     ]);
+    if (!kazanilan || !gorulen) return [];
     const k = (kazanilan.val() ?? {}) as Record<string, unknown>;
     const g = (gorulen.val() ?? {}) as Record<string, unknown>;
     const out: number[] = [];

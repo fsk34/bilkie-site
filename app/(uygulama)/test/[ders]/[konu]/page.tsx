@@ -22,6 +22,8 @@ import type { GorevDegisimi } from "../../../../lib/gorevYaz";
 import { enUzunSeriGuncelle, testBittiIsle } from "../../../../lib/ilerleme";
 import { hataDegisimleriYaz, type SoruSonucu } from "../../../../lib/hatalar";
 import { useOturum } from "../../../../lib/oturum";
+import { useUstBilgi } from "../../../../lib/canliVeri";
+import { sessizHata, tavanli } from "../../../../lib/hata";
 import { konuAyristir, uniteler } from "../../../../lib/katalog";
 import {
   ACT_TEST,
@@ -29,8 +31,7 @@ import {
   CAN_LIMITI,
   XP_DOGRU_TEST,
   adimSonucuYaz,
-  canlariTazele,
-  canYaz,
+  canDegistir,
   konuAdimiOku,
   seriIsaretle,
   sorulariGetir,
@@ -38,7 +39,11 @@ import {
   type Soru,
 } from "../../../../lib/veri";
 
-type Durum = "yukleniyor" | "hata" | "bitti_zaten" | "cozuluyor" | "sonuc";
+// baglanti: ilerleme/sorular okunamadı (çevrimdışı) — adım TAHMİN edilmez, "tekrar dene"
+type Durum = "yukleniyor" | "hata" | "baglanti" | "bitti_zaten" | "cozuluyor" | "sonuc";
+
+/** Okuma tavanı (Android TestScreens 8 sn) */
+const OKUMA_MS = 8000;
 
 export default function TestSayfasi() {
   const params = useParams<{ ders: string; konu: string }>();
@@ -55,7 +60,10 @@ export default function TestSayfasi() {
   const [secili, setSecili] = useState<number | null>(null);
   const [kontrolEdildi, setKontrolEdildi] = useState(false);
   const [dogruSayisi, setDogruSayisi] = useState(0);
-  const [can, setCan] = useState(CAN_LIMITI);
+  // Can CANLI dinleyiciden (users/{uid}/lives): yazma transaction'la, yerelde anında yansır
+  const ust = useUstBilgi(sinif);
+  const can = kullanici ? (ust?.can ?? CAN_LIMITI) : CAN_LIMITI;
+  const [yenidenDene, setYenidenDene] = useState(0);
   const [kombo, setKombo] = useState(false);
   const [akis, setAkis] = useState<{
     sonuc: SonucArgs;
@@ -79,21 +87,22 @@ export default function TestSayfasi() {
       try {
         let yapilan = 0;
         if (kullanici) {
-          const [y, kalanCan] = await Promise.all([
-            konuAdimiOku(kullanici.uid, sinif, dersKey, konuKey),
-            canlariTazele(kullanici.uid),
-          ]);
+          // Gün değiştiyse canlar 3'e — okuma yok, tek transaction (çevrimdışı takılmaz)
+          canDegistir(kullanici.uid, 0);
+          // İlerleme okunmadan soru yüklenmez: okunamazsa tamamlanmış adım yeniden çözdürülmesin
+          const y = await tavanli(konuAdimiOku(kullanici.uid, sinif, dersKey, konuKey), OKUMA_MS);
           if (iptal) return;
+          if (y === undefined) { setDurum("baglanti"); return; }
           yapilan = y;
-          setCan(kalanCan);
           setOncekiTamamlanan(y);
           if (y >= ADIM_SAYISI) { setDurum("bitti_zaten"); return; }
         }
 
         const siradaki = Math.max(1, Math.min(ADIM_SAYISI, yapilan + 1));
         setAdim(siradaki);
-        const gelen = await sorulariGetir(sinif, dersKey, konuKey, siradaki);
+        const gelen = await tavanli(sorulariGetir(sinif, dersKey, konuKey, siradaki), OKUMA_MS);
         if (iptal) return;
+        if (gelen === undefined) { setDurum("baglanti"); return; }
         setSorular(gelen);
         adimBaslangici.current = Date.now();
         setDurum(gelen.length > 0 ? "cozuluyor" : "hata");
@@ -103,7 +112,7 @@ export default function TestSayfasi() {
     })();
 
     return () => { iptal = true; };
-  }, [yukleniyor, kullanici, sinif, dersKey, konuKey]);
+  }, [yukleniyor, kullanici, sinif, dersKey, konuKey, yenidenDene]);
 
   const testiBitir = useCallback(
     (sonDogru: number) => {
@@ -117,33 +126,28 @@ export default function TestSayfasi() {
       let gorevCoz: (d: GorevDegisimi[]) => void = () => {};
       const gorevSozu = new Promise<GorevDegisimi[]>((c) => { gorevCoz = c; });
 
+      // Bitiş işleri BİRBİRİNDEN BAĞIMSIZ (Android testBitisiniYaz, 24 Eyl 2026): her biri kendi
+      // hatasını yutar; çevrimdışıyken biri dönmese de diğerleri başlar. Sonuç akışı en çok 3 sn bekler.
       const seriSozu: Promise<SeriArgs | null> = (async () => {
         if (!kullanici) { gorevCoz([]); return null; }
+        const uid = kullanici.uid;
+        // 1) completedSteps önce + adım sonucu (adimSonucuYaz üçünü aynı anda başlatır)
+        adimSonucuYaz({ uid, sinif, dersKey, konuKey, adim, dogru: sonDogru, toplam, oncekiTamamlanan })
+          .catch((e) => sessizHata("adimSonucu", e));
+        // Yanlışlar Hata Turu'na, doğrular varsa eski kaydı siler
+        hataDegisimleriYaz(uid, sinif, dersKey, soruSonuclari.current).catch((e) => sessizHata("hatalar", e));
+        if (xp > 0) xpEkle(uid, sinif, xp, "test").catch((e) => sessizHata("xp", e));
+        // Başarımlar + kişisel rekor + görevler + istatistik kovaları (telefondaki onTestFinished /
+        // StatsManager zinciri); görev özeti bunun sonucuyla çizilir.
+        testBittiIsle({ uid, sinif, dersKey, konuKey, dogru: sonDogru, toplam, sureSn, puan: sonDogru * XP_DOGRU_TEST })
+          .then(gorevCoz, () => gorevCoz([]));
         try {
-          await adimSonucuYaz({
-            uid: kullanici.uid, sinif, dersKey, konuKey, adim,
-            dogru: sonDogru, toplam, oncekiTamamlanan,
-          });
-          // Yanlışlar Hata Turu'na, doğrular varsa eski kaydı siler — hata akışı bozmasın
-          hataDegisimleriYaz(kullanici.uid, sinif, dersKey, soruSonuclari.current).catch(() => {});
-          if (xp > 0) await xpEkle(kullanici.uid, sinif, xp, "test");
-          const seri = await seriIsaretle(kullanici.uid, ACT_TEST);
-
-          // Başarımlar + kişisel rekor + görevler + istatistik kovaları.
-          // Telefondaki onTestFinished / StatsManager zincirinin karşılığı; web'den
-          // çözülen test de aynı izi bıraksın diye. Hataları kendi içinde yutuyor.
-          gorevCoz(await testBittiIsle({
-            uid: kullanici.uid, sinif, dersKey, konuKey,
-            dogru: sonDogru, toplam, sureSn, puan: sonDogru * XP_DOGRU_TEST,
-          }));
-          if (seri.basarili && seri.sayi > 0) {
-            await enUzunSeriGuncelle(kullanici.uid, sinif, seri.sayi);
-          }
-
+          const seri = await seriIsaretle(uid, ACT_TEST);
+          // En uzun seri rekoru: tek yazma, sınıfa göre kırpılmış (beklenmez)
+          if (seri.basarili && seri.sayi > 0) void enUzunSeriGuncelle(uid, sinif, seri.sayi);
           if (!seri.basarili || !seri.ilkAktiviteBugun) return null;
           return { sayi: seri.sayi, maske: seri.maske, tetik: ACT_TEST };
         } catch {
-          gorevCoz([]);  // görev özeti de atlanır
           return null;   // yazma hatası akışı durdurmasın
         }
       })();
@@ -174,9 +178,8 @@ export default function TestSayfasi() {
     } else {
       sesCal("yanlis");
       ustUsteDogru.current = 0;
-      const yeni = Math.max(0, can - 1);
-      setCan(yeni);
-      if (kullanici) canYaz(kullanici.uid, yeni).catch(() => {});
+      // Gün kontrolü + 1 azaltma tek transaction'da (mutlak değer yazılmaz); ekran dinleyiciden
+      if (kullanici) canDegistir(kullanici.uid, -1);
     }
   }
 
@@ -197,6 +200,17 @@ export default function TestSayfasi() {
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center" }}>
           <Link className="bk-dugme" href={`/ders/${dersKey}`}>Konulara dön</Link>
           {!kullanici && <Link className="bk-dugme acik" href="/giris">Giriş yap</Link>}
+        </div>
+      </Perde>
+    );
+  }
+
+  if (durum === "baglanti") {
+    return (
+      <Perde metin="Sorular yüklenemedi. Bağlantını kontrol edip tekrar dene.">
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center" }}>
+          <button type="button" className="bk-dugme" onClick={() => { setDurum("yukleniyor"); setYenidenDene((n) => n + 1); }}>Tekrar dene</button>
+          <Link className="bk-dugme acik" href={`/ders/${dersKey}`}>Konulara dön</Link>
         </div>
       </Perde>
     );

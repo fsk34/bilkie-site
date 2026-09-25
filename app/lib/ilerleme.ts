@@ -8,13 +8,13 @@
 //   users/{uid}/dailyActivity/{gün}/{bayrak}             aynı gün içinde ikili koşullar
 //   + görev ilerlemesi (gorevYaz.ts) ve istatistik kovaları (istatistikYaz.ts)
 
-import { get, ref as dbRef, runTransaction, set } from "firebase/database";
+import { get, ref as dbRef, runTransaction } from "firebase/database";
 import { kullaniciDb } from "./firebase";
-import { gunAnahtari } from "./tarih";
+import { gunAnahtari, gunFarki } from "./tarih";
 import { sinifSinirla } from "./veri";
 import { gorevOlayiUygula, testIdUret, type GorevDegisimi } from "./gorevYaz";
 import { istatistikOlayiUygula } from "./istatistikYaz";
-import { sessizHata } from "./hata";
+import { sessizHata, tavanli } from "./hata";
 
 function sayi(v: unknown): number {
   if (typeof v === "number") return Math.round(v);
@@ -52,13 +52,24 @@ export async function kisiselRekorArtir(
   }
 }
 
-/** Android `updatePersonalStreakRecord` — en uzun seri yalnızca BÜYÜKSE güncellenir. */
+/**
+ * En uzun seri rekoru — Android `markStreakActivity` sonundaki TEK yazma (24 Eyl 2026):
+ * seri, sınıf değişiminden (`streak/gradeChangedAt`) bu yana geçen günle KIRPILIR (rekor sınıfa
+ * özel), yalnız BÜYÜKSE yazılır. Eskiden kırpılmamış sayı yazılıyordu; sınıf değiştiren
+ * çocuğun yeni sınıftaki rekoru eski sınıfın serisiyle şişiyordu.
+ * Çağıranlar BEKLEMEZ (void): çevrimdışıyken transaction dönmez, akış kilitlenmesin.
+ */
 export async function enUzunSeriGuncelle(uid: string, sinif: number, yeniSayi: number): Promise<void> {
   if (yeniSayi <= 0) return;
   try {
+    const degisim = await tavanli(get(dbRef(kullaniciDb, `users/${uid}/streak/gradeChangedAt`)), 6000);
+    if (degisim === undefined) return;   // okunamadı: kırpılamayan değer yazılmasın, sonraki etkinlik yazar
+    const tarih = degisim.val();
+    const fark = typeof tarih === "string" ? gunFarki(tarih, gunAnahtari()) : null;
+    const sinifSerisi = fark != null && fark >= 0 ? Math.min(yeniSayi, fark + 1) : yeniSayi;
     await runTransaction(
       dbRef(kullaniciDb, `users/${uid}/personal_records/grade${sinifSinirla(sinif)}/enuzunseri`),
-      (mevcut) => Math.max(sayi(mevcut), yeniSayi)
+      (mevcut) => (sinifSerisi > sayi(mevcut) ? sinifSerisi : undefined)   // küçükse dokunma
     );
   } catch (e) {
     sessizHata("ilerleme", e);
@@ -78,14 +89,21 @@ async function gunlukBayrakVeKontrol(
   basarimAnahtari: string
 ): Promise<void> {
   try {
+    // Tek transaction (Android 24 Eyl): bayrak + ödül bayrağı birlikte; ödülü yalnız ödül bayrağını
+    // false→true çeviren (commit eden) çağrı verir → iki cihaz / eşzamanlı bitiş ödülü iki kez veremez.
     const kok = `users/${uid}/dailyActivity/${gunAnahtari()}`;
-    await set(dbRef(kullaniciDb, `${kok}/${konacakBayrak}`), true);
-    const snap = await get(dbRef(kullaniciDb, kok));
-    const d = (snap.val() ?? {}) as Record<string, unknown>;
-    if (d[digerBayrak] === true && d[odulBayragi] !== true) {
-      await set(dbRef(kullaniciDb, `${kok}/${odulBayragi}`), true);
-      await basarimArtir(uid, basarimAnahtari, 1);
-    }
+    let buCevirdi = false;
+    const sonuc = await runTransaction(dbRef(kullaniciDb, kok), (mevcut) => {
+      const d = { ...((mevcut ?? {}) as Record<string, unknown>) };
+      buCevirdi = false;
+      d[konacakBayrak] = true;
+      if (d[digerBayrak] === true && d[odulBayragi] !== true) {
+        d[odulBayragi] = true;
+        buCevirdi = true;
+      }
+      return d;
+    });
+    if (sonuc.committed && buCevirdi) await basarimArtir(uid, basarimAnahtari, 1);
   } catch (e) {
     sessizHata("ilerleme", e);
     /* best-effort */
@@ -114,40 +132,29 @@ export type TestBitisArgs = {
 export async function testBittiIsle(a: TestBitisArgs): Promise<GorevDegisimi[]> {
   const hatasiz = a.toplam > 0 && a.dogru === a.toplam;
 
-  // 1) Başarımlar — Android onTestFinished
-  await basarimArtir(a.uid, "testadet", 1);
-  if (hatasiz) {
-    await basarimArtir(a.uid, "testdogru", 1);
-    await kisiselRekorArtir(a.uid, a.sinif, "hatasiztest", 1);
-  }
-  // unitesenfoni: defter VEYA test tamamlandığında artar
-  await basarimArtir(a.uid, "unitesenfoni", 1);
-  // kusursuzsanat: aynı günde hem test hem defter
-  await gunlukBayrakVeKontrol(a.uid, "testDone", "defterDone", "kusursuzsanatAwarded", "kusursuzsanat");
-  // inceisci: aynı günde hem test hem yazılı HATASIZ
-  if (hatasiz) {
-    await gunlukBayrakVeKontrol(
-      a.uid, "hatasizTestDone", "hatasizYaziliDone", "inceisciAwarded", "inceisci"
-    );
-  }
+  // Üç iş BİRBİRİNDEN BAĞIMSIZ (Android testBitisiniYaz, 24 Eyl 2026): çevrimdışıyken ilk
+  // transaction dönmediği için sıralı zincirde görev/istatistik hiç başlamıyordu.
+  // 1) Başarımlar — Android onTestFinished (beklenmez)
+  void (async () => {
+    await basarimArtir(a.uid, "testadet", 1);
+    if (hatasiz) {
+      await basarimArtir(a.uid, "testdogru", 1);
+      await kisiselRekorArtir(a.uid, a.sinif, "hatasiztest", 1);
+    }
+    // unitesenfoni: defter VEYA test tamamlandığında artar
+    await basarimArtir(a.uid, "unitesenfoni", 1);
+    // kusursuzsanat: aynı günde hem test hem defter
+    await gunlukBayrakVeKontrol(a.uid, "testDone", "defterDone", "kusursuzsanatAwarded", "kusursuzsanat");
+    // inceisci: aynı günde hem test hem yazılı HATASIZ
+    if (hatasiz) {
+      await gunlukBayrakVeKontrol(
+        a.uid, "hatasizTestDone", "hatasizYaziliDone", "inceisciAwarded", "inceisci"
+      );
+    }
+  })().catch((e) => sessizHata("ilerleme", e));
 
-  // 2) Görevler — testId ile dedüplikasyon (aynı konu, farklı adım → tek sayım)
-  let gorevIlerledi: GorevDegisimi[] = [];
-  try {
-    gorevIlerledi = await gorevOlayiUygula(a.uid, {
-      tip: "test_bitti",
-      sinif: a.sinif,
-      dogru: a.dogru,
-      toplam: a.toplam,
-      testId: testIdUret(a.sinif, a.dersKey, a.konuKey, null),
-    });
-  } catch (e) {
-    sessizHata("ilerleme", e);
-    /* görev yazımı akışı durdurmaz */
-  }
-
-  // 3) İstatistik kovaları — Android StatsManager.TEST_FINISHED (unitKey boş bırakılır)
-  await istatistikOlayiUygula(a.uid, {
+  // 3) İstatistik kovaları — Android StatsManager.TEST_FINISHED (unitKey boş bırakılır; beklenmez)
+  void istatistikOlayiUygula(a.uid, {
     tip: "test",
     sinif: a.sinif,
     dersKey: a.dersKey,
@@ -157,9 +164,21 @@ export async function testBittiIsle(a: TestBitisArgs): Promise<GorevDegisimi[]> 
     toplam: a.toplam,
     sureSn: a.sureSn,
     puan: a.puan,
-  });
+  }).catch((e) => sessizHata("ilerleme", e));
 
-  return gorevIlerledi;
+  // 2) Görevler — testId ile dedüplikasyon (aynı konu, farklı adım → tek sayım)
+  try {
+    return await gorevOlayiUygula(a.uid, {
+      tip: "test_bitti",
+      sinif: a.sinif,
+      dogru: a.dogru,
+      toplam: a.toplam,
+      testId: testIdUret(a.sinif, a.dersKey, a.konuKey, null),
+    });
+  } catch (e) {
+    sessizHata("ilerleme", e);
+    return [];   // görev yazımı akışı durdurmaz
+  }
 }
 
 /* ---------------------------------------------------------------- defter */
@@ -178,10 +197,13 @@ export async function testBittiIsle(a: TestBitisArgs): Promise<GorevDegisimi[]> 
 export async function defterBittiIsle(
   uid: string, sinif: number, dersKey: string, uniteKey: string
 ): Promise<GorevDegisimi[]> {
-  await istatistikOlayiUygula(uid, { tip: "defter", sinif, dersKey });
-  await basarimArtir(uid, "defteradet", 1);
-  await basarimArtir(uid, "unitesenfoni", 1);
-  await gunlukBayrakVeKontrol(uid, "defterDone", "testDone", "kusursuzsanatAwarded", "kusursuzsanat");
+  // Bağımsız işler, beklenmez (çevrimdışı transaction dönmez → görev hiç başlamıyordu)
+  void istatistikOlayiUygula(uid, { tip: "defter", sinif, dersKey }).catch((e) => sessizHata("ilerleme", e));
+  void (async () => {
+    await basarimArtir(uid, "defteradet", 1);
+    await basarimArtir(uid, "unitesenfoni", 1);
+    await gunlukBayrakVeKontrol(uid, "defterDone", "testDone", "kusursuzsanatAwarded", "kusursuzsanat");
+  })().catch((e) => sessizHata("ilerleme", e));
 
   try {
     return await gorevOlayiUygula(uid, {
@@ -213,36 +235,35 @@ export type YaziliBitisArgs = {
 export async function yaziliBittiIsle(a: YaziliBitisArgs): Promise<GorevDegisimi[]> {
   const hatasiz = a.toplam > 0 && a.dogru === a.toplam;
 
-  await basarimArtir(a.uid, "yaziliadet", 1);
-  if (hatasiz) {
-    await basarimArtir(a.uid, "yazilidogru", 1);
-    await gunlukBayrakVeKontrol(
-      a.uid, "hatasizYaziliDone", "hatasizTestDone", "inceisciAwarded", "inceisci"
-    );
-  }
+  // Bağımsız işler, beklenmez (çevrimdışı transaction dönmez → sıradakiler hiç başlamıyordu)
+  void (async () => {
+    await basarimArtir(a.uid, "yaziliadet", 1);
+    if (hatasiz) {
+      await basarimArtir(a.uid, "yazilidogru", 1);
+      await gunlukBayrakVeKontrol(
+        a.uid, "hatasizYaziliDone", "hatasizTestDone", "inceisciAwarded", "inceisci"
+      );
+    }
+  })().catch((e) => sessizHata("ilerleme", e));
 
-  let gorevIlerledi: GorevDegisimi[] = [];
-  try {
-    gorevIlerledi = await gorevOlayiUygula(a.uid, {
-      tip: "yazili_bitti", sinif: a.sinif, dogru: a.dogru, toplam: a.toplam,
-    });
-  } catch (e) {
-    sessizHata("ilerleme", e);
-    /* yoksay */
-  }
-
-  await istatistikOlayiUygula(a.uid, {
+  void istatistikOlayiUygula(a.uid, {
     tip: "yazili",
     sinif: a.sinif,
     dersKey: a.dersKey,
     sinavKey: a.sinavKey,
     dogru: a.dogru,
     toplam: a.toplam,
+    sayaciArtir: a.sayaciArtir !== false,
     sureSn: a.sureSn,
     puan: a.puan,
-    sayaciArtir: a.sayaciArtir !== false,
-  });
+  }).catch((e) => sessizHata("ilerleme", e));
 
-  return gorevIlerledi;
+  try {
+    return await gorevOlayiUygula(a.uid, {
+      tip: "yazili_bitti", sinif: a.sinif, dogru: a.dogru, toplam: a.toplam,
+    });
+  } catch (e) {
+    sessizHata("ilerleme", e);
+    return [];
+  }
 }
-

@@ -12,6 +12,7 @@ import { get, ref as dbRef, set } from "firebase/database";
 import { kullaniciDb, quizDb } from "./firebase";
 import { gorevOlayiUygula, type GorevDegisimi } from "./gorevYaz";
 import { onbellekli } from "./onbellek";
+import { sessizHata, tavanli } from "./hata";
 import { sinifSinirla, xpEkle } from "./veri";
 
 export const XP_QUIZ_TAMAM = 30;   // Android/iOS: XpRules.QUIZ_COMPLETE_XP
@@ -167,20 +168,23 @@ export type QuizBitisSonucu = { ilkKez: boolean; xp: number; gorevler: GorevDegi
 
 /**
  * Quizi tamamla — Android: önce `quiz_done` okunur, daha önce bitmişse ÖDÜL VERİLMEZ.
- * XP dışında bir şey yazılmaz (Android de yazmıyor).
+ * 24 Eyl 2026 (Android QuizScreens): okunamazsa (çevrimdışı / zaman aşımı) ödül ve görev VERİLMEZ;
+ * quiz_done XP'den SONRA yazılır (XP yazılamazsa quiz bitti sayılmasın). Ekran XP'yi beklemez;
+ * görev en çok 3 sn beklenir, iş arkada sürer.
  */
 export async function quizTamamla(
   uid: string, sinif: number, dersKey: string, uniteKey: string
 ): Promise<QuizBitisSonucu> {
   const g = sinifSinirla(sinif);
-  if (await quizBittiMi(uid, g, dersKey, uniteKey)) return { ilkKez: false, xp: 0, gorevler: [] };
+  const snap = await tavanli(get(dbRef(kullaniciDb, quizBittiYolu(uid, g, dersKey, uniteKey))), 5000);
+  if (!snap || snap.val() === true) return { ilkKez: false, xp: 0, gorevler: [] };
 
-  await set(dbRef(kullaniciDb, quizBittiYolu(uid, g, dersKey, uniteKey)), true);
-  await xpEkle(uid, g, XP_QUIZ_TAMAM, `quiz_${dersKey}_${uniteKey}`);
-  // "Bir quiz tamamla" görevi (quiz_complete) — yalnız ilk bitişte, XP'yi engellemesin.
-  // Değişimler sayfaya döner: test/defterdeki görev özeti sahnesi quizde de oynar (22 Eyl).
-  let gorevler: GorevDegisimi[] = [];
-  try { gorevler = await gorevOlayiUygula(uid, { tip: "quiz_bitti", sinif: g }); } catch { /* görev yazılamazsa quiz yine bitti */ }
+  xpEkle(uid, g, XP_QUIZ_TAMAM, `quiz_${dersKey}_${uniteKey}`)
+    .then(() => set(dbRef(kullaniciDb, quizBittiYolu(uid, g, dersKey, uniteKey)), true))
+    .catch((e) => sessizHata("quizXp", e));
+  // "Bir quiz tamamla" görevi (quiz_complete) — yalnız ilk bitişte
+  const gorevIs = gorevOlayiUygula(uid, { tip: "quiz_bitti", sinif: g }).catch(() => [] as GorevDegisimi[]);
+  const gorevler = (await tavanli(gorevIs, 3000)) ?? [];
   return { ilkKez: true, xp: XP_QUIZ_TAMAM, gorevler };
 }
 

@@ -13,6 +13,7 @@ import { sesCal } from "../ses";
 import { ACT_DEFTER, ACT_YAZILI, haftaninAktifGunleri } from "../../lib/veri";
 import type { GorevDegisimi } from "../../lib/gorevYaz";
 import GorevOzeti from "./GorevOzeti";
+import { tavanli } from "../../lib/hata";
 
 export type SonucArgs = {
   dogru: number;
@@ -35,6 +36,10 @@ export type SeriSozu = Promise<SeriArgs | null>;
 export type GorevSozu = Promise<GorevDegisimi[]> | null;
 
 type Adim = "sonuc" | "gorev" | "seri";
+
+/** Görev/seri yazması en çok bu kadar beklenir (Android ResultScreen 3 sn, 24 Eyl 2026): çevrimdışıyken
+    transaction sözleri hiç çözülmez; süre dolarsa özet gösterilmeden devam edilir, yazma arkada sürer. */
+const BEKLEME_TAVANI = 3000;
 
 export default function SonucAkisi({
   sonuc,
@@ -65,7 +70,7 @@ export default function SonucAkisi({
       // görevde ilerleme varsa görev özeti, yoksa seri özeti.
       let gorevVar = false;
       if (!sonuc) {
-        const d = gorevSozu ? await gorevSozu.catch(() => []) : [];
+        const d = gorevSozu ? ((await tavanli(gorevSozu, BEKLEME_TAVANI)) ?? []) : [];
         if (iptal) return;
         gorevVar = d.length > 0;
         if (gorevVar) {
@@ -80,7 +85,9 @@ export default function SonucAkisi({
         return;
       }
 
-      const s = await seriSozu;
+      // Sonuç kartı ekrandaysa tavansız beklenir (tavan "Devam Et"e basınca, seriyeGecYaDaBitir'de);
+      // kart yoksa (defter) ilk adım buna bağlı → tavanlı.
+      const s = sonuc ? await seriSozu.catch(() => null) : ((await tavanli(seriSozu, BEKLEME_TAVANI)) ?? null);
       if (iptal) return;
       bekleyen.current = false;
       setSeri(s);
@@ -100,7 +107,7 @@ export default function SonucAkisi({
   async function seriyeGecYaDaBitir(eskiAdim: Adim) {
     // iOS: whenReady — ödül hesabı bitene kadar bekle, sonra adıma geç.
     let s = seri;
-    if (bekleyen.current && seriSozu) s = await seriSozu;
+    if (bekleyen.current && seriSozu) s = (await tavanli(seriSozu, BEKLEME_TAVANI)) ?? null;
     if (s) {
       setSeri(s);
       gec(eskiAdim, "seri");
@@ -111,7 +118,7 @@ export default function SonucAkisi({
 
   async function sonucDevam() {
     // Görev yazımı sonuç kartı ekrandayken sürüyor olabilir; sonucunu bekle.
-    const d = gorevSozu ? await gorevSozu.catch(() => []) : [];
+    const d = gorevSozu ? ((await tavanli(gorevSozu, BEKLEME_TAVANI)) ?? []) : [];
     if (d.length > 0) {
       setGorevler(d);
       gec("sonuc", "gorev");

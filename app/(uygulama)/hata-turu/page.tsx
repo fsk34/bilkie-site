@@ -4,10 +4,12 @@
 // Test ekranının sade kopyası: can gitmez (hata öğrenmek için), adım/istatistik/görev yazılmaz;
 // doğru başına XP (test gibi, her hata en fazla bir kez ödül verir — doğru bilince kayıt silinir) + seri.
 // Üstte "Ders · Konu" etiketi soru soru değişir. Bittiğinde Sonuç akışı → ana ekran.
+// ?ders=..&konu=.. (24 Eyl 2026, Android hataTuruKonu): "Tekrar bakacağın sorular" konu satırından
+// gelinirse YALNIZ o konunun yanlışları; genel düğmeler parametresiz → karışık tur.
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { dersBul } from "../dersler";
 import Lottie from "../Lottie";
 import Perde from "../Perde";
@@ -15,16 +17,27 @@ import { sesCal } from "../ses";
 import SonucAkisi, { type SeriArgs, type SonucArgs } from "../sonuc/SonucAkisi";
 import type { GorevDegisimi } from "../../lib/gorevYaz";
 import { enUzunSeriGuncelle } from "../../lib/ilerleme";
+import { sessizHata } from "../../lib/hata";
 import { useOturum } from "../../lib/oturum";
 import { konuAyristir, uniteler } from "../../lib/katalog";
 import { ACT_TEST, XP_DOGRU_TEST, seriIsaretle, xpEkle } from "../../lib/veri";
-import { hataDegisimleriYaz, hatalariOku, turSorulariniHazirla, type SoruSonucu, type TurSorusu } from "../../lib/hatalar";
+import { hataDegisimleriYaz, hatalariOkuVeyaNull, turSorulariniHazirla, yetimleriSil, type SoruSonucu, type TurSorusu } from "../../lib/hatalar";
 
-type Durum = "yukleniyor" | "bos" | "cozuluyor" | "sonuc";
+// baglanti: hatalar ya da sorular okunamadı (çevrimdışı) — "yanlışın yok" DEME
+type Durum = "yukleniyor" | "bos" | "baglanti" | "cozuluyor" | "sonuc";
 
 export default function HataTuruSayfasi() {
+  // useSearchParams Suspense ister
+  return <Suspense><HataTuru /></Suspense>;
+}
+
+function HataTuru() {
   const router = useRouter();
   const { yukleniyor, kullanici, sinif } = useOturum();
+  const arama = useSearchParams();
+  const konuDers = arama.get("ders");
+  const konuKey = arama.get("konu");
+  const [yenidenDene, setYenidenDene] = useState(0);
 
   const [durum, setDurum] = useState<Durum>("yukleniyor");
   const [sorular, setSorular] = useState<TurSorusu[]>([]);
@@ -44,15 +57,21 @@ export default function HataTuruSayfasi() {
     if (!kullanici) { setDurum("bos"); return; }
     let iptal = false;
     (async () => {
-      const hatalar = await hatalariOku(kullanici.uid, sinif);
-      const gelen = await turSorulariniHazirla(sinif, hatalar, Date.now());
+      const okunan = await hatalariOkuVeyaNull(kullanici.uid, sinif);
       if (iptal) return;
-      setSorular(gelen);
+      if (okunan == null) { setDurum("baglanti"); return; }
+      // Konu seçiliyse yalnız o konunun yanlışları (olgunlaşmamışlar da gelir: olgun önce, gerisi sırayla)
+      const hatalar = konuDers && konuKey ? okunan.filter((h) => h.ders === konuDers && h.konu === konuKey) : okunan;
+      const hazirlik = await turSorulariniHazirla(sinif, hatalar, Date.now());
+      if (iptal) return;
+      // İçerikte artık olmayan soruların kayıtları temizlenir (yalnız okuma başarılıysa yetim sayılır)
+      yetimleriSil(kullanici.uid, sinif, hazirlik.yetimler);
+      setSorular(hazirlik.sorular);
       baslangic.current = Date.now();
-      setDurum(gelen.length > 0 ? "cozuluyor" : "bos");
+      setDurum(hazirlik.sorular.length > 0 ? "cozuluyor" : hazirlik.okunamayanVar ? "baglanti" : "bos");
     })();
     return () => { iptal = true; };
-  }, [yukleniyor, kullanici, sinif]);
+  }, [yukleniyor, kullanici, sinif, konuDers, konuKey, yenidenDene]);
 
   const bitir = useCallback((sonDogru: number) => {
     const toplam = sorular.length;
@@ -61,18 +80,21 @@ export default function HataTuruSayfasi() {
     const gorevSozu = Promise.resolve<GorevDegisimi[]>([]);
     const seriSozu: Promise<SeriArgs | null> = (async () => {
       if (!kullanici) return null;
+      const uid = kullanici.uid;
+      // Ders ders grupla: hatalar.ts ders başına tek update yazar
+      const dersler = new Map<string, SoruSonucu[]>();
+      sorular.forEach((s, i) => {
+        const r = sonuclar.current[i];
+        if (!r) return;
+        dersler.set(s.ders, [...(dersler.get(s.ders) ?? []), r]);
+      });
+      // Hata kayıtları + XP bağımsız, beklenmez: çevrimdışı takılırlarsa seri/sonuç akışını bekletmesinler
+      for (const [ders, liste] of dersler) hataDegisimleriYaz(uid, sinif, ders, liste).catch((e) => sessizHata("hatalar", e));
+      if (xp > 0) xpEkle(uid, sinif, xp, "hata_turu").catch((e) => sessizHata("xp", e));
       try {
-        // Ders ders grupla: hatalar.ts ders başına tek update yazar
-        const dersler = new Map<string, SoruSonucu[]>();
-        sorular.forEach((s, i) => {
-          const r = sonuclar.current[i];
-          if (!r) return;
-          dersler.set(s.ders, [...(dersler.get(s.ders) ?? []), r]);
-        });
-        for (const [ders, liste] of dersler) await hataDegisimleriYaz(kullanici.uid, sinif, ders, liste);
-        if (xp > 0) await xpEkle(kullanici.uid, sinif, xp, "hata_turu");
-        const seri = await seriIsaretle(kullanici.uid, ACT_TEST);
-        if (seri.basarili && seri.sayi > 0) await enUzunSeriGuncelle(kullanici.uid, sinif, seri.sayi);
+        const seri = await seriIsaretle(uid, ACT_TEST);
+        // En uzun seri rekoru: tek yazma, sınıfa göre kırpılmış (beklenmez)
+        if (seri.basarili && seri.sayi > 0) void enUzunSeriGuncelle(uid, sinif, seri.sayi);
         if (!seri.basarili || !seri.ilkAktiviteBugun) return null;
         return { sayi: seri.sayi, maske: seri.maske, tetik: ACT_TEST };
       } catch { return null; }
@@ -106,6 +128,17 @@ export default function HataTuruSayfasi() {
   }
 
   if (durum === "yukleniyor") return <Perde metin="Hataların toplanıyor…" />;
+
+  if (durum === "baglanti") {
+    return (
+      <Perde metin="Bağlantı yok, sonra tekrar dene.">
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center" }}>
+          <button type="button" className="bk-dugme" onClick={() => { setDurum("yukleniyor"); setYenidenDene((n) => n + 1); }}>Tekrar dene</button>
+          <Link className="bk-dugme acik" href="/">Ana ekrana dön</Link>
+        </div>
+      </Perde>
+    );
+  }
 
   if (durum === "bos") {
     return (

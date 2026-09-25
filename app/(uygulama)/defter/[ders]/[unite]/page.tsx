@@ -25,6 +25,7 @@ import {
   type DefterSayfa,
 } from "../../../../lib/veri";
 import { defterBittiIsle, enUzunSeriGuncelle } from "../../../../lib/ilerleme";
+import { tavanli } from "../../../../lib/hata";
 
 type Durum = "yukleniyor" | "hata" | "okuma" | "bitti";
 
@@ -63,7 +64,8 @@ export default function DefterOkuyucuSayfasi() {
         // Kaldığı sayfa içerikle birlikte okunur; sayfa sayısı dışına taşan/bitmiş kayıt baştan açar
         const [gelen, kaldigi] = await Promise.all([
           defterSayfalariGetir(sinif, dersKey, uniteKey),
-          kullanici ? defterKaldigiSayfa(kullanici.uid, sinif, dersKey, uniteKey) : Promise.resolve(0),
+          // Kaldığı sayfa okunamazsa (çevrimdışı) baştan açılır — perdede takılmasın
+          kullanici ? tavanli(defterKaldigiSayfa(kullanici.uid, sinif, dersKey, uniteKey), 6000).then((k) => k ?? 0) : Promise.resolve(0),
         ]);
         if (iptal) return;
         setSayfalar(gelen);
@@ -106,25 +108,28 @@ export default function DefterOkuyucuSayfasi() {
     if (kaydediliyor) return;
     setKaydediliyor(true);
     if (!kullanici) { setDurum("bitti"); setKaydediliyor(false); return; }
-    try {
-      const sonuc = await defterTamamla(kullanici.uid, sinif, dersKey, uniteKey, sayfalar.length);
+    // ⚠️ Çevrimdışıyken yazma sözleri HİÇ dönmez → perde takılıyordu (Android 24 Eyl): her bekleme
+    // tavanlı; iş arkada sürer, bağlantı gelince gider.
+    const uid = kullanici.uid;
+    const tamamIs = defterTamamla(uid, sinif, dersKey, uniteKey, sayfalar.length);
+    // Başarımlar + defter-bitti görevi YALNIZCA ilk tamamlamada (Android: firstTimeDone bloğu);
+    // zincir ekrandan bağımsız sürer — tavan dolsa da bağlantı gelince işlenir
+    const bittiIs = tamamIs.then((t) => (t.ilkKez ? defterBittiIsle(uid, sinif, dersKey, uniteKey) : [])).catch(() => [] as GorevDegisimi[]);
+    const sonuc = await tavanli(tamamIs, 6000);
+    if (sonuc) {
       setKazanilanXp(sonuc.xp);
       if (sonuc.seri?.basarili) {
         setSeriSayisi(sonuc.seri.sayi);
         if (sonuc.seri.ilkAktiviteBugun) {
           setSeriAkisi({ sayi: sonuc.seri.sayi, maske: sonuc.seri.maske, tetik: ACT_DEFTER });
         }
-        if (sonuc.seri.sayi > 0) {
-          await enUzunSeriGuncelle(kullanici.uid, sinif, sonuc.seri.sayi);
-        }
+        // En uzun seri rekoru: tek yazma, sınıfa göre kırpılmış (beklenmez)
+        if (sonuc.seri.sayi > 0) void enUzunSeriGuncelle(uid, sinif, sonuc.seri.sayi);
       }
-      await sayfaTamamla(sayfalar.length - 1);
-      // Başarımlar + defter-bitti görevi YALNIZCA ilk tamamlamada (Android: firstTimeDone bloğu)
-      const bitti = sonuc.ilkKez ? await defterBittiIsle(kullanici.uid, sinif, dersKey, uniteKey) : [];
-      setGorevDegisimleri(gorevBirlestir(sayfaGorevleri.current, bitti));
-    } catch {
-      /* yazma hatası okumayı bozmasın */
     }
+    await tavanli(sayfaTamamla(sayfalar.length - 1), 4000);
+    const bitti = (await tavanli(bittiIs, 4000)) ?? [];
+    setGorevDegisimleri(gorevBirlestir(sayfaGorevleri.current, bitti));
     setDurum("bitti");
     setKaydediliyor(false);
   }, [kaydediliyor, kullanici, sinif, dersKey, uniteKey, sayfalar.length, sayfaTamamla]);

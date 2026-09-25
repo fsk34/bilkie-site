@@ -8,7 +8,6 @@
 //   3. Ne kadar hızlısın? — ders başına ortalama test süresi
 //   4. Tekrar bakacağın sorular — ders ders sayı, hazır olanlar, konu bazında ilk 5, Hata Turu
 //   5. Kâğıtta çözdüklerin — elle girilen kayıtlar
-//   6. "Haftalık ilerleme yakında" (zaman serisi verisi henüz yazılmıyor — uydurmuyoruz)
 // Dil (21 Eyl): 3.–4. sınıf çocuğuna hitap — kısa cümle, "sen" dili, sayı eşiği/terim yok.
 // Üstteki ders seçici burada da geçerli: tek ders seçiliyse o derse ait olanlar.
 
@@ -19,10 +18,11 @@ import { konuAyristir, uniteler } from "../../lib/katalog";
 import { useDefterIlerlemesi, useIstatistikAgaci, useQuizBitenler, useSonDokunulan, useTestIlerlemesi, useUstBilgi } from "../../lib/canliVeri";
 import { dersEtiketi, devamKartiHesapla, type DevamVerisi } from "../../lib/anaEkran";
 import { ESIK, KURAL_ETIKETI, istatistikBirlestir, kocGozlemleri, kocIstatistikCoz, type KocGozlem, type KocIstatistik } from "../../lib/koc";
-import { evdeKayitlariOku, evdeOzetle, type EvdeKayit } from "../../lib/evde";
+import { evdeKayitSil, evdeKayitlariOku, evdeOzetle, type EvdeKayit } from "../../lib/evde";
 import { HATA_OLGUNLASMA_GUN, hatalariOku, olgunHatalar, type Hata } from "../../lib/hatalar";
 import { yaziliTakvimi } from "../../lib/yaziliTakvim";
 import { dersRengi } from "../../lib/veri";
+import { sessizHata } from "../../lib/hata";
 
 const KOC_DERSLER = ["turkce", "matematik", "fen", "sosyal", "ingilizce"];
 
@@ -89,8 +89,8 @@ export default function BilgieKocBolumu({ uid, sinif, dersKey, onDersSec }: { ui
       <GucluZayif sinif={sinif} istatistik={istatistik} dersler={dersler} />
       <Hiz sinif={sinif} istatistik={istatistik} dersler={dersler} />
       <Yanlislar sinif={sinif} hatalar={hatalar} dersler={dersler} simdi={simdi} />
-      <EvdeCozduklerim sinif={sinif} kayitlar={(evde ?? []).filter((k) => dersler.includes(k.ders))} />
-      <p className="bk-soluk bk-koc-yakinda">📈 Haftalık ilerleme grafiğin yakında burada olacak.</p>
+      <EvdeCozduklerim uid={uid} sinif={sinif} secili={dersKey} kayitlar={(evde ?? []).filter((k) => dersler.includes(k.ders))}
+        silindi={(id) => setEvde((l) => (l ? l.filter((k) => k.id !== id) : l))} />
     </div>
   );
 }
@@ -159,7 +159,9 @@ function DersDers({ sinif, istatistik, onDersSec }: { sinif: number; istatistik:
   const satirlar = KOC_DERSLER.map((ders) => {
     const t = istatistik[ders]?.tests;
     const zayif = konuListesi(sinif, istatistik, [ders]).sort((a, b) => a.basari - b.basari)[0] ?? null;
-    return { ders, soru: t?.soru ?? 0, basari: t?.basari ?? 0, ortSn: t?.ortSn ?? 0, zayif };
+    // Koç sayıları evde çözülenleri de içerir, İstatistik içermez — farkı satırda söyle ("40 soru · 12 evde")
+    const evde = t && (t.evPayi ?? 0) > 0 ? Math.round((t.evPayi ?? 0) * t.soru) : 0;
+    return { ders, soru: t?.soru ?? 0, basari: t?.basari ?? 0, ortSn: t?.ortSn ?? 0, zayif, evde };
   });
   if (satirlar.every((r) => r.soru === 0)) return null;
   return (
@@ -172,7 +174,7 @@ function DersDers({ sinif, istatistik, onDersSec }: { sinif: number; istatistik:
           <span className="alt">
             {r.soru === 0
               ? "Henüz test çözmedin"
-              : [`${r.soru} soru`, r.ortSn > 0 ? `test başına ${sureMetni(r.ortSn)}` : null, r.zayif ? `en zor: ${r.zayif.konuAdi}` : null].filter(Boolean).join(" · ")}
+              : [`${r.soru} soru`, r.evde > 0 ? `${r.evde} evde` : null, r.ortSn > 0 ? `test başına ${sureMetni(r.ortSn)}` : null, r.zayif ? `en zor: ${r.zayif.konuAdi}` : null].filter(Boolean).join(" · ")}
           </span>
           {r.soru > 0 && (
             <span className="sag">
@@ -189,7 +191,7 @@ function DersDers({ sinif, istatistik, onDersSec }: { sinif: number; istatistik:
 
 /* ------------------------------------------------------ güçlü / zayıf konular */
 
-type KonuSatiri = { ders: string; konuAdi: string; konuKey: string; basari: number; soru: number };
+type KonuSatiri = { ders: string; konuAdi: string; konuKey: string; basari: number; soru: number; evPayi: number };
 
 function konuListesi(sinif: number, istatistik: KocIstatistik, dersler: string[]): KonuSatiri[] {
   const out: KonuSatiri[] = [];
@@ -199,7 +201,7 @@ function konuListesi(sinif: number, istatistik: KocIstatistik, dersler: string[]
     for (const [konuKey, s] of Object.entries(istatistik[ders]?.topics ?? {})) {
       if (s.soru < ESIK.konuSoru) continue;
       const ad = adlar.get(konuKey);
-      if (ad) out.push({ ders, konuAdi: ad, konuKey, basari: s.basari, soru: s.soru });
+      if (ad) out.push({ ders, konuAdi: ad, konuKey, basari: s.basari, soru: s.soru, evPayi: s.evPayi ?? 0 });
     }
   }
   return out;
@@ -213,7 +215,7 @@ function GucluZayif({ sinif, istatistik, dersler }: { sinif: number; istatistik:
     <Link key={k.ders + k.konuKey} href={`/test/${k.ders}/${k.konuKey}`} className="bk-koc-konu" data-ton={ton}>
       <span className="bk-koc-nokta" style={{ background: dersRengi(k.ders) }} />
       <span className="ad">{k.konuAdi}</span>
-      <span className="ders">{dersEtiketi(k.ders, sinif)}</span>
+      <span className="ders">{dersEtiketi(k.ders, sinif)}{k.evPayi > 0 ? " · evde çözdüklerin dahil" : ""}</span>
       <b>%{k.basari}</b>
       <span className="soru">{k.soru} soru</span>
     </Link>
@@ -275,19 +277,21 @@ function sureMetni(sn: number): string {
 /* ------------------------------------------------------------- yanlışlar */
 
 function Yanlislar({ sinif, hatalar, dersler, simdi }: { sinif: number; hatalar: Hata[]; dersler: string[]; simdi: number }) {
+  // ilk 5 konudan fazlası "N konu daha" ile açılır, sessizce gizlenmez (Android 24 Eyl)
+  const [hepsi, setHepsi] = useState(false);
   const liste = hatalar.filter((h) => dersler.includes(h.ders));
   const olgun = olgunHatalar(liste, simdi).length;
   // Hiçbiri hazır değilse: ilk hazır olacak olana kaç gün var (çocuğa "bekle" değil, "2 gün sonra" deriz)
   const ilkHazirGun = liste.length > 0 && olgun === 0
     ? Math.max(1, Math.ceil((Math.min(...liste.map((h) => h.zaman)) + HATA_OLGUNLASMA_GUN * 86400000 - simdi) / 86400000))
     : 0;
-  // Konu bazında sayım (ilk 5)
+  // Konu bazında sayım (hepsi; ilk 5 görünür)
   const konuSayim = new Map<string, { ders: string; konu: string; sayi: number }>();
   for (const h of liste) {
     const k = `${h.ders}/${h.konu}`;
     konuSayim.set(k, { ders: h.ders, konu: h.konu, sayi: (konuSayim.get(k)?.sayi ?? 0) + 1 });
   }
-  const konular = [...konuSayim.values()].sort((a, b) => b.sayi - a.sayi).slice(0, 5);
+  const konular = [...konuSayim.values()].sort((a, b) => b.sayi - a.sayi);
   const konuAdi = (ders: string, konuKey: string) => {
     for (const u of uniteler(sinif, ders)) for (const t of u.topics) { const k = konuAyristir(t); if (k.testKey === konuKey) return k.baslik; }
     return konuKey;
@@ -299,19 +303,28 @@ function Yanlislar({ sinif, hatalar, dersler, simdi }: { sinif: number; hatalar:
         <p className="bk-soluk">Şu an yanlışın yok. Harika! 🎉</p>
       ) : (
         <>
+          {/* Konuya dokununca o yanlışlar HEMEN açılır — "yarın soracağım" tek başına yanıltıcı olurdu */}
           <div className="bk-yanlis-sayi bk-koc-sayi">
             {olgun > 0
-              ? <><b>{olgun}</b> soru seni bekliyor. Hadi yeniden çözelim!</>
-              : <><b>{liste.length}</b> yanlışın var. {ilkHazirGun === 1 ? "Yarın" : `${ilkHazirGun} gün sonra`} yeniden soracağım.</>}
+              ? <><b>{olgun}</b> soru seni bekliyor. Hepsini birden çöz ya da bir konu seç.</>
+              : <><b>{liste.length}</b> yanlışın var. Bir konuya dokunup hemen çözebilirsin; yoksa {ilkHazirGun === 1 ? "yarın" : `${ilkHazirGun} gün sonra`} ben sorarım.</>}
           </div>
-          {konular.map((k) => (
-            <div className="bk-koc-hiz" key={k.ders + k.konu}>
-              <span className="ders" style={{ flexBasis: "auto", flex: 1 }}>
-                <span className="bk-koc-nokta" style={{ background: dersRengi(k.ders), marginRight: 8 }} />{konuAdi(k.ders, k.konu)}
-              </span>
-              <span className="sn">{k.sayi} soru</span>
-            </div>
+          {(hepsi ? konular : konular.slice(0, 5)).map((k) => (
+            // Dokununca YALNIZ bu konunun yanlışları (Hata Turu, konuya süzülü) — konunun normal testi değil
+            <Link key={k.ders + k.konu} className="bk-koc-konu" data-ton="zayif"
+              href={`/hata-turu?ders=${encodeURIComponent(k.ders)}&konu=${encodeURIComponent(k.konu)}`}>
+              <span className="bk-koc-nokta" style={{ background: dersRengi(k.ders) }} />
+              <span className="ad">{konuAdi(k.ders, k.konu)}</span>
+              {/* Ders adı da yazılı (yalnız renk noktası 3. sınıfta yetmez) */}
+              <span className="ders">{dersEtiketi(k.ders, sinif)}</span>
+              <span className="soru">{k.sayi} soru ›</span>
+            </Link>
           ))}
+          {konular.length > 5 && (
+            <button type="button" className="bk-metin-dugme" onClick={() => setHepsi((h) => !h)}>
+              {hepsi ? "Daha az göster ▴" : `${konular.length - 5} konu daha ▾`}
+            </button>
+          )}
           {olgun > 0 && (
             <Link href="/hata-turu" className="bk-konu-dugme bk-koc-dugme" style={{ background: "#ffa726", borderColor: "#b85c00", color: "#0C1A3F", marginTop: 12 }}>
               Yanlışlarımı yeniden çöz
@@ -329,8 +342,19 @@ function Yanlislar({ sinif, hatalar, dersler, simdi }: { sinif: number; hatalar:
 
 type EvdeGrup = { ad: string; soru: number; dogru: number; satirlar: { ad: string; alt: string; dogru: number; yanlis: number; nolar: number[] }[] };
 
-function EvdeCozduklerim({ sinif, kayitlar }: { sinif: number; kayitlar: EvdeKayit[] }) {
+function EvdeCozduklerim({ uid, sinif, secili, kayitlar, silindi }: {
+  uid: string; sinif: number; secili: string | null; kayitlar: EvdeKayit[]; silindi: (id: string) => void;
+}) {
   const [gorunum, setGorunum] = useState<"ders" | "kitap" | "kayit">("ders");
+  const [silinecek, setSilinecek] = useState<string | null>(null);   // satır içi onay bekleyen kayıt
+  const [silHata, setSilHata] = useState(false);
+  // Silme yerelde hemen uygulanır (çevrimdışı da); söz reddedilirse (kural) hata gösterilir.
+  // Koç sayıları üstteki listeden türediği için silindi() ile anında tazelenir.
+  const sil = (id: string) => {
+    setSilinecek(null); setSilHata(false);
+    silindi(id);
+    evdeKayitSil(uid, sinif, id).catch((e) => { sessizHata("evdeSil", e); setSilHata(true); });
+  };
   const [acik, setAcik] = useState<string | null>(null);
   const toplam = kayitlar.reduce((t, k) => t + k.dogru + k.yanlis, 0);
   const dogru = kayitlar.reduce((t, k) => t + k.dogru, 0);
@@ -363,7 +387,7 @@ function EvdeCozduklerim({ sinif, kayitlar }: { sinif: number; kayitlar: EvdeKay
 
   return (
     <section className="bk-koc-bolum">
-      <Baslik simge="📒" baslik="Kâğıtta çözdüklerin" sag={<Link href="/evde" className="bk-koc-ekle">+ EKLE</Link>} />
+      <Baslik simge="📒" baslik="Kâğıtta çözdüklerin" sag={<Link href={secili ? `/evde?ders=${encodeURIComponent(secili)}` : "/evde"} className="bk-koc-ekle">+ EKLE</Link>} />
       {kayitlar.length === 0 ? (
         <p className="bk-soluk">Kitaptan ya da kâğıttan çözdüğün testleri de ekle; seni daha iyi tanırım. Puan kazandırmaz ama serini korur.</p>
       ) : (
@@ -400,14 +424,29 @@ function EvdeCozduklerim({ sinif, kayitlar }: { sinif: number; kayitlar: EvdeKay
             );
           })}
 
+          {gorunum === "kayit" && <p className="bk-soluk" style={{ fontSize: 12, margin: "0 0 4px" }}>Yanlış girdiğin bir kaydı silip yeniden ekleyebilirsin.</p>}
+          {gorunum === "kayit" && silHata && <p style={{ fontSize: 12, color: "#ffa726", margin: "0 0 4px" }}>Silinemedi. Bağlantını kontrol edip tekrar dene.</p>}
           {gorunum === "kayit" && kayitlar.slice(0, 12).map((k) => (
-            <div className="bk-koc-evde-satir" key={k.id}>
-              <span className="bk-koc-nokta" style={{ background: dersRengi(k.ders) }} />
-              <div className="ad">
-                <div>{konuAdi(k.ders, k.konu)}</div>
-                <div className="alt">{dersEtiketi(k.ders, sinif)} · {tarih(k.zaman)}{k.kaynak ? ` · ${k.kaynak}` : ""}{k.yanlisNolar.length > 0 ? ` · yanlış: ${k.yanlisNolar.join(", ")}` : ""}</div>
+            <div key={k.id}>
+              <div className="bk-koc-evde-satir">
+                <span className="bk-koc-nokta" style={{ background: dersRengi(k.ders) }} />
+                <div className="ad">
+                  <div>{konuAdi(k.ders, k.konu)}</div>
+                  <div className="alt">{dersEtiketi(k.ders, sinif)} · {tarih(k.zaman)}{k.kaynak ? ` · ${k.kaynak}` : ""}{k.yanlisNolar.length > 0 ? ` · yanlış: ${k.yanlisNolar.join(", ")}` : ""}</div>
+                </div>
+                <span className="sonuc"><b>{k.dogru}</b> D · {k.yanlis} Y</span>
+                {silinecek !== k.id && (
+                  <button type="button" className="bk-metin-dugme" style={{ fontSize: 12 }} onClick={() => { setSilinecek(k.id); setSilHata(false); }}>Sil</button>
+                )}
               </div>
-              <span className="sonuc"><b>{k.dogru}</b> D · {k.yanlis} Y</span>
+              {/* Satır içi onay: tek dokunuşla kayıt gitmesin */}
+              {silinecek === k.id && (
+                <div className="bk-evde-sil-onay">
+                  <span>Bu kayıt silinsin mi?</span>
+                  <button type="button" className="vazgec" onClick={() => setSilinecek(null)}>Vazgeç</button>
+                  <button type="button" className="sil" onClick={() => sil(k.id)}>Sil</button>
+                </div>
+              )}
             </div>
           ))}
         </>

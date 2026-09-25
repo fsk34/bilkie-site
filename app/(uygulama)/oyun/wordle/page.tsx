@@ -184,7 +184,7 @@ function Oyun({
     const z = window.setTimeout(() => {
       setKutlama(true);
       sesCal("wordle_levelcompleted", 0.6);
-      void wordleSeviyeIlerlet(uid, bolumIndeksi + 1).catch(() => {});
+      wordleSeviyeIlerlet(uid, bolumIndeksi + 1);
       // Çubuk dolumu: mevcut bölümden sonrakine (uygulamadaki 1 sn'lik animasyon)
       window.setTimeout(() => setIlerlemeHedefi(1), 400);
     }, 700);

@@ -11,9 +11,10 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { KesifGirisGerekli } from "../kesif/ortak";
 import UcNokta from "../UcNokta";
 import { useOturum } from "../../lib/oturum";
+import { tavanli } from "../../lib/hata";
 import {
   bosSayfa, NOT_DERSLER, NOT_KAGITLAR, NOT_KAGIT_RENKLERI, NOT_KALINLIKLAR, NOT_KOORDINAT_OLCEK, NOT_RENKLER, NOT_TABAN_KALINLIK,
-  notDersAdi, notKalinlik, notGorselHazirla, notGorselUrl, notGorselYukle, notKaydet, notlariDinle, notSayfalari, notSil, sayfaBosMu, yeniNotId, yeniNotOzet,
+  notDersAdi, notKalinlik, notGorselHazirla, notGorselSil, notGorselUrl, notGorselVazgec, notGorselYukle, notKaydetBaslat, notlariDinle, notSayfalari, notSil, sayfaBosMu, yeniNotId, yeniNotOzet,
   type InkOgesi, type NotBlok, type NotKagit, type NotOzet, type NotSayfa,
 } from "../../lib/notlar";
 
@@ -144,13 +145,22 @@ function NotEditor({ uid, acik, kapat }: { uid: string; acik: Acik; kapat: () =>
   const [renk, setRenk] = useState(NOT_RENKLER[0]);
   const [kalinlik, setKalinlik] = useState<(typeof NOT_KALINLIKLAR)[number][0]>("orta");
   const [kaydedildi, setKaydedildi] = useState(!acik.taslak);
+  const kaydedildiRef = useRef(!acik.taslak);   // kaydet içinde güncel değer (ilk kayıt = tam yazma)
   const [kaydediliyor, setKaydediliyor] = useState(false);
   const [cikisSorusu, setCikisSorusu] = useState(false);
   const [silSorusu, setSilSorusu] = useState(false);
   const [kagitAcik, setKagitAcik] = useState(false);
   const [dersAcik, setDersAcik] = useState(false);
   const [hata, setHata] = useState<string | null>(null);
+  // ⚠️ Sayfalar okunamadıysa editör YAZMAYA KAPALI (Android 24 Eyl): eskiden tek boş sayfa konuyor,
+  // otomatik kayıt notun TÜM sayfalarını siliyordu. Okuma başarıyla bitmeden hiçbir şey yazılmaz.
+  const [yuklemeHatasi, setYuklemeHatasi] = useState(false);
+  const [yuklemeDeneme, setYuklemeDeneme] = useState(0);
+  const siliniyor = useRef(false);   // silme başladı: bekleyen otomatik kayıt notu geri yaratmasın
+  // En son yazılan sayfalar: otomatik kayıt yalnız bunlardan farklı sayfaları yazar (null = hepsini)
+  const sonYazilan = useRef<NotSayfa[] | null>(null);
   const degisiklik = useRef(0);
+  const kaydedilenDegisiklik = useRef(0);
   // Yinele yığını (sayfa başına): geri alınan çizgiler; yeni çizgi gelince boşalır
   const yinele = useRef<Record<number, InkOgesi[]>>({});
   const [yineleVar, setYineleVar] = useState(false);
@@ -166,30 +176,56 @@ function NotEditor({ uid, acik, kapat }: { uid: string; acik: Acik; kapat: () =>
   useEffect(() => {
     if (acik.taslak) return;
     let iptal = false;
-    notSayfalari(uid, acik.ozet.id).then((s) => { if (!iptal) setSayfalar(s); }).catch(() => { if (!iptal) setSayfalar([bosSayfa()]); });
+    notSayfalari(uid, acik.ozet.id)
+      .then((s) => { if (!iptal) { sonYazilan.current = s; setSayfalar(s); setYuklemeHatasi(false); } })
+      .catch(() => { if (!iptal) setYuklemeHatasi(true); });   // boş sayfa KONMAZ
     return () => { iptal = true; };
-  }, [uid, acik]);
+  }, [uid, acik, yuklemeDeneme]);
+
+  const duzenlenebilir = () => guncel.current.sayfalar != null && !yuklemeHatasi && !siliniyor.current;
 
   const dolu = () => !!guncel.current.ozet.baslik.trim() || (guncel.current.sayfalar ?? []).some((s) => !sayfaBosMu(s));
 
-  const kaydet = useCallback(async (): Promise<boolean> => {
+  /**
+   * `onayBekle` ms kadar sunucu onayı beklenir (çevrimiçi hata gösterilsin diye); dolarsa yazma yerel
+   * kuyrukta demektir (çevrimdışı) → kaydedildi sayılır. 0 = hiç bekleme (kapanış).
+   */
+  const kaydet = useCallback(async (onayBekle = 5000): Promise<boolean> => {
+    if (siliniyor.current || yuklemeHatasi) return false;   // okunmamış notu ASLA yazma
     setKaydediliyor(true);
-    await Promise.all([...bekleyenYuklemeler.current]);   // yarım görsel yazılmasın
+    // yarım görsel yazılmasın — ama sonsuz bekleme yok (çevrimdışı Storage uzun dener)
+    await tavanli(Promise.all([...bekleyenYuklemeler.current]), onayBekle === 0 ? 5000 : 20000);
     const { ozet: o, sayfalar: s } = guncel.current;
-    if (!s) { setKaydediliyor(false); return false; }
+    if (!s || siliniyor.current) { setKaydediliyor(false); return false; }
     try {
-      const g = await notKaydet(uid, o, s);
+      const sayac = degisiklik.current;
+      const { guncel: g, yazma } = notKaydetBaslat(uid, o, s, kaydedildiRef.current ? sonYazilan.current : null);
+      sonYazilan.current = s; kaydedilenDegisiklik.current = sayac;
+      kaydedildiRef.current = true;
       setOzet((e) => ({ ...e, olusturma: g.olusturma, guncelleme: g.guncelleme, sayfaSayisi: g.sayfaSayisi, onizleme: g.onizleme }));
       setKaydedildi(true);
+      if (onayBekle > 0) {
+        // Ret (kural) hata olarak gelsin; zaman aşımı = çevrimdışı kuyruk → başarı
+        const sonuc = await Promise.race([
+          yazma.then(() => null, (e: unknown) => e),
+          new Promise<null>((c) => setTimeout(() => c(null), onayBekle)),
+        ]);
+        if (sonuc) throw sonuc;
+      } else {
+        yazma.catch(() => {});
+      }
       return true;
     } catch (e) {
+      sonYazilan.current = null;   // ne gittiği belirsiz: sonraki kayıt sayfaların tamamını yazsın
+      kaydedildiRef.current = true;
       setHata("Kaydedilemedi: " + (e instanceof Error ? e.message : String(e)));
       return false;
     } finally { setKaydediliyor(false); }
-  }, [uid]);
+  }, [uid, yuklemeHatasi]);
 
   // Kaydedilmiş not: her değişiklikten 1,2 sn sonra kendiliğinden yaz
   const degisti = useCallback(() => {
+    if (siliniyor.current) return;
     degisiklik.current++;
     if (!kaydedildi) return;
     if (zamanlayici.current) clearTimeout(zamanlayici.current);
@@ -197,8 +233,9 @@ function NotEditor({ uid, acik, kapat }: { uid: string; acik: Acik; kapat: () =>
   }, [kaydedildi, kaydet]);
   useEffect(() => () => { if (zamanlayici.current) clearTimeout(zamanlayici.current); }, []);
 
-  const ozetDegistir = (f: (o: NotOzet) => NotOzet) => { setOzet(f); degisti(); };
+  const ozetDegistir = (f: (o: NotOzet) => NotOzet) => { if (!duzenlenebilir()) return; setOzet(f); degisti(); };
   const sayfayiDegistir = (i: number, f: (s: NotSayfa) => NotSayfa) => {
+    if (!duzenlenebilir()) return;
     setSayfalar((l) => (l && l[i] ? l.map((s, k) => (k === i ? f(s) : s)) : l));
     degisti();
   };
@@ -208,24 +245,32 @@ function NotEditor({ uid, acik, kapat }: { uid: string; acik: Acik; kapat: () =>
     else if (!kaydedildi) kapat();
     else {
       if (zamanlayici.current) { clearTimeout(zamanlayici.current); zamanlayici.current = null; }
-      if (degisiklik.current > 0) kaydet().then(kapat); else kapat();
+      // Kapanış yazma ONAYINI beklemez: çevrimdışıyken hiç gelmez, yerel kuyruk yazıyı zaten tutar
+      if (degisiklik.current !== kaydedilenDegisiklik.current && !yuklemeHatasi) kaydet(0).then(kapat); else kapat();
     }
   }
 
-  /** Görselin yolunu tüm sayfalarda değiştirir (yeni null ise bloğu kaldırır). */
-  function gorselYoluDegistir(eski: string, yeni: string | null) {
+  /** Silinen blok/sayfadaki görsel dosyaları Storage'dan da kalksın (best-effort). */
+  function gorselleriSil(bloklar: NotBlok[]) {
+    for (const b of bloklar) if (b.t === "gorsel") notGorselSil(b.yol);
+  }
+
+  /** Görselin yolunu tüm sayfalarda değiştirir (yeni null ise bloğu kaldırır). O yolu taşıyan blok kalmadıysa false. */
+  function gorselYoluDegistir(eski: string, yeni: string | null): boolean {
+    const bulundu = (guncel.current.sayfalar ?? []).some((s) => s.bloklar.some((b) => b.t === "gorsel" && b.yol === eski));
     setSayfalar((l) => l && l.map((s) => {
       if (!s.bloklar.some((b) => b.t === "gorsel" && b.yol === eski)) return s;
       const bloklar = s.bloklar.flatMap((b) => (b.t === "gorsel" && b.yol === eski ? (yeni ? [{ ...b, yol: yeni }] : []) : [b]));
       return { ...s, bloklar: bloklar.length ? bloklar : [{ t: "metin", v: "" }] };
     }));
+    return bulundu;
   }
 
   // İyimser ekleme: görsel küçülür küçülmez kâğıda basılır, yükleme arkada sürer (Android ile aynı)
   function gorselSec(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0];
     e.target.value = "";
-    if (!f) return;
+    if (!f || !duzenlenebilir()) return;
     const is_ = (async () => {
       let gecici: string | null = null;
       try {
@@ -233,9 +278,10 @@ function NotEditor({ uid, acik, kapat }: { uid: string; acik: Acik; kapat: () =>
         const g = gecici;
         sayfayiDegistir(sayfaNo, (s) => ({ ...s, bloklar: [...s.bloklar, { t: "gorsel", yol: g, boyut: "tam" }, { t: "metin", v: "" }] }));
         const yol = await notGorselYukle(uid, ozet.id, gecici);
-        gorselYoluDegistir(gecici, yol); degisti();
+        // Yükleme sürerken blok (ya da sayfa / not) silindiyse dosya yetim kalmasın
+        if (!siliniyor.current && gorselYoluDegistir(gecici, yol)) degisti(); else notGorselSil(yol);
       } catch (err) {
-        if (gecici) gorselYoluDegistir(gecici, null);
+        if (gecici) { gorselYoluDegistir(gecici, null); notGorselVazgec(gecici); }
         setHata("Görsel eklenemedi: " + (err instanceof Error ? err.message : String(err)));
       }
     })();
@@ -304,7 +350,7 @@ function NotEditor({ uid, acik, kapat }: { uid: string; acik: Acik; kapat: () =>
           )}
         </div>
         {!kaydedildi
-          ? <button className="bk-not-dugme vurgu" disabled={kaydediliyor} onClick={() => { if (dolu()) kaydet().then((ok) => ok && kapat()); }}>{kaydediliyor ? "…" : "✓ Kaydet"}</button>
+          ? <button className="bk-not-dugme vurgu" disabled={kaydediliyor} onClick={() => { if (!kaydediliyor && dolu()) kaydet(3000).then((ok) => ok && kapat()); }}>{kaydediliyor ? "…" : "✓ Kaydet"}</button>
           : <button className="bk-not-dugme" onClick={() => setSilSorusu(true)} aria-label="Sil">🗑</button>}
       </div>
 
@@ -340,14 +386,25 @@ function NotEditor({ uid, acik, kapat }: { uid: string; acik: Acik; kapat: () =>
       {yukleniyorSayisi > 0 && <div className="bk-not-yukleniyor">Görsel yükleniyor…</div>}
 
       <div className="bk-not-govde">
-        {sayfa == null ? <UcNokta style={{ padding: 40 }} /> : (
+        {yuklemeHatasi ? (
+          <div className="bk-kesif-bos">
+            Not yüklenemedi.<br />Bağlantını kontrol edip tekrar dene.
+            <div style={{ marginTop: 12 }}>
+              <button className="bk-not-dugme vurgu" onClick={() => { setYuklemeHatasi(false); setYuklemeDeneme((n) => n + 1); }}>Tekrar dene</button>
+            </div>
+          </div>
+        ) : sayfa == null ? <UcNokta style={{ padding: 40 }} /> : (
           <Kagit
             ozet={ozet} sayfa={sayfa} cizimModu={cizimModu} arac={arac} sekil={sekil} renk={renk}
             kalinlik={NOT_TABAN_KALINLIK[arac] * (NOT_KALINLIKLAR.find((k) => k[0] === kalinlik)?.[2] ?? 1)}
             metinDegisti={(bi, v) => sayfayiDegistir(sayfaNo, (s) => ({ ...s, bloklar: s.bloklar.map((b, k) => (k === bi ? { t: "metin", v } : b)) }))}
             gorselBoyut={(bi) => sayfayiDegistir(sayfaNo, (s) => ({ ...s, bloklar: s.bloklar.map((b, k) =>
               k === bi && b.t === "gorsel" ? { ...b, boyut: b.boyut === "tam" ? "orta" : b.boyut === "orta" ? "kucuk" : "tam" } : b) }))}
-            gorselSil={(bi) => sayfayiDegistir(sayfaNo, (s) => { const l = s.bloklar.filter((_, k) => k !== bi); return { ...s, bloklar: l.length ? l : [{ t: "metin", v: "" }] }; })}
+            gorselSil={(bi) => {
+              const b = guncel.current.sayfalar?.[sayfaNo]?.bloklar[bi];
+              if (b && duzenlenebilir()) gorselleriSil([b]);
+              sayfayiDegistir(sayfaNo, (s) => { const l = s.bloklar.filter((_, k) => k !== bi); return { ...s, bloklar: l.length ? l : [{ t: "metin", v: "" }] }; });
+            }}
             inkEkle={inkEkle}
           />
         )}
@@ -357,22 +414,29 @@ function NotEditor({ uid, acik, kapat }: { uid: string; acik: Acik; kapat: () =>
         <button className="bk-not-dugme" disabled={sayfaNo <= 0} onClick={() => setSayfaNo((n) => n - 1)}>‹</button>
         <span>{Math.min(sayfaNo, sayfaSayisi - 1) + 1} / {sayfaSayisi}</span>
         <button className="bk-not-dugme" disabled={sayfaNo >= sayfaSayisi - 1} onClick={() => setSayfaNo((n) => n + 1)}>›</button>
-        <button className="bk-not-dugme" onClick={() => { setSayfalar((l) => [...(l ?? []), bosSayfa()]); setSayfaNo(sayfaSayisi); degisti(); }}>+ Sayfa</button>
+        <button className="bk-not-dugme" disabled={sayfalar == null || yuklemeHatasi} onClick={() => { if (!duzenlenebilir()) return; setSayfalar((l) => [...(l ?? []), bosSayfa()]); setSayfaNo(sayfaSayisi); degisti(); }}>+ Sayfa</button>
         <span style={{ flex: 1 }} />
         <button className="bk-not-dugme" disabled={!sayfa?.ink.length} onClick={geriAl} title="Ctrl+Z">↶ Geri al</button>
         <button className="bk-not-dugme" disabled={!yineleVar} onClick={yeniden} title="Ctrl+Shift+Z">↷ Yinele</button>
         {sayfaSayisi > 1 && (
-          <button className="bk-not-dugme" onClick={() => { setSayfalar((l) => (l ?? []).filter((_, k) => k !== sayfaNo)); setSayfaNo((n) => Math.max(0, Math.min(n, sayfaSayisi - 2))); degisti(); }}>Sayfayı sil</button>
+          <button className="bk-not-dugme" onClick={() => { if (!duzenlenebilir()) return; const silinen = guncel.current.sayfalar?.[sayfaNo]; if (silinen) gorselleriSil(silinen.bloklar); setSayfalar((l) => (l ?? []).filter((_, k) => k !== sayfaNo)); setSayfaNo((n) => Math.max(0, Math.min(n, sayfaSayisi - 2))); degisti(); }}>Sayfayı sil</button>
         )}
       </div>
 
       {cikisSorusu && (
         <Soru baslik="Not kaydedilsin mi?" metin="Kaydetmezsen yazdıkların silinir."
-          dugmeler={[["Kaydet", () => { setCikisSorusu(false); kaydet().then((ok) => ok && kapat()); }], ["Vazgeç", () => { setCikisSorusu(false); kapat(); }], ["İptal", () => setCikisSorusu(false)]]} />
+          dugmeler={[["Kaydet", () => { setCikisSorusu(false); kaydet(3000).then((ok) => ok && kapat()); }],
+            // Vazgeç: taslak hiç yazılmadı → yüklenmiş görseller Storage'da yetim kalmasın
+            ["Vazgeç", () => { setCikisSorusu(false); (guncel.current.sayfalar ?? []).forEach((p) => gorselleriSil(p.bloklar)); kapat(); }], ["İptal", () => setCikisSorusu(false)]]} />
       )}
       {silSorusu && (
         <Soru baslik="Not silinsin mi?" metin="Bu not ve tüm sayfaları silinecek. Geri alınamaz."
-          dugmeler={[["Sil", () => { setSilSorusu(false); if (zamanlayici.current) clearTimeout(zamanlayici.current); notSil(uid, ozet.id).catch(() => {}).then(kapat); }], ["İptal", () => setSilSorusu(false)]]} />
+          dugmeler={[["Sil", () => {
+            // Beklemesiz: silme yerel kuyruğa girer (çevrimdışı da takılmaz); bekleyen otomatik kayıt iptal
+            setSilSorusu(false); siliniyor.current = true;
+            if (zamanlayici.current) { clearTimeout(zamanlayici.current); zamanlayici.current = null; }
+            notSil(uid, ozet.id); kapat();
+          }], ["İptal", () => setSilSorusu(false)]]} />
       )}
       {hata && <Soru baslik="Olmadı" metin={hata} dugmeler={[["Tamam", () => setHata(null)]]} />}
     </div>

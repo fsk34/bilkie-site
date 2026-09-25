@@ -21,6 +21,7 @@
 
 import { get, ref as dbRef } from "firebase/database";
 import { yazililarDb } from "./firebase";
+import { tavanli } from "./hata";
 
 export type YaziliSinav = {
   anahtar: string;
@@ -46,20 +47,29 @@ export function bugunAnahtari(d: Date = new Date()): string {
   return `${d.getFullYear()}-${iki(d.getMonth() + 1)}-${iki(d.getDate())}`;
 }
 
+// Konsoldan elle girilen değer metin/sayı karışık olabilir (Android YaziliTakvim, 24 Eyl 2026)
 function metin(v: unknown): string {
-  return typeof v === "string" ? v.trim() : "";
+  return typeof v === "string" ? v.trim() : typeof v === "number" || typeof v === "boolean" ? String(v) : "";
+}
+function mantiksal(v: unknown): boolean {
+  if (typeof v === "boolean") return v;
+  if (typeof v === "number") return v !== 0;
+  if (typeof v === "string") return v.trim().toLowerCase() === "true" || v.trim() === "1";
+  return false;
+}
+function tamsayi(v: unknown): number | null {
+  if (typeof v === "number" && Number.isFinite(v)) return Math.trunc(v);
+  if (typeof v === "string" && /^-?\d+$/.test(v.trim())) return Number.parseInt(v.trim(), 10);
+  return null;
 }
 
 /** Takvimdeki tüm `aktif` sınavlar, `sira`ya göre sıralı. Kilitliler de dahil. */
 export async function yaziliTakvimi(bugun: string = bugunAnahtari()): Promise<TakvimSonuc> {
   let ham: Record<string, unknown> | null;
-  try {
-    const snap = await get(dbRef(yazililarDb, "takvim"));
-    ham = (snap.val() ?? null) as Record<string, unknown> | null;
-  } catch {
-    // İzin ya da ağ hatası — "kapalı" demek yanlış olur.
-    return { durum: "okunamadi" };
-  }
+  // İzin / ağ hatası / 8 sn zaman aşımı (çevrimdışıyken get() bekleyebilir) — "kapalı" demek yanlış olur.
+  const snap = await tavanli(get(dbRef(yazililarDb, "takvim")), 8000);
+  if (!snap) return { durum: "okunamadi" };
+  ham = (snap.val() ?? null) as Record<string, unknown> | null;
 
   // Düğüm yoksa: okuma başarılı ama takvim tanımlanmamış → açık sınav yok.
   if (!ham || typeof ham !== "object") return { durum: "basarili", sinavlar: [] };
@@ -68,7 +78,7 @@ export async function yaziliTakvimi(bugun: string = bugunAnahtari()): Promise<Ta
   for (const [anahtar, v] of Object.entries(ham)) {
     if (!v || typeof v !== "object") continue;
     const o = v as Record<string, unknown>;
-    if (o.aktif !== true) continue;
+    if (!mantiksal(o.aktif)) continue;
 
     const ad = metin(o.ad);
     if (!ad) continue; // adsız sınav ekrana basılamaz
@@ -81,7 +91,7 @@ export async function yaziliTakvimi(bugun: string = bugunAnahtari()): Promise<Ta
     out.push({
       anahtar,
       ad,
-      sira: typeof o.sira === "number" ? o.sira : Number.MAX_SAFE_INTEGER,
+      sira: tamsayi(o.sira) ?? Number.MAX_SAFE_INTEGER,
       acik: basladi && bitmedi,
       baslar: baslar || undefined,
     });

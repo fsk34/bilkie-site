@@ -5,8 +5,8 @@
 // XP/lig/görev yok; yalnız seri işlenir. Kayıt İstatistik → Bilgie Koç'ta ve koç hesabında görünür.
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useMemo, useState } from "react";
 import Kabuk from "../Kabuk";
 import { DERSLER } from "../dersler";
 import { useOturum } from "../../lib/oturum";
@@ -14,11 +14,13 @@ import { konuAyristir, uniteler } from "../../lib/katalog";
 import { dersEtiketi } from "../../lib/anaEkran";
 import { EVDE_TEK_GIRIS_TAVANI, evdeKayitYaz, yanlisNolariAyristir } from "../../lib/evde";
 import { ACT_TEST, seriIsaretle } from "../../lib/veri";
+import { tavanli } from "../../lib/hata";
 
 export default function EvdeSayfasi() {
   return (
     <Kabuk>
-      <Icerik />
+      {/* ?ders= (İstatistik'te seçili ders) useSearchParams → Suspense */}
+      <Suspense><Icerik /></Suspense>
     </Kabuk>
   );
 }
@@ -26,7 +28,9 @@ export default function EvdeSayfasi() {
 function Icerik() {
   const router = useRouter();
   const { kullanici, sinif } = useOturum();
-  const [ders, setDers] = useState<string>("turkce");
+  // İstatistik'te seçili dersle açılır (Android evdeDers, 24 Eyl); yoksa Türkçe
+  const dersParam = useSearchParams().get("ders");
+  const [ders, setDers] = useState<string>(() => (dersParam && DERSLER.some((x) => x.key === dersParam) ? dersParam : "turkce"));
   const [unite, setUnite] = useState(0);
   const [konu, setKonu] = useState<string>("");           // "" = ünite geneli
   const [dogru, setDogru] = useState<string>("");
@@ -53,8 +57,9 @@ function Icerik() {
       await evdeKayitYaz(kullanici.uid, sinif, {
         ders, konu, dogru: d, yanlis: y, kaynak: kaynak.trim().slice(0, 40), yanlisNolar: yanlisNolariAyristir(nolar),
       });
-      let seri: number | null = null;
-      try { const s = await seriIsaretle(kullanici.uid, ACT_TEST); if (s.basarili) seri = s.sayi; } catch { /* seri yazılamazsa kayıt yine geçerli */ }
+      // Seri arkada işlenir; sayısı en çok 2 sn beklenir (çevrimdışı transaction dönmez), gelmezse yazılmaz
+      const s = await tavanli(seriIsaretle(kullanici.uid, ACT_TEST), 2000);
+      const seri = s?.basarili ? s.sayi : null;
       setBitti({ soru: toplam, seri });
     } catch {
       setHata("Kaydedilemedi. Bağlantını kontrol edip tekrar dene.");

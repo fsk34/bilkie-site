@@ -74,7 +74,7 @@ export type SinifDegisimArgs = {
   uid: string;
   eskiSinif: number;
   yeniSinif: number;
-  /** Lig satırında görünecek ad — uygulamada kullanıcı adı, yoksa ad soyad. */
+  /** Lig satırında görünecek ad — kullanıcı adı (yoksa "Kullanıcı"); ad-soyad YAZILMAZ. */
   ad: string;
   avatar: string;
 };
