@@ -2752,7 +2752,8 @@ html[data-bk-oturum="1"] .bk-oturum-sayfa[data-durum="bilinmiyor"] .bk-oturum-be
 .bk-tanitim-hub a:hover { border-color: var(--secili-cizgi); }
 .bk-tanitim-hub strong { font-family: "bk-baslik", system-ui, sans-serif; font-weight: 400; font-size: 18px; }
 .bk-tanitim-hub span { font-size: 12px; color: var(--soluk); line-height: 1.5; }
-.bk-tanitim-siniflar { margin: 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 8px; }
+.bk-tanitim-siniflar { margin: 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+.bk-tanitim-icerik h2 { text-align: center; }
 .bk-tanitim-siniflar a {
   display: inline-block; padding: 9px 16px; border-radius: 999px; text-decoration: none; font-size: 14px;
   background: var(--oyun-kart); border: 1px solid var(--oyun-cizgi); color: var(--yazi);

@@ -10,7 +10,7 @@
 
 import Link from "next/link";
 import AltBant from "./AltBant";
-import { harfKumeleri, icerikAgaci, testAgaci } from "../lib/icerik";
+import { icerikAgaci } from "../lib/icerik";
 
 // Uygulamanın bölümleri: ana ekranın üç büyük kartı (AnaEkran.tsx) + Oyunlar
 // (Kabuk.tsx menüsündeki adıyla; beş oyunun beşi de web'de oynanıyor).
@@ -20,15 +20,13 @@ const BOLUMLER: { ad: string; ikon: string; yol?: string }[] = [
   { ad: "Konu Defterleri", ikon: "defter.png", yol: "/konu-anlatimi" },
   { ad: "Yazılıya Hazırlık", ikon: "yazili.png" },
   { ad: "Oyunlar", ikon: "oyunlar.svg" },
+  { ad: "Atasözleri ve Deyimler", ikon: "atasozu.png", yol: "/atasozleri-ve-deyimler" },
 ];
 
 export default function Tanitim() {
   // Halka açık içeriğin sayıları — elle yazılmaz, veriden sayılır; içerik büyüyünce
   // kapı da kendini günceller.
   const agac = icerikAgaci();
-  const uniteSayisi = agac.reduce((t, s) => t + s.dersler.reduce((x, d) => x + d.uniteler.length, 0), 0);
-  const testSayisi = testAgaci().reduce((t, s) => t + s.dersler.reduce((x, d) => x + d.testler.length, 0), 0);
-  const sozSayisi = harfKumeleri().reduce((t, h) => t + h.atasozleri.length + h.deyimler.length, 0);
 
   const yapisalVeri = {
     "@context": "https://schema.org",
@@ -105,29 +103,9 @@ export default function Tanitim() {
 
       {/* Kapının ALTI: halka açık içerik. İlk ekran sade kapı olarak kalıyor (kullanıcı
           kararı, 10 Eyl); arama motorunun ve kaydırıp bakanın gördüğü içerik burada.
-          Sayılar veriden; sınıf bağlantıları konu anlatımı hub'ına gider. */}
+          Sınıf bağlantıları konu anlatımı hub'ına gider; Konu Anlatımı / Konu Testleri /
+          Atasözleri bağlantıları üstteki bölüm satırında (26 Eyl: alttaki tekrar kartlar kalktı). */}
       <section className="bk-tanitim-icerik" aria-label="Bilkie içerikleri">
-        <ul className="bk-tanitim-hub">
-          <li>
-            <Link href="/konu-anlatimi">
-              <strong>Konu Anlatımı</strong>
-              <span>{uniteSayisi} ünite, 3-8. sınıf, beş ders</span>
-            </Link>
-          </li>
-          <li>
-            <Link href="/konu-testi">
-              <strong>Konu Testleri</strong>
-              <span>{testSayisi} test, cevaplarıyla</span>
-            </Link>
-          </li>
-          <li>
-            <Link href="/atasozleri-ve-deyimler">
-              <strong>Atasözleri ve Deyimler</strong>
-              <span>{sozSayisi} söz, anlamlarıyla</span>
-            </Link>
-          </li>
-        </ul>
-
         <h2>Sınıfını seç</h2>
         <ul className="bk-tanitim-siniflar">
           {agac.map((s) => (
