@@ -55,10 +55,12 @@ const DERS_STIL: Record<string, { ust: string; alt: string; ikon: string; dolgu:
 };
 
 export default function AnaEkran() {
+  // Rozet sahnesi bakarken/açıkken lig sahnesi bekler (Android ile aynı sıra: önce rozet, sonra lig)
+  const [rozetMesgul, setRozetMesgul] = useState(true);
   return (
     <Kabuk>
-      <RozetKazandin />
-      <LigAtladin />
+      <RozetKazandin onMesgul={setRozetMesgul} />
+      <LigAtladin bekle={rozetMesgul} />
       <Icerik />
     </Kabuk>
   );

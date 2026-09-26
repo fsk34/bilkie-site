@@ -17,17 +17,22 @@ import { AY_AD, AY_ANAHTAR } from "../lib/ayGorsel";
 import { useOturum } from "../lib/oturum";
 import { bekleyenRozetAylari, rozetGorulduIsaretle } from "../lib/rozetKazandin";
 
-export default function RozetKazandin() {
+/** `onMesgul(true)` bakılırken ve sahne açıkken; iş bitince false (lig sahnesi bunu bekler). */
+export default function RozetKazandin({ onMesgul }: { onMesgul?: (m: boolean) => void }) {
   const { kullanici } = useOturum();
   const [ay, setAy] = useState<number | null>(null);
 
   useEffect(() => {
     if (!kullanici) return;
     let iptal = false;
+    onMesgul?.(true);
     // Ana ekran her açıldığında bakılır (Android: Home sekmesi + başka örtü yok)
-    void bekleyenRozetAylari(kullanici.uid).then((b) => { if (!iptal && b.length > 0) setAy(b[0]); });
+    void bekleyenRozetAylari(kullanici.uid).then((b) => {
+      if (iptal) return;
+      if (b.length > 0) setAy(b[0]); else onMesgul?.(false);
+    });
     return () => { iptal = true; };
-  }, [kullanici]);
+  }, [kullanici, onMesgul]);
 
   if (ay == null || !kullanici) return null;
 
@@ -37,7 +42,7 @@ export default function RozetKazandin() {
     await rozetGorulduIsaretle(kullanici.uid, kapanan);
     // birikmiş başka ay varsa sırayla
     const kalan = await bekleyenRozetAylari(kullanici.uid);
-    if (kalan.length > 0) setAy(kalan[0]);
+    if (kalan.length > 0) setAy(kalan[0]); else onMesgul?.(false);
   };
 
   return <Sahne key={ay} ay={ay} onKapat={kapat} />;
