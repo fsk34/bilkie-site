@@ -70,11 +70,13 @@ export function useKullaniciDugumleri<T>(
   yolSayisi: number
 ): T | null {
   const { hazir, uid } = useKullanici();
-  const yollar = useMemo(
-    () => (hazir && uid ? yollarUret(uid) : Array<string | null>(yolSayisi).fill(null)),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [hazir, uid, yolSayisi]
-  );
+  // Yollar her çizimde üretilip İMZAYLA sabitlenir: yalnız uid'ye bağlı memo, sınıf değişince
+  // (ör. oturum önbellekten açılıp sunucudan yeni sınıf gelince) eski sınıfın düğümlerini
+  // dinlemeye devam ediyordu → üst bilgi XP'si ve lig kutlaması yanlış sınıftan (26 Eyl 2026).
+  const uretilen = hazir && uid ? yollarUret(uid) : Array<string | null>(yolSayisi).fill(null);
+  const imza = uretilen.join("\u0000");
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const yollar = useMemo(() => uretilen, [imza]);
   const { veriler, yuklendi } = useCanliCoklu(db, yollar, KULLANICI_VERISI);
 
   return useMemo(() => {
