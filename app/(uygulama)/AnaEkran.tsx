@@ -25,7 +25,7 @@ import { uniteler } from "../lib/katalog";
 import {
   useDefterIlerlemesi, useGorevDurumu, useGorevler, useIstatistikAgaci, useQuizBitenler, useSonDokunulan, useTestIlerlemesi, useUstBilgi,
 } from "../lib/canliVeri";
-import { defterSayfalariGetir, type Gorev } from "../lib/veri";
+import { defterSayfalariGetir, sorulariGetir, type Gorev } from "../lib/veri";
 import { istatistikBirlestir, kocIstatistikCoz, kocPlaniHesapla, type KocIstatistik, type KocPlani } from "../lib/koc";
 import { evdeKayitlariOku, evdeOzetle, type EvdeOzet } from "../lib/evde";
 import { HATA_OLGUNLASMA_GUN, hatalariOku, olgunHatalar } from "../lib/hatalar";
@@ -169,7 +169,10 @@ function DevamKarti({ sinif, devam }: { sinif: number; devam: DevamKartiVerisi }
   useEffect(() => {
     const m = devam.tur === "defter" ? /^\/defter\/[^/]+\/([^/?#]+)/.exec(devam.href) : null;
     if (m) defterSayfalariGetir(sinif, devam.ders, decodeURIComponent(m[1])).catch(() => {});
-  }, [sinif, devam.ders, devam.tur, devam.href]);
+    // Test ise sıradaki adımın soruları
+    const t = devam.tur === "test" ? /^\/test\/[^/]+\/([^/?#]+)/.exec(devam.href) : null;
+    if (t && devam.adim < 3) sorulariGetir(sinif, devam.ders, decodeURIComponent(t[1]), devam.adim + 1).catch(() => {});
+  }, [sinif, devam.ders, devam.tur, devam.href, devam.adim]);
   // Kart SABİT (Bilkie lacivert + #4A538E kenar) — A/B karşılaştırması sonrası kullanıcı kararı (19 Eyl):
   // ders renginde kartta düğme kartla aynı tondan eriyor, sarı (yazılı) sinyaliyle de çakışıyordu.
   // Ders rengi üç yerde: etiket yanındaki hap, ilerleme çubuğu ve düğme (konu satırlarındaki

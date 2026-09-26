@@ -19,7 +19,7 @@ import { useOturum } from "../../../lib/oturum";
 import { konuAyristir, uniteler } from "../../../lib/katalog";
 import { useDefterIlerlemesi, useQuizBitenler, useSonDokunulan, useTestIlerlemesi } from "../../../lib/canliVeri";
 import Bekleme from "../../Bekleme";
-import { ADIM_SAYISI, defterSayfalariGetir } from "../../../lib/veri";
+import { ADIM_SAYISI, defterSayfalariGetir, sorulariGetir } from "../../../lib/veri";
 import { yaziliTakvimi } from "../../../lib/yaziliTakvim";
 import { dersEtiketi, dersOranlari, uniteIsOrani } from "../../../lib/anaEkran";
 
@@ -110,6 +110,22 @@ function Icerik() {
     }
     return new Set([i]);
   }, [acik, son, dersKey, liste]);
+
+  // Açık ünitelerdeki konuların SIRADAKİ test adımı önbelleğe (teste basınca anında açılsın).
+  // Adım başına ~10 soru; dersin tamamı indirilmez, 3/3 bitmiş konu atlanır (Android TestOnYukle).
+  const onYukleImza = kullanici
+    ? [...acikKume].sort().flatMap((i) => (liste[i]?.topics ?? []).map((t) => {
+        const k = konuAyristir(t).testKey;
+        const biten = Math.min(ADIM_SAYISI, Math.max(0, ilerleme[k] ?? 0));
+        return k && biten < ADIM_SAYISI ? `${k}:${biten + 1}` : "";
+      })).filter(Boolean).join(",")
+    : "";
+  useEffect(() => {
+    for (const parca of onYukleImza ? onYukleImza.split(",") : []) {
+      const [k, adim] = parca.split(":");
+      sorulariGetir(sinif, dersKey, k, Number(adim)).catch(() => {});
+    }
+  }, [onYukleImza, sinif, dersKey]);
 
   if (!stil || liste.length === 0) {
     return (
