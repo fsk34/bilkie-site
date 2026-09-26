@@ -3387,3 +3387,10 @@ html[data-bk-oturum="1"] .bk-oturum-sayfa[data-durum="bilinmiyor"] .bk-oturum-be
 .bk-evde-grup-bas .ok { color: var(--soluk); font-size: 12px; }
 .bk-evde-grup[data-acik="true"] .bk-koc-evde-satir { padding-left: 20px; }
 @media (max-width: 640px) { .bk-evde-grup-bas .cubuk { display: none; } }
+
+/* Kayıt: e-posta alan adı yazım önerisi (qmail.com → gmail.com) */
+.bk-eposta-oneri {
+  display: block; width: 100%; text-align: left; margin: 6px 0 2px; padding: 4px 2px;
+  background: none; border: 0; cursor: pointer; font: inherit; font-size: 14px;
+  color: #FFD54F; text-decoration: underline;
+}

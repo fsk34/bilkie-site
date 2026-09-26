@@ -23,6 +23,7 @@ import { onbellegiBosalt } from "../../lib/onbellek";
 import { profilOku } from "../../lib/veri";
 import {
   epostaGecerli,
+  epostaOnerisi,
   epostaNormalize,
   kaydiTamamla,
   kayitHataMetni,
@@ -186,6 +187,15 @@ export default function KayitSayfasi() {
               placeholder="ornek@eposta.com"
               data-hatali={epostaDolu}
             />
+            {(() => {
+              // Alan adı yazım hatası önerisi (qmail.com → gmail.com); dokununca düzeltir, engellemez
+              const oneri = epostaOnerisi(eposta);
+              return oneri ? (
+                <button type="button" className="bk-eposta-oneri" onClick={() => { setEposta(oneri); setEpostaDolu(false); }}>
+                  Bunu mu demek istedin: {oneri} ?
+                </button>
+              ) : null;
+            })()}
             {epostaDolu && (
               <p className="bk-hata">
                 Bu e-posta zaten kayıtlı.{" "}

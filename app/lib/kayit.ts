@@ -31,6 +31,43 @@ export function epostaAnahtari(e: string): string {
   return epostaNormalize(e).replace(/\./g, ",");
 }
 
+/* Kayıtta e-posta alan adı yazım hatası önerisi: "leylanur@qmail.com" → "leylanur@gmail.com"
+   (Android domain/EpostaOnerisi.kt ile aynı kural). 26 Eyl 2026: qmail.com ile kayıt olan
+   kullanıcının doğrulama e-postası geri döndü. Öneri ENGELLEMEZ, yalnız sorar. */
+const BILINEN_ALANLAR = [
+  "gmail.com", "hotmail.com", "outlook.com", "yahoo.com", "icloud.com", "yandex.com",
+  "hotmail.com.tr", "outlook.com.tr", "yandex.com.tr", "live.com", "msn.com", "me.com", "mynet.com",
+  // Gerçek ama az kullanılan: öneri çıkmasın (qq.com → me.com gibi yanlış pozitifler)
+  "qq.com", "mail.com", "gmx.com", "aol.com", "protonmail.com",
+];
+
+/** Levenshtein + yan yana harf değişimi = 1 ("gmial" → "gmail"). */
+function mesafe(a: string, b: string): number {
+  const d: number[][] = Array.from({ length: a.length + 1 }, (_, i) =>
+    Array.from({ length: b.length + 1 }, (_, j) => (i === 0 ? j : j === 0 ? i : 0)));
+  for (let i = 1; i <= a.length; i++) for (let j = 1; j <= b.length; j++) {
+    const c = a[i - 1] === b[j - 1] ? 0 : 1;
+    d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + c);
+    if (i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) d[i][j] = Math.min(d[i][j], d[i - 2][j - 2] + 1);
+  }
+  return d[a.length][b.length];
+}
+
+/** Önerilen tam adres, yoksa null. */
+export function epostaOnerisi(eposta: string): string | null {
+  const e = eposta.trim().toLocaleLowerCase("en");
+  const at = e.lastIndexOf("@");
+  if (at <= 0 || at === e.length - 1) return null;
+  const yerel = e.slice(0, at);
+  const alan = e.slice(at + 1);
+  if (alan.length < 4 || BILINEN_ALANLAR.includes(alan)) return null;
+  let enYakin = BILINEN_ALANLAR[0];
+  for (const b of BILINEN_ALANLAR) if (mesafe(alan, b) < mesafe(alan, enYakin)) enYakin = b;
+  // Kısa alan adında 2 harf farkı çok gevşek (qq.com ~ me.com)
+  const tavan = alan.length <= 6 ? 1 : 2;
+  return mesafe(alan, enYakin) <= tavan ? `${yerel}@${enYakin}` : null;
+}
+
 export function epostaGecerli(e: string): boolean {
   const k = e.trim();
   const at = k.indexOf("@");
