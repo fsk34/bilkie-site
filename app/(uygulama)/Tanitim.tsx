@@ -106,8 +106,7 @@ export default function Tanitim() {
       {/* Kapının ALTI: halka açık içerik. İlk ekran sade kapı olarak kalıyor (kullanıcı
           kararı, 10 Eyl); arama motorunun ve kaydırıp bakanın gördüğü içerik burada.
           Sayılar veriden; sınıf bağlantıları konu anlatımı hub'ına gider. */}
-      <section className="bk-tanitim-icerik" aria-labelledby="bk-tanitim-icerik-baslik">
-        <h2 id="bk-tanitim-icerik-baslik">Ücretsiz içerik, hesap gerekmez</h2>
+      <section className="bk-tanitim-icerik" aria-label="Bilkie içerikleri">
         <ul className="bk-tanitim-hub">
           <li>
             <Link href="/konu-anlatimi">
