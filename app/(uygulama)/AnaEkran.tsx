@@ -210,10 +210,18 @@ function DevamKarti({ sinif, devam }: { sinif: number; devam: DevamKartiVerisi }
           {dugme.yazi}
         </Link>
       </div>
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={`/uygulama/${s.ikon}.png`} alt="" />
+      <DevamIkon key={`${sinif}-${devam.ders}-${devam.uniteIndeks}`}
+        unite={`/uygulama/unite/ic_g${sinif}_${devam.ders}_t${devam.uniteIndeks + 1}.svg`}
+        ders={`/uygulama/${s.ikon}.png`} />
     </div>
   );
+}
+
+/** Konunun ÜNİTE ikonu (ders sayfasındaki ünite kartıyla aynı); o ünitenin ikonu yoksa ders ikonu. */
+function DevamIkon({ unite, ders }: { unite: string; ders: string }) {
+  const [yedek, setYedek] = useState(false);
+  // eslint-disable-next-line @next/next/no-img-element
+  return <img src={yedek ? ders : unite} alt="" onError={() => setYedek(true)} />;
 }
 
 /* -------------------------------------------------------------- hedef kartı */
