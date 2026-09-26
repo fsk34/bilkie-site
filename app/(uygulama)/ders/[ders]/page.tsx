@@ -19,7 +19,7 @@ import { useOturum } from "../../../lib/oturum";
 import { konuAyristir, uniteler } from "../../../lib/katalog";
 import { useDefterIlerlemesi, useQuizBitenler, useSonDokunulan, useTestIlerlemesi } from "../../../lib/canliVeri";
 import Bekleme from "../../Bekleme";
-import { ADIM_SAYISI } from "../../../lib/veri";
+import { ADIM_SAYISI, defterSayfalariGetir } from "../../../lib/veri";
 import { yaziliTakvimi } from "../../../lib/yaziliTakvim";
 import { dersEtiketi, dersOranlari, uniteIsOrani } from "../../../lib/anaEkran";
 
@@ -57,7 +57,18 @@ function Icerik() {
   const params = useParams<{ ders: string }>();
   const dersKey = params?.ders ?? "";
   const router = useRouter();
-  const { sinif } = useOturum();
+  const { sinif, kullanici } = useOturum();
+
+  // Dersin defterleri arkada önbelleğe (Konu Defteri'ne basınca anında açılsın). Defter ayrı RTDB
+  // örneğinde; boşta kapanan bağlantı ilk defterde 1–3 sn bekletiyordu (26 Eyl 2026, Android ölçümü).
+  useEffect(() => {
+    if (!kullanici) return;
+    for (const u of uniteler(sinif, dersKey)) {
+      if (u.defterYok) continue;
+      const anahtar = u.defterKey && u.defterKey.length > 0 ? u.defterKey : u.key;
+      defterSayfalariGetir(sinif, dersKey, anahtar).catch(() => {});
+    }
+  }, [kullanici, sinif, dersKey]);
 
   // Üçü de sınıf-geneli canlı düğümler; ana ekranla aynı abonelik, buraya girmek yeniden okuma yapmaz.
   const tumIlerleme = useTestIlerlemesi(sinif);

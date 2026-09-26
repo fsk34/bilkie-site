@@ -25,7 +25,7 @@ import { uniteler } from "../lib/katalog";
 import {
   useDefterIlerlemesi, useGorevDurumu, useGorevler, useIstatistikAgaci, useQuizBitenler, useSonDokunulan, useTestIlerlemesi, useUstBilgi,
 } from "../lib/canliVeri";
-import { type Gorev } from "../lib/veri";
+import { defterSayfalariGetir, type Gorev } from "../lib/veri";
 import { istatistikBirlestir, kocIstatistikCoz, kocPlaniHesapla, type KocIstatistik, type KocPlani } from "../lib/koc";
 import { evdeKayitlariOku, evdeOzetle, type EvdeOzet } from "../lib/evde";
 import { HATA_OLGUNLASMA_GUN, hatalariOku, olgunHatalar } from "../lib/hatalar";
@@ -165,6 +165,11 @@ function useOnizleme(sinif: number, gercek: DevamKartiVerisi | null): DevamKarti
 
 function DevamKarti({ sinif, devam }: { sinif: number; devam: DevamKartiVerisi }) {
   const s = DERS_STIL[devam.ders];
+  // Kart defteri gösteriyorsa sayfaları arkada önbelleğe al (karttan defter anında açılsın)
+  useEffect(() => {
+    const m = devam.tur === "defter" ? /^\/defter\/[^/]+\/([^/?#]+)/.exec(devam.href) : null;
+    if (m) defterSayfalariGetir(sinif, devam.ders, decodeURIComponent(m[1])).catch(() => {});
+  }, [sinif, devam.ders, devam.tur, devam.href]);
   // Kart SABİT (Bilkie lacivert + #4A538E kenar) — A/B karşılaştırması sonrası kullanıcı kararı (19 Eyl):
   // ders renginde kartta düğme kartla aynı tondan eriyor, sarı (yazılı) sinyaliyle de çakışıyordu.
   // Ders rengi üç yerde: etiket yanındaki hap, ilerleme çubuğu ve düğme (konu satırlarındaki
