@@ -42,8 +42,10 @@ const YASAL = [
  * @param dersler Ders şeridini göster. Giriş/kayıt ekranlarında Bilkie'nin ne
  *   olduğunu anlatan tek şey o. Tanıtım ve içerik sayfalarının kendi şeritleri
  *   var; orada tekrara düştüğü için kapalı.
+ * @param icerik İçerik bağlantıları (Konu Testleri / Konu Anlatımı / Atasözleri). Ana sayfada
+ *   kapalı: üstteki bölüm satırı aynı üç yere gidiyor (26 Eyl 2026, kullanıcı kararı).
  */
-export default function AltBant({ dersler = true }: { dersler?: boolean }) {
+export default function AltBant({ dersler = true, icerik = true }: { dersler?: boolean; icerik?: boolean }) {
   return (
     <footer className="bk-sayfa-alt">
       {dersler && (
@@ -70,7 +72,7 @@ export default function AltBant({ dersler = true }: { dersler?: boolean }) {
         </Link>
 
         <nav>
-          {ICERIK.map((i) => (
+          {icerik && ICERIK.map((i) => (
             <Link key={i.yol} href={i.yol} className="one">
               {i.ad}
             </Link>

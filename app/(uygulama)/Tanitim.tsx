@@ -116,7 +116,7 @@ export default function Tanitim() {
         </ul>
       </section>
 
-      <AltBant dersler={false} />
+      <AltBant dersler={false} icerik={false} />
     </main>
   );
 }
