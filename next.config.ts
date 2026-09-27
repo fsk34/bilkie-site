@@ -100,8 +100,10 @@ const nextConfig: NextConfig = {
       { source: "/", has: apeks, destination: "https://www.bilkie.com/", permanent: true },
       {
         // `.well-known` ile başlayan yollar bilerek DIŞARIDA — doğrulama dosyaları
-        // apeks adresinde de 200 dönmeli.
-        source: "/:yol((?!\\.well-known/).*)",
+        // apeks adresinde de 200 dönmeli. `ads.txt` / `app-ads.txt` da aynı sebeple:
+        // AdSense siteyi apeksten tarıyor ve ads.txt standardı 308'i saymıyor (yalnız
+        // 301/302/307) → AdSense "ads.txt bulunamadı" diyordu (27 Eyl).
+        source: "/:yol((?!\\.well-known/|ads\\.txt$|app-ads\\.txt$).*)",
         has: apeks,
         destination: "https://www.bilkie.com/:yol",
         permanent: true,
