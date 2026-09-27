@@ -184,6 +184,11 @@ export default function YaziliCalismaSayfasi() {
       // Android: incrementCounter = stepKey == "step1" — hazırlanan yazılı sayacı adım 2'de artmaz
       sayaciArtir: adim === "step1",
     }).catch(() => [] as GorevDegisimi[]);
+    // ⚠️ Seri ve görev özeti AYNI ANDA açılmalı: seri önce açılırsa özet akışı onunla başlar,
+    // görevler birkaç saniye sonra gelince akış baştan kurulur → seri ekranı bir an görünüp
+    // görev özetine atlar, Devam Et'te seri yeniden gelir (27 Eyl). Akış ilk adımını açıldığı
+    // anda seçer; bu yüzden ikisi de hazır olana kadar hiçbiri state'e yazılmaz.
+    let seri: SeriArgs | null = null;
     // Çevrimdışıyken yazma sözleri dönmez → en çok 6 sn beklenir (Android), iş arkada sürer
     const sonuc = await tavanli(yaziliTamamla({
       uid, sinif, dersKey, sinavKey, adim, dogru: dyDogru, toplam: dy.length,
@@ -194,13 +199,14 @@ export default function YaziliCalismaSayfasi() {
       if (sonuc.seri?.basarili) {
         setSeriSayisi(sonuc.seri.sayi);
         if (sonuc.seri.ilkAktiviteBugun) {
-          setSeriAkisi({ sayi: sonuc.seri.sayi, maske: sonuc.seri.maske, tetik: ACT_YAZILI });
+          seri = { sayi: sonuc.seri.sayi, maske: sonuc.seri.maske, tetik: ACT_YAZILI };
         }
         // En uzun seri rekoru: tek yazma, sınıfa göre kırpılmış (beklenmez)
         if (sonuc.seri.sayi > 0) void enUzunSeriGuncelle(uid, sinif, sonuc.seri.sayi).catch((e) => sessizHata("seriRekor", e));
       }
     }
     const gorevler = await tavanli(gorevIs, 3000);
+    setSeriAkisi(seri);
     if (gorevler && gorevler.length > 0) setGorevDegisimleri(gorevler);
   }, [kullanici, sinif, dersKey, sinavKey, adim, dy.length]);
 

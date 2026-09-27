@@ -115,13 +115,18 @@ export default function DefterOkuyucuSayfasi() {
     // Başarımlar + defter-bitti görevi YALNIZCA ilk tamamlamada (Android: firstTimeDone bloğu);
     // zincir ekrandan bağımsız sürer — tavan dolsa da bağlantı gelince işlenir
     const bittiIs = tamamIs.then((t) => (t.ilkKez ? defterBittiIsle(uid, sinif, dersKey, uniteKey) : [])).catch(() => [] as GorevDegisimi[]);
+    // ⚠️ Seri ve görev özeti AYNI ANDA açılmalı: seri önce açılırsa özet akışı onunla başlar,
+    // görevler birkaç saniye sonra gelince akış baştan kurulur → seri ekranı bir an görünüp
+    // görev özetine atlar, Devam Et'te seri yeniden gelir (27 Eyl). Akış ilk adımını açıldığı
+    // anda seçer; bu yüzden ikisi de hazır olana kadar hiçbiri state'e yazılmaz.
+    let seri: SeriArgs | null = null;
     const sonuc = await tavanli(tamamIs, 6000);
     if (sonuc) {
       setKazanilanXp(sonuc.xp);
       if (sonuc.seri?.basarili) {
         setSeriSayisi(sonuc.seri.sayi);
         if (sonuc.seri.ilkAktiviteBugun) {
-          setSeriAkisi({ sayi: sonuc.seri.sayi, maske: sonuc.seri.maske, tetik: ACT_DEFTER });
+          seri = { sayi: sonuc.seri.sayi, maske: sonuc.seri.maske, tetik: ACT_DEFTER };
         }
         // En uzun seri rekoru: tek yazma, sınıfa göre kırpılmış (beklenmez)
         if (sonuc.seri.sayi > 0) void enUzunSeriGuncelle(uid, sinif, sonuc.seri.sayi);
@@ -129,6 +134,7 @@ export default function DefterOkuyucuSayfasi() {
     }
     await tavanli(sayfaTamamla(sayfalar.length - 1), 4000);
     const bitti = (await tavanli(bittiIs, 4000)) ?? [];
+    setSeriAkisi(seri);
     setGorevDegisimleri(gorevBirlestir(sayfaGorevleri.current, bitti));
     setDurum("bitti");
     setKaydediliyor(false);
