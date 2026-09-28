@@ -31,7 +31,7 @@ import { konuAyristir, uniteler as katalogUniteleri } from "./katalog";
  */
 export const ICERIK_TARIHI = {
   testler: new Date("2026-09-11"),
-  defterler: new Date("2026-09-16"),
+  defterler: new Date("2026-09-28"),
   atasozleri: new Date("2026-09-10"),
 } as const;
 
