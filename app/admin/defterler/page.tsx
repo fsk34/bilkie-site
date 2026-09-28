@@ -5,6 +5,11 @@ import { useRouter } from "next/navigation";
 import { ref, get, set } from "firebase/database";
 import { signOut } from "firebase/auth";
 import { auth, defterleriDb } from "../../lib/firebase";
+import SayfaGorunumu, { type BolmeOnerisi, type HamSayfa } from "./SayfaGorunumu";
+import grade3Onerileri from "./oneriler/grade3.json";
+
+// Sayfa bölme önerileri — anahtar "grade3/fen/u1"
+const ONERILER: Record<string, BolmeOnerisi> = { ...grade3Onerileri };
 
 // ─── Tipler ───────────────────────────────────────────────────────────────────
 
@@ -233,6 +238,8 @@ export default function DefterlerPage() {
   const [saving, setSaving] = useState(false);
   const [editingIdx, setEditingIdx] = useState<number | null>(null);
   const [editForm, setEditForm] = useState<Block | null>(null);
+  // "bloklar": tek sayfanın blok düzenleyicisi · "sayfalar": defterin öğrenci görünümü + sayfa bölme
+  const [gorunum, setGorunum] = useState<"bloklar" | "sayfalar">("bloklar");
 
   // Grade değişince dersleri yükle
   useEffect(() => {
@@ -341,7 +348,7 @@ export default function DefterlerPage() {
 
   return (
     <main style={{ minHeight: "100vh", background: "#0C1A3F", color: "#EAF2FF", padding: "24px 16px" }}>
-      <div style={{ maxWidth: 760, margin: "0 auto" }}>
+      <div style={{ maxWidth: gorunum === "sayfalar" ? 1260 : 760, margin: "0 auto" }}>
 
         {/* HEADER */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
@@ -403,7 +410,27 @@ export default function DefterlerPage() {
           )}
         </div>
 
+        {/* GÖRÜNÜM SEÇİMİ */}
+        <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+          <button style={btn(gorunum === "bloklar" ? "#F3A24C" : "#3A4480")} onClick={() => setGorunum("bloklar")}>Blok düzenle</button>
+          <button style={btn(gorunum === "sayfalar" ? "#F3A24C" : "#3A4480")} onClick={() => setGorunum("sayfalar")}>Sayfa görünümü</button>
+        </div>
+
+        {gorunum === "sayfalar" && (loading ? (
+          <p style={{ color: "#8FB3D9" }}>Yükleniyor...</p>
+        ) : (
+          <SayfaGorunumu
+            key={`${grade}/${subject}/${unit}/${pages.length}`}
+            sayfalar={pages as unknown as HamSayfa[]}
+            dersKey={subject}
+            kaydediliyor={saving}
+            onKaydet={(yeni) => savePages(yeni as unknown as Page[])}
+            oneri={ONERILER[`${grade}/${subject}/${unit}`]}
+          />
+        ))}
+
         {/* BLOKLAR */}
+        {gorunum === "bloklar" && (
         <div style={{ background: "#2C335E", border: "1px solid #4A538E", borderRadius: 16, padding: 20 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
             <h2 style={{ fontSize: 16, fontWeight: 700, color: "#C9D9F2" }}>
@@ -499,6 +526,7 @@ export default function DefterlerPage() {
             })}
           </div>
         </div>
+        )}
       </div>
     </main>
   );
