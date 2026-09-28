@@ -7,9 +7,17 @@ import { signOut } from "firebase/auth";
 import { auth, defterleriDb } from "../../lib/firebase";
 import SayfaGorunumu, { type BolmeOnerisi, type HamSayfa } from "./SayfaGorunumu";
 import grade3Onerileri from "./oneriler/grade3.json";
+import grade4Onerileri from "./oneriler/grade4.json";
+import grade5Onerileri from "./oneriler/grade5.json";
+import grade6Onerileri from "./oneriler/grade6.json";
+import grade7Onerileri from "./oneriler/grade7.json";
+import grade8Onerileri from "./oneriler/grade8.json";
 
 // Sayfa bölme önerileri — anahtar "grade3/fen/u1"
-const ONERILER: Record<string, BolmeOnerisi> = { ...grade3Onerileri };
+const ONERILER: Record<string, BolmeOnerisi> = {
+  ...grade3Onerileri, ...grade4Onerileri, ...grade5Onerileri,
+  ...grade6Onerileri, ...grade7Onerileri, ...grade8Onerileri,
+};
 
 // ─── Tipler ───────────────────────────────────────────────────────────────────
 
