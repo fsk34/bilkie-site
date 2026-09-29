@@ -23,6 +23,7 @@ import { HATA_OLGUNLASMA_GUN, hatalariOku, olgunHatalar, type Hata } from "../..
 import { yaziliTakvimi } from "../../lib/yaziliTakvim";
 import { dersRengi } from "../../lib/veri";
 import { sessizHata } from "../../lib/hata";
+import { useCevrimici } from "../../lib/cevrimici";
 
 const KOC_DERSLER = ["turkce", "matematik", "fen", "sosyal", "ingilizce"];
 
@@ -39,6 +40,7 @@ export default function BilgieKocBolumu({ uid, sinif, dersKey, onDersSec }: { ui
   const [hatalar, setHatalar] = useState<Hata[] | null>(null);
   const [evde, setEvde] = useState<EvdeKayit[] | null>(null);
   const [simdi, setSimdi] = useState(0);   // veri geldiğinde sabitlenen "şimdi" (render'da Date.now() yok)
+  const cevrimici = useCevrimici();
   const [yazili, setYazili] = useState<{ ad: string; anahtar: string; gunKaldi: number } | null | undefined>(undefined);
 
   useEffect(() => {
@@ -78,6 +80,9 @@ export default function BilgieKocBolumu({ uid, sinif, dersKey, onDersSec }: { ui
     return dersKey ? hepsi.filter((g) => !g.eylem || g.eylem.ders === dersKey || g.eylem.ders === "hata") : hepsi;
   }, [istatistik, hatalar, veri, yazili, son, ust, sinif, dersKey]);
 
+  // Veri hiç gelmedi + bağlantı yok: sonsuz "düşünüyor" yerine dürüst mesaj (Android/iOS ile aynı)
+  if ((gozlemler == null || hatalar == null || istatistik == null) && !cevrimici)
+    return <p className="bk-soluk" style={{ textAlign: "center", padding: "28px 24px", fontSize: 14, lineHeight: 1.45 }}>Bağlantı yok. İnternete bağlanınca Bilgie seni yeniden değerlendirecek.</p>;
   if (gozlemler == null || hatalar == null || istatistik == null) return <UcNokta boyut={10} aralik={8} etiket="Bilgie düşünüyor" style={{ padding: "28px 0" }} />;
 
   const dersler = dersKey ? [dersKey] : KOC_DERSLER;

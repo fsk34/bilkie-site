@@ -27,6 +27,7 @@ import {
 } from "../lib/canliVeri";
 import { defterSayfalariGetir, sorulariGetir, type Gorev } from "../lib/veri";
 import { istatistikBirlestir, kocIstatistikCoz, kocPlaniHesapla, type KocIstatistik, type KocPlani } from "../lib/koc";
+import { useCevrimici } from "../lib/cevrimici";
 import { evdeKayitlariOku, evdeOzetle, type EvdeOzet } from "../lib/evde";
 import { HATA_OLGUNLASMA_GUN, hatalariOku, olgunHatalar } from "../lib/hatalar";
 import { acilisMetni, yaziliTakvimi, type YaziliSinav } from "../lib/yaziliTakvim";
@@ -338,6 +339,7 @@ function BilkieAIKutusu({ sinif, uid, veri, devam, yazili, seri }: {
   // Evde çözülenler de sayılır (evde.ts): koç çocuğun kâğıttaki yarısını da görsün.
   const agac = useIstatistikAgaci(sinif);
   const [evde, setEvde] = useState<EvdeOzet | null>(null);
+  const cevrimici = useCevrimici();
   const [hatalar, setHatalar] = useState<{ olgun: number; toplam: number } | null>(null);
   useEffect(() => {
     if (!uid) return;
@@ -370,7 +372,8 @@ function BilkieAIKutusu({ sinif, uid, veri, devam, yazili, seri }: {
         <h3>Bilgie Koç</h3>
         <span className="ok">›</span>
       </Link>
-      {plan == null && <UcNokta boyut={8} aralik={6} etiket="Bilgie düşünüyor" style={{ padding: "8px 0" }} />}
+      {plan == null && !cevrimici && <p className="bk-koc-mesaj bk-soluk">Bağlantı yok. İnternete bağlanınca Bilgie önerilerini gösterecek.</p>}
+      {plan == null && cevrimici && <UcNokta boyut={8} aralik={6} etiket="Bilgie düşünüyor" style={{ padding: "8px 0" }} />}
       {plan && <p className="bk-koc-mesaj" data-kural={plan.kural}>{plan.mesaj}</p>}
       {plan?.eylem && (
         <Link href={plan.eylem.href} className="bk-konu-dugme bk-koc-dugme"
