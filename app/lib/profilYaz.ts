@@ -14,7 +14,7 @@
 import { get, ref as dbRef, remove, runTransaction, serverTimestamp, update } from "firebase/database";
 import { kullaniciDb } from "./firebase";
 import { gunAnahtari } from "./tarih";
-import { ligTablosuYolu, profilYolu, sinifSinirla } from "./veri";
+import { ligKimligiCoz, ligTablosuYolu, profilYolu, sinifSinirla } from "./veri";
 import { KULLANICI_ADI_DESENI } from "./kayit";
 import { sessizHata } from "./hata";
 
@@ -35,17 +35,27 @@ function sayi(v: unknown): number {
  * "0 puanlı hayalet" olarak görünüyorlar (3 Eyl 2026 dökümünde 100 satırın 48'i buydu).
  * Burada önce satırın VAR OLDUĞU doğrulanıyor; yoksa dokunulmuyor.
  */
-export async function ligKimligiEsitle(uid: string, ad: string, avatar: string): Promise<void> {
-  const isim = ad.trim();
-  if (!isim) return;
+export async function ligKimligiEsitle(uid: string): Promise<void> {
+  // Ad/avatar PARAMETRE ALINMAZ: profil taze okunur (ligKimligiCoz — kullanıcı adı, yoksa "Kullanıcı").
+  // Eskiden ekrandaki profil bağlamından veriliyordu; profil yüklenmeden işlem yapılırsa gerçek adın yerine
+  // "Kullanıcı" herkese görünen satıra yazılabiliyordu (29 Eyl 2026, Android/iOS ile aynı kural).
+  // Profil okunamazsa hiçbir şey yazılmaz. Sunucumuz olunca bu iş sunucuya taşınacak.
+  let kimlik;
+  try {
+    kimlik = ligKimligiCoz((await get(dbRef(kullaniciDb, profilYolu(uid)))).val());
+  } catch (e) {
+    sessizHata("ligKimligiProfil", e);
+    return;
+  }
+  if (!kimlik) return;
   for (let g = 3; g <= 8; g++) {
     const yol = `${ligTablosuYolu(g)}/${uid}`;
     try {
       const mevcut = await get(dbRef(kullaniciDb, yol));
       if (!mevcut.exists()) continue;   // o ligde satırı yok → oluşturma
       await update(dbRef(kullaniciDb, yol), {
-        name: isim,
-        avatar: avatar.trim() || "profil0",
+        name: kimlik.name,
+        avatar: kimlik.avatar,
         atMs: serverTimestamp(),   // Android ServerValue.TIMESTAMP — istemci saati değil
       });
     } catch (e) {
@@ -74,9 +84,6 @@ export type SinifDegisimArgs = {
   uid: string;
   eskiSinif: number;
   yeniSinif: number;
-  /** Lig satırında görünecek ad — kullanıcı adı (yoksa "Kullanıcı"); ad-soyad YAZILMAZ. */
-  ad: string;
-  avatar: string;
 };
 
 /**
@@ -103,7 +110,7 @@ export async function sinifDegistir(a: SinifDegisimArgs): Promise<void> {
   }
 
   // 3) Lig kimliği + 4) eski satır temizliği
-  await ligKimligiEsitle(a.uid, a.ad, a.avatar);
+  await ligKimligiEsitle(a.uid);
   if (eski !== yeni) await eskiLigSatiriniTemizle(a.uid, eski);
 }
 
@@ -155,7 +162,7 @@ export class KullaniciAdiAlinmis extends Error {
  * talep → profile/username → eski dizini sil → lig satırlarında adı tazele.
  */
 export async function kullaniciAdiDegistir(
-  uid: string, yeniAd: string, eskiAd: string, avatar: string
+  uid: string, yeniAd: string, eskiAd: string
 ): Promise<void> {
   const yeni = yeniAd.trim();
   if (!KULLANICI_ADI_DESENI.test(yeni)) {
@@ -183,7 +190,7 @@ export async function kullaniciAdiDegistir(
     }
   }
 
-  await ligKimligiEsitle(uid, yeni, avatar);
+  await ligKimligiEsitle(uid);
 }
 
 /**
@@ -191,9 +198,9 @@ export async function kullaniciAdiDegistir(
  * ardından lig satırlarındaki avatar da tazeleniyor.
  */
 export async function avatarDegistir(
-  uid: string, yeniAvatar: string, kullaniciAdi: string
+  uid: string, yeniAvatar: string
 ): Promise<void> {
   const a = yeniAvatar.trim() || "profil0";
   await update(dbRef(kullaniciDb, profilYolu(uid)), { avatar: a });
-  await ligKimligiEsitle(uid, kullaniciAdi, a);
+  await ligKimligiEsitle(uid);
 }

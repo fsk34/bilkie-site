@@ -120,7 +120,7 @@ function Icerik() {
     setHata(null);
     setBilgi(null);
     try {
-      await kullaniciAdiDegistir(kullanici.uid, ad, kayitliAd, avatar);
+      await kullaniciAdiDegistir(kullanici.uid, ad, kayitliAd);
       await profiliYenile();
       setDuzenleniyor(false);
       setBilgi("Kullanıcı adın güncellendi.");
