@@ -17,6 +17,7 @@ import { hatirlananlariUnut } from "./canli";
 import { sessizHata } from "./hata";
 import { onbellegiBosalt } from "./onbellek";
 import { profilOku, type Profil } from "./veri";
+import { kullaniciAdiOnar } from "./profilYaz";
 
 /* Profil önbelleği (localStorage, uid başına). Kapı Auth cevabıyla açılır; profil için
    veritabanı BEKLENMEZ — eskiden bekleniyordu ve RTDB'ye ulaşamayan bir ağda (kurum
@@ -94,7 +95,17 @@ export function OturumSaglayici({ children }: { children: React.ReactNode }) {
       // DB okuması: gelince uygulanır (önbellek varsa bile tazelenir). Kapı ise en çok
       // PROFIL_BEKLEME kadar bekler — ağ cevap vermiyorsa iskelette asılı kalınmaz.
       const okuma = profilOku(u.uid).then(
-        (p) => { if (bu === nesil) { setProfil(p); onbellegeProfil(u.uid, p); } return true; },
+        (p) => {
+          if (bu === nesil) { setProfil(p); onbellegeProfil(u.uid, p); }
+          // Kullanıcı adı eksikse onar (ligde "Kullanıcı" görünmesin); bitince profili tazele.
+          if (p && !p.kullaniciAdi.trim()) {
+            kullaniciAdiOnar(u.uid, p.adSoyad)
+              .then(() => profilOku(u.uid))
+              .then((t) => { if (bu === nesil && t) { setProfil(t); onbellegeProfil(u.uid, t); } })
+              .catch((e) => sessizHata("kullaniciAdiOnar", e));
+          }
+          return true;
+        },
         (e) => { sessizHata("profilOku", e); return false; }
       );
       if (!onbellek) {

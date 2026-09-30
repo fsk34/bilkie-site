@@ -104,15 +104,16 @@ export async function kisaKimlikAta(uid: string): Promise<void> {
     for (let i = 0; i < uid.length; i++) h = (Math.imul(31, h) + uid.charCodeAt(i)) | 0;
     let aday = 10001 + Math.abs(h % 5000);
 
-    for (let i = 0; i < 200; i++) {
+    for (let i = 0; i < DIZIN_DENEME_TAVANI; i++) {
       try {
         // Kural yalnızca boşsa (ya da zaten bizimse) yazdırır; doluysa set hata atar.
         await set(dbRef(kullaniciDb, `userIds/${aday}`), uid);
         await set(dbRef(kullaniciDb, yol), aday);
         return;
       } catch (e) {
-        // Kural reddettiyse sıradaki aday da reddedilir — 200 boş istek atma
-        if (izinHatasi(e)) return;
+        // DOLU aday da kural reddiyle (permission_denied) döner → sıradakini dene (Android aynı).
+        // Başka hata sistemik: bırak.
+        if (!izinHatasi(e)) return;
         aday += 1;
       }
     }
@@ -120,6 +121,9 @@ export async function kisaKimlikAta(uid: string): Promise<void> {
     /* kimlik atanamazsa kayıt yine de geçerli — mobilde de best-effort */
   }
 }
+
+/** Dizin adayı deneme tavanı (Android DIZIN_DENEME_TAVANI ile aynı). */
+const DIZIN_DENEME_TAVANI = 50;
 
 /** Reddedilme adayın dolu olmasından mı, kuralın izin vermemesinden mi? */
 function izinHatasi(e: unknown): boolean {
@@ -139,8 +143,20 @@ function trAscii(s: string): string {
     .replace(/ü/g, "u");
 }
 
+/** Aynı uid için süren atama: kayıt akışı ile oturum onarımı aynı anda çağırırsa ikinci bekler
+ *  (rastgele `bilkie####` tabanında iki ayrı ad alınıp biri sahipsiz kalmasın). */
+const suruAdAtama = new Map<string, Promise<void>>();
+
 /** Android `assignUsernameIfMissing`: addan taban üretir, doluysa sayı ekler. */
-export async function kullaniciAdiAta(uid: string, adSoyad: string): Promise<void> {
+export function kullaniciAdiAta(uid: string, adSoyad: string): Promise<void> {
+  const suren = suruAdAtama.get(uid);
+  if (suren) return suren;
+  const is = kullaniciAdiAtaIc(uid, adSoyad).finally(() => suruAdAtama.delete(uid));
+  suruAdAtama.set(uid, is);
+  return is;
+}
+
+async function kullaniciAdiAtaIc(uid: string, adSoyad: string): Promise<void> {
   try {
     const yol = `${profilYolu(uid)}/username`;
     const mevcut = await get(dbRef(kullaniciDb, yol));
@@ -156,7 +172,7 @@ export async function kullaniciAdiAta(uid: string, adSoyad: string): Promise<voi
     if (taban.length < 3) taban = `bilkie${Math.floor(1000 + Math.random() * 9000)}`;
     taban = taban.slice(0, 24);
 
-    for (let i = 0; i < 500; i++) {
+    for (let i = 0; i < DIZIN_DENEME_TAVANI; i++) {
       const aday = i === 0 ? taban : `${taban}${i}`;
       if (!KULLANICI_ADI_DESENI.test(aday)) continue;
       try {
@@ -164,8 +180,10 @@ export async function kullaniciAdiAta(uid: string, adSoyad: string): Promise<voi
         await set(dbRef(kullaniciDb, yol), aday);
         return;
       } catch (e) {
-        if (izinHatasi(e)) return;
-        /* dolu, sıradaki aday */
+        // DOLU ad kural reddiyle (permission_denied) döner → sıradaki aday (Android `continue`).
+        // Eskiden burada çıkılıyordu: ilk adı alınmış ("emre", "aysun") her web kaydı kullanıcı
+        // adsız kalıyor, ligde "Kullanıcı" görünüyordu (30 Eyl 2026: 6 hesap).
+        if (!izinHatasi(e)) return;
       }
     }
   } catch {

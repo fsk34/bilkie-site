@@ -15,7 +15,7 @@ import { get, ref as dbRef, remove, runTransaction, serverTimestamp, update } fr
 import { kullaniciDb } from "./firebase";
 import { gunAnahtari } from "./tarih";
 import { ligKimligiCoz, ligTablosuYolu, profilYolu, sinifSinirla } from "./veri";
-import { KULLANICI_ADI_DESENI } from "./kayit";
+import { KULLANICI_ADI_DESENI, kullaniciAdiAta } from "./kayit";
 import { sessizHata } from "./hata";
 
 function sayi(v: unknown): number {
@@ -35,6 +35,16 @@ function sayi(v: unknown): number {
  * "0 puanlı hayalet" olarak görünüyorlar (3 Eyl 2026 dökümünde 100 satırın 48'i buydu).
  * Burada önce satırın VAR OLDUĞU doğrulanıyor; yoksa dokunulmuyor.
  */
+/**
+ * Kullanıcı adı eksik hesabı onarır (Android açılıştaki assignUsernameIfMissing karşılığı):
+ * ad atanır, sonra lig satırlarındaki "Kullanıcı" yeni adla değiştirilir.
+ * 30 Eyl 2026: web kaydı ilk ad adayı doluysa adsız bırakıyordu → ligde "Kullanıcı" görünüyordu.
+ */
+export async function kullaniciAdiOnar(uid: string, adSoyad: string): Promise<void> {
+  await kullaniciAdiAta(uid, adSoyad);
+  await ligKimligiEsitle(uid);
+}
+
 export async function ligKimligiEsitle(uid: string): Promise<void> {
   // Ad/avatar PARAMETRE ALINMAZ: profil taze okunur (ligKimligiCoz — kullanıcı adı, yoksa "Kullanıcı").
   // Eskiden ekrandaki profil bağlamından veriliyordu; profil yüklenmeden işlem yapılırsa gerçek adın yerine

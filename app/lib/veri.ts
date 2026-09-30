@@ -866,6 +866,9 @@ export type LigKimlik = { name: string; avatar: string };
 export function ligKimligiCoz(profilHam: unknown): LigKimlik | null {
   if (profilHam == null || typeof profilHam !== "object") return null;
   const p = profilHam as Record<string, unknown>;
+  // createdAt yoksa kayıt bitmemiş (Google kaydında profil "Başla"da yazılır) → lige YAZMA.
+  // Yoksa yarım kalan kayıt "Kullanıcı · 0" hayalet satırı bırakıyordu (30 Eyl 2026). Android/iOS aynı.
+  if (p.createdAt == null) return null;
   const metin = (k: string) => (typeof p[k] === "string" ? (p[k] as string).trim() : "");
   return { name: metin("username") || metin("kullaniciAdi") || "Kullanıcı", avatar: metin("avatar") || "profil0" };
 }
