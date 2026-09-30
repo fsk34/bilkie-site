@@ -21,7 +21,9 @@ import {
   defterKaldigiSayfa,
   defterTamamla,
   defterToplamSayfaYaz,
+  seriIsaretle,
   type DefterSayfa,
+  type SeriSonucu,
 } from "../../../../lib/veri";
 import { defterBittiIsle, enUzunSeriGuncelle } from "../../../../lib/ilerleme";
 import { tavanli } from "../../../../lib/hata";
@@ -104,6 +106,18 @@ export default function DefterOkuyucuSayfasi() {
     if (durum === "okuma" && indeks > baslangicIndeksi.current) void sayfaTamamla(indeks - 1);
   }, [indeks, durum, sayfaTamamla]);
 
+  // Android: 10. sayfaya ya da son sayfaya gelince seri işlenir (bitirmek şart değil). Eskiden web'de
+  // yalnız "Devam Et"te işleniyordu: 12 sayfa okuyup çıkanın serisi sayılmıyordu (30 Eyl 2026).
+  // Defter başına TEK iş; bitişteki seri özeti bunun sonucunu kullanır.
+  const seriIsi = useRef<Promise<SeriSonucu> | null>(null);
+  useEffect(() => {
+    if (durum !== "okuma" || !kullanici || sayfalar.length === 0 || seriIsi.current) return;
+    if (indeks + 1 >= 10 || indeks === sayfalar.length - 1) {
+      seriIsi.current = seriIsaretle(kullanici.uid, ACT_DEFTER);
+      seriIsi.current.catch(() => {});
+    }
+  }, [indeks, durum, kullanici, sayfalar.length]);
+
   const bitir = useCallback(async () => {
     if (kaydediliyor) return;
     setKaydediliyor(true);
@@ -111,7 +125,7 @@ export default function DefterOkuyucuSayfasi() {
     // ⚠️ Çevrimdışıyken yazma sözleri HİÇ dönmez → perde takılıyordu (Android 24 Eyl): her bekleme
     // tavanlı; iş arkada sürer, bağlantı gelince gider.
     const uid = kullanici.uid;
-    const tamamIs = defterTamamla(uid, sinif, dersKey, uniteKey, sayfalar.length);
+    const tamamIs = defterTamamla(uid, sinif, dersKey, uniteKey, sayfalar.length, seriIsi.current ?? undefined);
     // Başarımlar + defter-bitti görevi YALNIZCA ilk tamamlamada (Android: firstTimeDone bloğu);
     // zincir ekrandan bağımsız sürer — tavan dolsa da bağlantı gelince işlenir
     const bittiIs = tamamIs.then((t) => (t.ilkKez ? defterBittiIsle(uid, sinif, dersKey, uniteKey) : [])).catch(() => [] as GorevDegisimi[]);

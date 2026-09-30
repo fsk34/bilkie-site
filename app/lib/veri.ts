@@ -755,7 +755,9 @@ export type DefterBitisSonucu = { ilkKez: boolean; xp: number; seri: SeriSonucu 
  * yeniden okumak web'de seriyi sürdürmüyordu, Android'de sürdürüyordu.
  */
 export async function defterTamamla(
-  uid: string, sinif: number, dersKey: string, uniteKey: string, toplamSayfa: number
+  uid: string, sinif: number, dersKey: string, uniteKey: string, toplamSayfa: number,
+  /** Okurken (10. / son sayfada) başlatılmış seri işi — varsa yeniden işaretlenmez, sonucu kullanılır */
+  seriIsi?: Promise<SeriSonucu>
 ): Promise<DefterBitisSonucu> {
   const g = sinifSinirla(sinif);
   // Beklenmez: çevrimdışıyken söz dönmez, tamamlama işareti ve seri de başlasın (24 Eyl 2026)
@@ -764,7 +766,7 @@ export async function defterTamamla(
     totalPages: toplamSayfa,
   }).catch((e) => sessizHata("defterSayfa", e));
 
-  const seriIs = seriIsaretle(uid, ACT_DEFTER);
+  const seriIs = seriIsi ?? seriIsaretle(uid, ACT_DEFTER);
   const isaret = dbRef(kullaniciDb, `users/${uid}/progress_defter_done/grade${g}/${dersKey}/${uniteKey}`);
   let ilkKez = false;
   try {
