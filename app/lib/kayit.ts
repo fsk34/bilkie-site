@@ -191,6 +191,18 @@ async function kullaniciAdiAtaIc(uid: string, adSoyad: string): Promise<void> {
   }
 }
 
+const AD_YAZILAMADI = "Kayıt tamamlanamadı. Bağlantını kontrol edip tekrar dene.";
+
+/** Profilde kullanıcı adı yazılı mı? Kayıt bu doğrulanmadan BİTMEZ (adsız hesap açılmasın). */
+async function kullaniciAdiYazildi(uid: string): Promise<boolean> {
+  try {
+    const v = (await get(dbRef(kullaniciDb, `${profilYolu(uid)}/username`))).val();
+    return typeof v === "string" && v.trim() !== "";
+  } catch {
+    return false;
+  }
+}
+
 /** E-posta dizini + kısa kimlik + kullanıcı adı. Auth gerektirir, çıkıştan ÖNCE çağrılmalı. */
 export async function kayitSonrasiDizinler(uid: string, adSoyad: string, eposta: string): Promise<void> {
   try {
@@ -257,6 +269,13 @@ export async function kaydiTamamla(user: User, taslak: ProfilTaslagi): Promise<v
     throw new Error("Profil kaydedilemedi. Lütfen tekrar deneyin.");
   }
   await kayitSonrasiDizinler(user.uid, taslak.adSoyad, taslak.eposta);
+  // Kullanıcı adı yazılamadıysa kayıt BİTMEZ: profil yazılamadığındaki gibi temiz geri alma
+  // (adsız hesap açılmasın, aynı e-postayla hemen tekrar kaydolunabilsin).
+  if (!(await kullaniciAdiYazildi(user.uid))) {
+    try { await set(dbRef(kullaniciDb, `users/${user.uid}`), null); } catch { /* best-effort */ }
+    try { await deleteUser(user); } catch { /* silinemezse çağıran signOut yapıyor */ }
+    throw new Error(AD_YAZILAMADI);
+  }
 }
 
 /**
@@ -287,6 +306,9 @@ export async function googleKaydiniTamamla(
     /* best-effort */
   }
   await kayitSonrasiDizinler(user.uid, ad, eposta);
+  // Kullanıcı adı yazılamadıysa kayıt BİTMEZ: ekranda kal, "Başla" tekrar denenir
+  // (atama zaten atanmış adı korur). Adsız hesap ana ekrana hiç geçmesin.
+  if (!(await kullaniciAdiYazildi(user.uid))) throw new Error(AD_YAZILAMADI);
 }
 
 /**
