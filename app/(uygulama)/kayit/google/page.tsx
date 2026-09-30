@@ -58,7 +58,7 @@ export default function GoogleKurulumSayfasi() {
     profilOku(kullanici.uid)
       .then((p) => {
         if (iptal) return;
-        if (p) router.replace("/");
+        if (p?.kayitTamam) router.replace("/");   // yarım profil (createdAt yok) kurulumu tamamlar
         else setKontrolEdiliyor(false);
       })
       .catch(() => {

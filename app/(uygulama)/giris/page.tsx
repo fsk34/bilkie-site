@@ -70,7 +70,7 @@ export default function GirisSayfasi() {
 
   async function profilKontrol(uid: string): Promise<boolean> {
     const p = await profilOku(uid);
-    if (p) return true;
+    if (p?.kayitTamam) return true;
     await signOut(auth);
     setHata(
       "Bu hesabın kaydı tamamlanmamış. Önce Bilkie uygulamasından sınıf ve avatar seçip kaydı bitir."
@@ -104,7 +104,7 @@ export default function GirisSayfasi() {
       const sonuc = await signInWithPopup(auth, new GoogleAuthProvider());
       // Profili varsa kayıtlı kullanıcıdır; yoksa kurulumu tamamlaması gerekiyor.
       // (Uygulamada da kayıt sınıf+avatar seçilince tamamlanmış sayılıyor.)
-      if (await profilOku(sonuc.user.uid)) router.replace("/");
+      if ((await profilOku(sonuc.user.uid))?.kayitTamam) router.replace("/");
       else router.replace("/kayit/google");
     } catch (err) {
       setHata(hataMetni(err));

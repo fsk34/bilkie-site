@@ -63,6 +63,8 @@ export type Profil = {
   avatar: string;
   sinif: number;
   sinifEtiketi: string;
+  /** Kayıt tamamlandı mı (profilde createdAt var) — yarım kayda ad atanmaz / lige yazılmaz */
+  kayitTamam: boolean;
 };
 
 export const profilYolu = (uid: string) => `users/${uid}/profile`;
@@ -79,6 +81,7 @@ export function profilCoz(ham: unknown): Profil | null {
     avatar: p.avatar ?? "profil0",
     sinif,
     sinifEtiketi: p.gradeLabel ?? `${sinif}. Sınıf`,
+    kayitTamam: p.createdAt != null,
   };
 }
 

@@ -43,7 +43,10 @@ export default function Kabuk({ children }: { children: React.ReactNode }) {
   // "Profil yoksa hesap da yok" (Android: yarım kayıt kuralı). Girişli ama profilsiz
   // kullanıcı 3. sınıf gibi görünüp boş ekranlarda dolaşmasın; kurulumu tamamlasın.
   useEffect(() => {
-    if (!yukleniyor && kullanici && !profil) router.replace("/kayit/google");
+    // Kayıt bitmemiş = profil yok YA DA createdAt yok (Android/iOS ölçütü; yarım profil de kuruluma gider)
+    // `=== false`: tarayıcıda saklı ESKİ profil kaydında bu alan yok (undefined) → kayıtlı sayılır;
+    // taze okuma gelince gerçek değer yerleşir. Yoksa her dönen kullanıcı bir an kuruluma atılırdı.
+    if (!yukleniyor && kullanici && (!profil || profil.kayitTamam === false)) router.replace("/kayit/google");
   }, [yukleniyor, kullanici, profil, router]);
 
   // Sayaçlar ve görevler CANLI dinleniyor: gezinince yeniden okunmuyor, XP/seri

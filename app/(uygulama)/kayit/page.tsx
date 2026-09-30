@@ -91,7 +91,7 @@ export default function KayitSayfasi() {
       // Profili olan hesap zaten kayıtlıdır; olmayan (yeni ya da yarım bırakılmış)
       // hesap sınıf/avatar seçimine gider — Android'deki GoogleOnboardingFlow.
       const profil = await profilOku(sonuc.user.uid);
-      if (profil) {
+      if (profil?.kayitTamam) {   // yarım profil (createdAt yok) kurulumu tamamlar
         router.replace("/");
         return;
       }

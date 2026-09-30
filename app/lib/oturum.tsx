@@ -98,7 +98,8 @@ export function OturumSaglayici({ children }: { children: React.ReactNode }) {
         (p) => {
           if (bu === nesil) { setProfil(p); onbellegeProfil(u.uid, p); }
           // Kullanıcı adı eksikse onar (ligde "Kullanıcı" görünmesin); bitince profili tazele.
-          if (p && !p.kullaniciAdi.trim()) {
+          // Yalnız kaydı BİTMİŞ hesap (createdAt var) — Android/iOS ile aynı: yarım kayda sahipsiz ad ayrılmasın
+          if (p && p.kayitTamam && !p.kullaniciAdi.trim()) {
             kullaniciAdiOnar(u.uid, p.adSoyad)
               .then(() => profilOku(u.uid))
               .then((t) => { if (bu === nesil && t) { setProfil(t); onbellegeProfil(u.uid, t); } })
