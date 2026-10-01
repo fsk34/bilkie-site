@@ -30,42 +30,23 @@ export default function OyunIkon({ oyun }: { oyun: string }) {
   );
 }
 
-/** 2 satır × 3 harf, 18×18 kutular, aralık 2 → toplam 58×38, ortalanır. */
+/** Android: R.drawable.kelime (72dp, Crop, köşe 14) — eskiden harf kutucukları çiziliyordu */
 function Kelime() {
-  const k = 18, ara = 2;
-  const g = 3 * k + 2 * ara;
-  const y0 = (72 - (2 * k + ara)) / 2;
-  const x0 = (72 - g) / 2;
   return (
-    <g>
-      {KELIME_HARF.map((satir, r) =>
-        satir.map((harf, c) => {
-          const x = x0 + c * (k + ara);
-          const y = y0 + r * (k + ara);
-          return (
-            <g key={`${r}-${c}`}>
-              <rect x={x} y={y} width={k} height={k} rx={4} fill="#4A7BFF" fillOpacity={0.3} />
-              <text
-                x={x + k / 2} y={y + k / 2} fill="#fff" fontSize={10} fontWeight="700"
-                textAnchor="middle" dominantBaseline="central"
-              >
-                {harf}
-              </text>
-            </g>
-          );
-        })
-      )}
-    </g>
+    <>
+      <clipPath id="bk-kelime-kirp"><rect width={72} height={72} rx={14} /></clipPath>
+      <image href="/uygulama/kelime.png" width={72} height={72} preserveAspectRatio="xMidYMid slice" clipPath="url(#bk-kelime-kirp)" />
+    </>
   );
 }
 
-/** 44×44 alanda 3×3 ızgara + dış çerçeve. */
+/** Android: 48dp kanvas, ince çizgi #3A5AAA (saydamlık yok) 1dp, çerçeve #4A7CFF 2dp */
 function Sudoku() {
-  const b = 44, o = (72 - b) / 2, h = b / 3;
+  const b = 48, o = (72 - b) / 2, h = b / 3;
   return (
     <g>
       {[1, 2].map((i) => (
-        <g key={i} stroke="#3A5AAA" strokeOpacity={0.5} strokeWidth={1}>
+        <g key={i} stroke="#3A5AAA" strokeWidth={1}>
           <line x1={o + i * h} y1={o} x2={o + i * h} y2={o + b} />
           <line x1={o} y1={o + i * h} x2={o + b} y2={o + i * h} />
         </g>
@@ -75,9 +56,9 @@ function Sudoku() {
   );
 }
 
-/** 44×44 alanda 4×4 göz, aralık 3. */
+/** Android: 44dp kanvas, 4×4; aralık 3f / köşe 4f PİKSEL (≈1.1 / 1.45 dp) */
 function Blok() {
-  const b = 44, o = (72 - b) / 2, h = b / 4, ara = 3;
+  const b = 44, o = (72 - b) / 2, h = b / 4, ara = 3 / 2.75;
   return (
     <g>
       {BLOK.map(([r, c, renk]) => (
@@ -85,16 +66,16 @@ function Blok() {
           key={`${r}-${c}`}
           x={o + c * h + ara} y={o + r * h + ara}
           width={h - ara * 2} height={h - ara * 2}
-          rx={4} fill={renk}
+          rx={4 / 2.75} fill={renk}
         />
       ))}
     </g>
   );
 }
 
-/** 44×44 alanda 2×2 göz, aralık 3. */
+/** Android: 48dp kanvas, 2×2; aralık 3f / köşe 5f PİKSEL */
 function T2048() {
-  const b = 44, o = (72 - b) / 2, h = b / 2, ara = 3;
+  const b = 48, o = (72 - b) / 2, h = b / 2, ara = 3 / 2.75;
   return (
     <g>
       {[0, 1].map((r) =>
@@ -103,7 +84,7 @@ function T2048() {
             key={`${r}-${c}`}
             x={o + c * h + ara} y={o + r * h + ara}
             width={h - ara * 2} height={h - ara * 2}
-            rx={5} fill={T2048_RENK[r * 2 + c]}
+            rx={5 / 2.75} fill={T2048_RENK[r * 2 + c]}
           />
         ))
       )}
@@ -125,27 +106,42 @@ function Wordle() {
   );
 }
 
-/** Ok Bulmaca: açık zemin, noktalı ızgara, kıvrımlı lacivert ok (ArrowBolum görsel dili). */
+/** Android GamesHubScreen: 48dp kanvas, 4×4 nokta (r = hücre×0.07), iki kıvrımlı lacivert ok (kalınlık hücre×0.22,
+ *  uç hücre×0.55, yarım genişlik hücre×0.3) */
 function Ok() {
+  const b = 48, o = (72 - b) / 2, h = b / 4;
+  const p = (c: number, r: number) => [o + (c + 0.5) * h, o + (r + 0.5) * h] as const;
+  const ok = (yol: (readonly [number, number])[], dx: number, dy: number, k: number) => {
+    const [hx, hy] = yol[yol.length - 1];
+    const px = -dy, py = dx;
+    const uc = `${hx + dx * h * 0.55},${hy + dy * h * 0.55} ${hx + px * h * 0.3},${hy + py * h * 0.3} ${hx - px * h * 0.3},${hy - py * h * 0.3}`;
+    return (
+      <g key={k}>
+        <path d={"M" + yol.map(([x, y]) => `${x} ${y}`).join(" L")} fill="none" stroke="#2B3350" strokeWidth={h * 0.22} strokeLinecap="round" strokeLinejoin="round" />
+        <polygon points={uc} fill="#2B3350" />
+      </g>
+    );
+  };
   return (
     <g>
-      {[18, 36, 54].map((x) => [18, 36, 54].map((y) => <circle key={`${x}-${y}`} cx={x} cy={y} r={1.6} fill="#BCC3D4" />))}
-      <path d="M18 54 V36 H36 V18 H50" fill="none" stroke="#2B3350" strokeWidth={9} strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M44 9 L58 18 L44 27 Z" fill="#2B3350" />
+      {[0, 1, 2, 3].map((r) => [0, 1, 2, 3].map((c) => (
+        <circle key={`${r}-${c}`} cx={o + (c + 0.5) * h} cy={o + (r + 0.5) * h} r={h * 0.07} fill="#BCC3D4" />
+      )))}
+      {ok([p(0, 2), p(0, 0), p(2, 0)], 1, 0, 1)}
+      {ok([p(1, 3), p(3, 3), p(3, 1.4)], 0, -1, 2)}
     </g>
   );
 }
 
-/** Resim Yapboz: 3×3 kaydırmalı yapboz, sağ altta boş göz, parçalar gökyüzü-deniz tonunda. */
+/** Android: 3×3, 13dp kare, aralık 3, köşe 3; mavi tonlar, sağ alt boş (çizgisiz) */
 function Yapboz() {
-  const k = 16, ara = 2, x0 = (72 - (3 * k + 2 * ara)) / 2;
-  const renk = ["#7EC8E3", "#7EC8E3", "#F6D55C", "#4FA3D1", "#4FA3D1", "#7EC8E3", "#2E6DA4", "#2E6DA4", ""];
+  const k = 13, ara = 3, x0 = (72 - (3 * k + 2 * ara)) / 2;
+  const renk = ["#4A7CFF", "#3A6AE0", "#5B8CFF", "#3A6AE0", "#5B8CFF", "#4A7CFF", "#5B8CFF", "#4A7CFF", ""];
   return (
     <g>
       {renk.map((r, i) => r && (
         <rect key={i} x={x0 + (i % 3) * (k + ara)} y={x0 + Math.floor(i / 3) * (k + ara)} width={k} height={k} rx={3} fill={r} />
       ))}
-      <rect x={x0 + 2 * (k + ara)} y={x0 + 2 * (k + ara)} width={k} height={k} rx={3} fill="none" stroke="#FFFFFF55" strokeDasharray="3 2" />
     </g>
   );
 }

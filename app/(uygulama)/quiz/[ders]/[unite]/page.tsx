@@ -17,6 +17,8 @@
 // Bitiş ekranı Android'de YOK (son Devam Et kapatır, XP arkada yazılır); web'de kalıyor
 // çünkü "30 XP kazandın" görünmeden kapanmak ödülü boşa harcıyor (14 Eyl 2026 kararı).
 
+import { AksiyonDugmesi, AltSonucBandi } from "../../../TestAlt";
+import CikisOnayi from "../../../CikisOnayi";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -173,21 +175,7 @@ export default function QuizSayfasi() {
       />
 
       {/* Android ExitConfirmDialog: "Çıkmak istediğine emin misin?" · Çıkış Yap / Vazgeç */}
-      {cikisSorusu && (
-        <div className="bk-ortu">
-          <div className="bk-kart bk-soru-kutu">
-            <h3>Çıkmak istediğine emin misin?</h3>
-            <div style={{ display: "flex", gap: 10, marginTop: 14 }}>
-              <button className="bk-dugme acik" style={{ flex: 1 }} onClick={() => setCikisSorusu(false)}>
-                Vazgeç
-              </button>
-              <button className="bk-dugme kirmizi" style={{ flex: 1 }} onClick={() => router.push(geriYolu)}>
-                Çıkış Yap
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {cikisSorusu && <CikisOnayi onVazgec={() => setCikisSorusu(false)} onCik={() => router.push(geriYolu)} />}
     </div>
   );
 }
@@ -268,30 +256,22 @@ function Sayfa({
           ))}
         </div>
 
-        <p className="bk-soluk" style={{ fontSize: 13, textAlign: "center", margin: "14px 0 0" }}>
+        <p className="bk-quiz-sayfa">
           Sayfa {sayfa + 1}/{sayfaSayisi}
         </p>
       </div>
 
       {/* Test ekranıyla aynı alt bant: kontrol edilince yeşil "Doğru" bandı düğmenin arkasından çıkar */}
-      <div
-        className={`bk-alt-bant${kontrolEdildi ? " dogru" : ""}`}
-        data-gorunur={kontrolEdildi ? "true" : undefined}
-        key={kontrolEdildi ? "bant-dogru" : "bant"}
-      >
-        {kontrolEdildi && <div className="bk-alt-bant-yazi">Doğru</div>}
-        <button
-          className="bk-eylem"
-          data-ton={kontrolEdildi ? "dogru" : undefined}
-          disabled={!hepsiDogru}
-          onClick={() => {
-            if (kontrolEdildi) onSonraki();
-            else { sesCal("dogru"); setKontrolEdildi(true); }
-          }}
-        >
-          {kontrolEdildi ? "Devam Et" : "Kontrol Et"}
-        </button>
-      </div>
+      <AltSonucBandi gorunur={kontrolEdildi} dogru />
+      <AksiyonDugmesi
+        etiket={kontrolEdildi ? "Devam Et" : "Kontrol Et"}
+        etkin={hepsiDogru}
+        ton={kontrolEdildi ? "dogru" : "normal"}
+        onClick={() => {
+          if (kontrolEdildi) onSonraki();
+          else { sesCal("dogru"); setKontrolEdildi(true); }
+        }}
+      />
     </>
   );
 }

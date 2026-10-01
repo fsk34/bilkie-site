@@ -10,6 +10,7 @@ import { useOturum } from "../../../lib/oturum";
 import { enIyiSkorOku, enIyiSkorYaz } from "../../../lib/veri";
 import { sesCal, sesleriOnYukle } from "../../ses";
 import Reklam from "../Reklam";
+import CikisOnayi from "../../CikisOnayi";
 
 const N = 4;
 
@@ -24,7 +25,8 @@ const RENK: Record<number, string> = {
 const tasRengi = (v: number) => RENK[v] ?? "#3C3A32";
 const yaziRengi = (v: number) => (v <= 4 ? "#776E65" : "#FFFFFF");
 /** Uygulamada 26 / 22 / 18 punto; web'de göz boyutuna oranlanır (77.5px göze göre). */
-const yaziOrani = (v: number) => (v >= 1024 ? 0.232 : v >= 128 ? 0.284 : 0.335);
+// Android: sabit 26/22/18 sp (eskiden tahta boyuna orantılıydı)
+const yaziBoyu = (v: number) => (v >= 1024 ? 18 : v >= 128 ? 22 : 26);
 
 let sonrakiId = 0;
 
@@ -221,20 +223,22 @@ export default function Oyun2048() {
     if (!b || kilitli) return;
     const dx = e.clientX - b.x;
     const dy = e.clientY - b.y;
-    if (Math.max(Math.abs(dx), Math.abs(dy)) < 40) return;   // uygulamadaki minimumDistance
+    // Android eşiği 40 PİKSEL (≈13 CSS px); 40 CSS px kısa kaydırmaları kaçırıyordu
+    if (Math.max(Math.abs(dx), Math.abs(dy)) < 13) return;
     hamle(Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? "sag" : "sol") : (dy > 0 ? "asagi" : "yukari"));
   };
 
   return (
     <div className="bk">
-      <div className="bk-oyun-sahne">
+      {/* Android: kaydırma ekranın TAMAMINDA algılanır (eskiden yalnız tahtada) */}
+      <div className="bk-oyun-sahne bk-t2048-sahne" onPointerDown={basildi} onPointerUp={birakildi}>
         <div className="bk-oyun-ust">
           <button
             className="bk-oyun-geri"
             aria-label="Geri"
-            onClick={() => (kilitli ? cik() : setCikisSor(true))}
+            onClick={() => setCikisSor(true)}   // Android: "←", her zaman onay
           >
-            ‹
+            ←
           </button>
           <div className="bk-oyun-ad">2048</div>
           <button className="bk-oyun-yeni" onClick={yeniOyun}>Yeni</button>
@@ -248,8 +252,6 @@ export default function Oyun2048() {
         <div
           ref={tahtaRef}
           className="bk-t2048"
-          onPointerDown={basildi}
-          onPointerUp={birakildi}
         >
           {Array.from({ length: N * N }, (_, i) => (
             <div
@@ -274,8 +276,8 @@ export default function Oyun2048() {
       {kazandi && !devam && (
         <div className="bk-oyun-ortu">
           <div className="govde">
-            <div style={{ fontSize: 48, fontWeight: 700, color: "#EDC22E" }} className="baslik">2048!</div>
-            <div style={{ fontSize: 22 }} className="baslik">Tebrikler!</div>
+            <div style={{ fontSize: 48, fontWeight: 700, color: "#EDC22E" }}>2048!</div>
+            <div style={{ fontSize: 22 }}>Tebrikler!</div>
             <div className="bk-oyun-dugmeler">
               <button className="bk-oyun-dugme" onClick={yeniOyun}>Yeni Oyun</button>
               <button className="bk-oyun-dugme sari" onClick={() => setDevam(true)}>Devam Et</button>
@@ -287,8 +289,8 @@ export default function Oyun2048() {
       {bitti && (
         <div className="bk-oyun-ortu">
           <div className="govde">
-            <div style={{ fontSize: 32, fontWeight: 700 }} className="baslik">OYUN BİTTİ</div>
-            <div style={{ fontSize: 20, color: "#EDC22E" }} className="baslik">Skor: {skor}</div>
+            <div style={{ fontSize: 32, fontWeight: 700 }}>OYUN BİTTİ</div>
+            <div style={{ fontSize: 20, color: "#EDC22E" }}>Skor: {skor}</div>
             <div className="bk-oyun-dugmeler">
               <button className="bk-oyun-dugme beyaz" onClick={yeniOyun}>Tekrar Oyna</button>
             </div>
@@ -296,18 +298,7 @@ export default function Oyun2048() {
         </div>
       )}
 
-      {cikisSor && (
-        <div className="bk-oyun-ortu hafif" onClick={() => setCikisSor(false)}>
-          <div className="bk-oyun-onay" onClick={(e) => e.stopPropagation()}>
-            <div className="sor">Çıkmak istiyor musun?</div>
-            <div className="not">İlerleme kaydedilmeyecek.</div>
-            <div className="ikili">
-              <button className="hayir" onClick={() => setCikisSor(false)}>Hayır</button>
-              <button className="evet" onClick={cik}>Evet, Çık</button>
-            </div>
-          </div>
-        </div>
-      )}
+      {cikisSor && <CikisOnayi onVazgec={() => setCikisSor(false)} onCik={cik} />}
     </div>
   );
 }
@@ -329,9 +320,14 @@ function TasGorunumu({ tas }: { tas: Tas }) {
   // Birleşme "pop"u — uygulamadaki mergeGen değişimindeki yay animasyonu.
   useEffect(() => {
     if (ilk.current) { ilk.current = false; return; }
+    // Android: snapTo(0.82) → tween(90) 1.18 → spring(dampingRatio .55, stiffness 700) 1
     ref.current?.animate(
-      [{ transform: "scale(1)" }, { transform: "scale(1.18)" }, { transform: "scale(1)" }],
-      { duration: 300, easing: "cubic-bezier(.2,1.5,.4,1)" }
+      [
+        { transform: "scale(.82)", easing: "cubic-bezier(.4,0,.2,1)" },
+        { transform: "scale(1.18)", offset: 0.3, easing: "cubic-bezier(.3,1.6,.5,1)" },
+        { transform: "scale(1)" },
+      ],
+      { duration: 300 }
     );
   }, [tas.birlesme]);
 
@@ -344,7 +340,7 @@ function TasGorunumu({ tas }: { tas: Tas }) {
         ...goze(tas.satir, tas.sutun),
         background: tasRengi(tas.deger),
         color: yaziRengi(tas.deger),
-        fontSize: `calc(var(--goz) * ${yaziOrani(tas.deger)})`,
+        fontSize: yaziBoyu(tas.deger),
       }}
     >
       {tas.deger}

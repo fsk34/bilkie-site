@@ -14,6 +14,10 @@ import { DUNYALAR, dunyaBul } from "./dunyalar";
 import { useOturum } from "../../../lib/oturum";
 import { KG_BOLUM_SAYISI, kgBolum, kgSeviyeOku, kgSeviyeYaz, type KgBolum } from "../../../lib/veri";
 import { sesCal, type SesAdi, sesleriOnYukle } from "../../ses";
+import CikisOnayi from "../../CikisOnayi";
+import MIkon from "../../MIkon";
+import Lottie from "../../Lottie";
+import { onbellektenOku } from "../../../lib/onbellek";
 
 /** Harf seçildikçe çalan nota dizisi — Android noteIds sırası. */
 const NOTALAR: SesAdi[] = [
@@ -105,10 +109,10 @@ export default function KelimeGezmece() {
     <div className="bk">
       <div className="bk-kg-hub">
         <div className="bk-kg-ust">
-          <button className="bk-wl-geri duz" aria-label="Geri" onClick={cik}>←</button>
+          <button className="bk-kg-geri" aria-label="Geri" onClick={cik}>←</button>
           <b>Kelime Gezmece</b>
           <button className="ses" aria-label="Ses" onClick={() => setSesAcik((v) => !v)}>
-            {sesAcik ? "🔔" : "🔕"}
+            <MIkon ad={sesAcik ? "zil" : "zilKapali"} boy={22} renk="rgba(255,255,255,.85)" />
           </button>
         </div>
 
@@ -183,6 +187,16 @@ function Oyun({
   useEffect(() => { setUcretsizIpucu(ucretsizIpucuVarMi()); }, []);
 
   const yukle = useCallback(() => {
+    // Android prefetch: sonraki bölüm bitiş kartı sırasında çekildiyse yükleniyor ekranı gösterilmez
+    const hazir = onbellektenOku<KgBolum | null>(`kg:${anahtar}`);
+    if (hazir) {
+      setBulunan([]); setBonusBulunan([]); setIpucuKelimeleri([]);
+      setParlayan(null); setSuanki(""); setBildirim(null);
+      setTamamlandi(false); setKutlamaKarti(false); setDevamGorunur(false);
+      setBolum(hazir); setHarfler(karistir(hazir.harfler).map((h, i) => ({ id: i, harf: h })));
+      setHata(false); setYukleniyor(false);
+      return;
+    }
     setYukleniyor(true); setHata(false);
     setBulunan([]); setBonusBulunan([]); setIpucuKelimeleri([]);
     setParlayan(null); setSuanki(""); setBildirim(null);
@@ -261,6 +275,8 @@ function Oyun({
   useEffect(() => {
     if (!tamamlandi) return;
     if (sesAcik) sesCal("levelcompleted", 0.6);
+    // Android: sonraki bölüm tamamlama animasyonu sırasında arkada çekilir
+    if (bolumNo < KG_BOLUM_SAYISI) void kgBolum(`level_${bolumNo + 1}`).catch(() => {});
     setCubukDolum(Math.min(1, (bolumNo - dunya.bas) / 10));
     const z1 = window.setTimeout(() => setKutlamaKarti(true), 400);
     const z2 = window.setTimeout(() => setCubukDolum(Math.min(1, (bolumNo - dunya.bas + 1) / 10)), 750);
@@ -285,9 +301,12 @@ function Oyun({
         <div className="ortu" />
         <div className="icerik">
           <div className="bk-kg-ust">
-            <button className="bk-wl-geri duz" aria-label="Geri" onClick={() => setCikisSor(true)}>←</button>
-            <b>{dunya.ad} · Bölüm {bolumNo}</b>
-            <button className="ses" aria-label="Ses" onClick={onSesDegis}>{sesAcik ? "🔔" : "🔕"}</button>
+            {/* Android: oyunda başlık yok — yalnız "←" ve zil (28dp) */}
+            <button className="bk-kg-geri" aria-label="Geri" onClick={() => setCikisSor(true)}>←</button>
+            <span style={{ flex: 1 }} />
+            <button className="ses oyun" aria-label="Ses" onClick={onSesDegis}>
+              <MIkon ad={sesAcik ? "zil" : "zilKapali"} boy={28} renk="rgba(255,255,255,.85)" />
+            </button>
           </div>
 
           {yukleniyor ? (
@@ -300,6 +319,7 @@ function Oyun({
           ) : (
             <>
               <Bulmaca
+                key={`b-${anahtar}`}
                 bolum={bolum}
                 bulunan={bulunan}
                 ipucuKelimeleri={ipucuKelimeleri}
@@ -315,7 +335,7 @@ function Oyun({
                 })()}
               </div>
 
-              <div className="bk-kg-cark-kap">
+              <div className="bk-kg-cark-kap" key={`c-${anahtar}`}>
                 <Carkifelek
                   key={anahtar}
                   harfler={harfler}
@@ -336,7 +356,10 @@ function Oyun({
                     return y;
                   })}
                 >
-                  ⇄
+                  <svg width="22" height="22" viewBox="0 0 22 22" aria-hidden fill="none" stroke="rgba(255,255,255,.7)" strokeWidth="2.2" strokeLinecap="round">
+                    {/* Android: kendi çizdiği çapraz oklar (22dp, 2.2dp, beyaz %70) */}
+                    <path d="M2.64 4.84 19.36 17.16 M19.36 17.16 14.08 16.72 M19.36 17.16 18.92 11.88 M2.64 17.16 19.36 4.84 M19.36 4.84 14.08 5.28 M19.36 4.84 18.92 10.12" />
+                  </svg>
                 </button>
               </div>
             </>
@@ -344,8 +367,9 @@ function Oyun({
         </div>
       </div>
 
+      {tamamlandi && <Lottie ad="confetti" tekrar={2} className="bk-kg-konfeti" />}
       {kutlamaKarti && (
-        <div className="bk-oyun-ortu">
+        <div className="bk-kg-kutlama-ortu">
           <div className="bk-kg-kutlama">
             <div className="bas"><span className="tik">✓</span><b>Bölüm {bolumNo} Tamamlandı!</b></div>
             <span className="alt">{dunya.ad}&nbsp;&nbsp;·&nbsp;&nbsp;{yapilan} / 10</span>
@@ -371,18 +395,7 @@ function Oyun({
         </div>
       )}
 
-      {cikisSor && (
-        <div className="bk-oyun-ortu hafif" onClick={() => setCikisSor(false)}>
-          <div className="bk-oyun-onay" onClick={(e) => e.stopPropagation()}>
-            <div className="sor">Çıkmak istiyor musun?</div>
-            <div className="not">İlerleme kaydedilmeyecek.</div>
-            <div className="ikili">
-              <button className="hayir" onClick={() => setCikisSor(false)}>Hayır</button>
-              <button className="evet" onClick={onHub}>Evet, Çık</button>
-            </div>
-          </div>
-        </div>
-      )}
+      {cikisSor && <CikisOnayi onVazgec={() => setCikisSor(false)} onCik={onHub} />}
     </div>
   );
 }
@@ -416,7 +429,11 @@ function Bulmaca({
   return (
     <div
       className="bk-kg-bulmaca"
-      style={{ gridTemplateColumns: `repeat(${sutun}, 1fr)`, maxWidth: `${sutun * 49}px` }}
+      style={{
+        gridTemplateColumns: `repeat(${sutun}, 1fr)`, maxWidth: `${sutun * 49 + 32}px`,
+        // Android: hücre = min(46, (genişlik − 3·(n−1)) / n); yazı = hücre × 0.38
+        ["--kg-goz" as string]: `min(46px, calc((min(100vw, ${sutun * 49 + 32}px) - 32px - ${(sutun - 1) * 3}px) / ${sutun}))`,
+      }}
     >
       {Array.from({ length: satir * sutun }, (_, i) => {
         const r = Math.floor(i / sutun);

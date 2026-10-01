@@ -138,7 +138,8 @@ export default function Carkifelek({ harfler, onKelime, onDegisti, onNota }: Pro
     // Harfler
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.font = `700 ${Math.round(harfR * 1.2)}px "bk-main", system-ui, sans-serif`;
+    // Android: Typeface.DEFAULT_BOLD (Roboto kalın) 34sp
+    ctx.font = `700 ${Math.round(harfR * 1.2)}px system-ui, Roboto, sans-serif`;
     pos.forEach(([px, py], i) => {
       if (seciliRef.current.includes(i)) {
         ctx.fillStyle = "#4A7BFF";

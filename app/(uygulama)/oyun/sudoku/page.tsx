@@ -1,6 +1,8 @@
 "use client";
 
 import UcNokta from "../../UcNokta";
+import CikisOnayi from "../../CikisOnayi";
+import MIkon from "../../MIkon";
 
 // Sudoku — Android `SudokuScreen.kt` portu. Zorluk seçimi → 10 bölüm → oyun.
 // Puanlama, hata hakkı (3 kalp), not kipi, geri al, ipucu ve yıldız eşikleri birebir.
@@ -120,9 +122,9 @@ export default function Sudoku() {
       <div className="bk">
         <div className="bk-sdk-secim">
           <div className="bk-sdk-ust-secim">
-            <button className="bk-wl-geri duz" aria-label="Geri" onClick={cik}>←</button>
+            <button className="bk-sdk-ikon-dugme" aria-label="Geri" onClick={cik}><MIkon ad="geri" renk="#fff" /></button>
             <b>Sudoku</b>
-            <span style={{ width: 40 }} />
+            <span style={{ width: 48 }} />
           </div>
           <p className="bk-soluk" style={{ marginTop: 40, fontSize: 14, textAlign: "center" }}>
             Bölümlerin hesabınla saklanıyor. Oynamak için giriş yapman gerekiyor.
@@ -153,9 +155,9 @@ export default function Sudoku() {
     <div className="bk">
       <div className="bk-sdk-secim">
         <div className="bk-sdk-ust-secim">
-          <button className="bk-wl-geri duz" aria-label="Geri" onClick={cik}>←</button>
+          <button className="bk-sdk-ikon-dugme" aria-label="Geri" onClick={cik}><MIkon ad="geri" renk="#fff" /></button>
           <b>Sudoku</b>
-          <span style={{ width: 40 }} />
+          <span style={{ width: 48 }} />
         </div>
 
         {asama === "yukleniyor" ? (
@@ -485,13 +487,13 @@ function Oyun({
     <div className="bk">
       <div className="bk-sdk">
         <div className="bk-sdk-ust">
-          <button className="geri" aria-label="Geri" onClick={() => setCikisSor(true)}>←</button>
+          <button className="bk-sdk-ikon-dugme" aria-label="Geri" onClick={() => setCikisSor(true)}><MIkon ad="geri" renk="#1A1A3E" /></button>
           <span className="rozet" style={{ background: `${z.renk}26`, color: z.renk }}>{z.ad}</span>
           <span style={{ flex: 1 }} />
           <span className="sure">{sureMetni(saniye)}</span>
           <span className="kalpler">
             {[0, 1, 2].map((i) => (
-              <span key={i} style={{ color: i < hata ? "#BBBBCC" : "#FF3B30" }}>{i < hata ? "♡" : "♥"}</span>
+              <MIkon key={i} ad={i < hata ? "kalpBos" : "kalp"} boy={20} renk={i < hata ? "#BBBBCC" : "#FF3B30"} />
             ))}
           </span>
         </div>
@@ -535,11 +537,12 @@ function Oyun({
         <div className="bk-sdk-bildirim">{bildirim && <span>{bildirim}</span>}</div>
 
         <div className="bk-sdk-eylemler">
-          <button disabled={gecmis.length === 0} onClick={geriAl}><b>↺</b><span>Geri Al</span></button>
-          <button onClick={sil}><b>⌫</b><span>Sil</span></button>
-          <button data-aktif={notKipi} onClick={() => setNotKipi((v) => !v)}><b>✎</b><span>Not</span></button>
+          {/* Android Material ikonları (32dp): Undo · Backspace · Create · Lightbulb */}
+          <button disabled={gecmis.length === 0} onClick={geriAl}><MIkon ad="geriAl" boy={32} /><span>Geri Al</span></button>
+          <button onClick={sil}><MIkon ad="sil" boy={32} /><span>Sil</span></button>
+          <button data-aktif={notKipi} onClick={() => setNotKipi((v) => !v)}><MIkon ad="kalem" boy={32} /><span>Not</span></button>
           <button className="ipucu" onClick={ipucu}>
-            <b style={{ color: "#FFD700" }}>💡</b><span>İpucu</span>
+            <MIkon ad="ampul" boy={32} renk="#FFD700" /><span>İpucu</span>
             {ucretsizIpucu && <i className="hak">1</i>}
           </button>
         </div>
@@ -562,7 +565,7 @@ function Oyun({
       </div>
 
       {kazandi && (
-        <div className="bk-oyun-ortu">
+        <div className="bk-oyun-ortu" style={{ background: "rgba(0,0,0,.8)" }}>
           <div className="bk-sdk-lottie"><Lottie ad="confetti" /></div>
           <div className="bk-sdk-sonuc">
             <div style={{ fontSize: 48 }}>🎉</div>
@@ -586,8 +589,8 @@ function Oyun({
       )}
 
       {bitti && (
-        <div className="bk-oyun-ortu">
-          <div className="bk-sdk-sonuc">
+        <div className="bk-oyun-ortu" style={{ background: "rgba(0,0,0,.8)" }}>
+          <div className="bk-sdk-sonuc" data-bitti>
             <div style={{ fontSize: 52 }}>💔</div>
             <b>Oyun Bitti!</b>
             <span>3 hata yaptın.</span>
@@ -609,18 +612,7 @@ function Oyun({
         </div>
       )}
 
-      {cikisSor && (
-        <div className="bk-oyun-ortu hafif" onClick={() => setCikisSor(false)}>
-          <div className="bk-oyun-onay" onClick={(e) => e.stopPropagation()}>
-            <div className="sor">Çıkmak istiyor musun?</div>
-            <div className="not">İlerleme kaydedilmeyecek.</div>
-            <div className="ikili">
-              <button className="hayir" onClick={() => setCikisSor(false)}>Hayır</button>
-              <button className="evet" onClick={onCik}>Evet, Çık</button>
-            </div>
-          </div>
-        </div>
-      )}
+      {cikisSor && <CikisOnayi onVazgec={() => setCikisSor(false)} onCik={onCik} />}
     </div>
   );
 }

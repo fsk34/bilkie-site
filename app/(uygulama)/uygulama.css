@@ -631,7 +631,8 @@
 
 /* Oyun merkezi — iOS GamesHubScreen: kart #0E1A3A / çerçeve #1E3060 / köşe 20,
    iç boşluk 20, 72px ikon (köşe 14), başlık main 16 kalın, alt yazı main 13 #6A7AAA. */
-.bk-oyun-baslik { font-size: 22px; font-weight: 700; text-align: center; margin: 8px 0 16px; }
+/* Android: MainFont kalın 22, altında 28 boşluk */
+.bk-oyun-baslik { font-family: "bk-main", system-ui, sans-serif; font-size: 22px; font-weight: 700; text-align: center; margin: 8px 0 28px; }
 .bk-oyun-liste { display: grid; gap: 12px; }
 .bk-oyun-kart {
   display: flex; align-items: center; gap: 16px; width: 100%; box-sizing: border-box;
@@ -664,16 +665,16 @@
 .bk-oyun-ad { flex: 1; text-align: center; font-size: 28px; font-weight: 700; color: #edc22e; }
 .bk-oyun-yeni {
   border: 0; border-radius: 12px; background: var(--oyun-kart); color: #fff; cursor: pointer;
-  font-family: "bk-baslik", system-ui, sans-serif; font-size: 13px; font-weight: 700;
+  font-family: "bk-main", system-ui, sans-serif; font-size: 13px; font-weight: 700;
   padding: 10px 14px;
 }
 .bk-oyun-skorlar { display: flex; gap: 12px; width: 100%; max-width: 520px; margin-bottom: 20px; }
 .bk-oyun-skor {
   flex: 1; text-align: center; padding: 10px 0; border-radius: 14px; background: #3a2a00;
-  font-family: "bk-baslik", system-ui, sans-serif;
+  font-family: "bk-main", system-ui, sans-serif;
 }
 .bk-oyun-skor span { display: block; font-size: 11px; font-weight: 700; color: #bbaa88; }
-.bk-oyun-skor b { display: block; font-size: 20px; font-weight: 700; margin-top: 2px; }
+.bk-oyun-skor b { display: block; font-size: 20px; font-weight: 700; }
 
 .bk-t2048 {
   /* Uygulamada tahta = min(genişlik, yükseklik) - 40; web'de pencereye uyar.
@@ -688,16 +689,18 @@
 .bk-t2048-goz, .bk-t2048-tas { position: absolute; border-radius: 8px; }
 .bk-t2048-goz { background: #1e2e58; }
 .bk-t2048-tas {
-  display: grid; place-items: center; font-family: "bk-baslik", system-ui, sans-serif;
-  font-weight: 700; transition: left .13s ease-out, top .13s ease-out;
+  display: grid; place-items: center; font-family: "bk-main", system-ui, sans-serif;
+  /* Android: animateFloatAsState tween(110, FastOutSlowIn) */
+  font-weight: 700; transition: left .11s cubic-bezier(.4, 0, .2, 1), top .11s cubic-bezier(.4, 0, .2, 1);
 }
+.bk-t2048-sahne { touch-action: none; user-select: none; }
 .bk-t2048-tas[data-yeni="true"] { animation: bk-t2048-gir .25s cubic-bezier(.2, 1.5, .4, 1) both; }
 @keyframes bk-t2048-gir { from { transform: scale(0); } to { transform: scale(1); } }
 .bk-oyun-ipucu { margin-top: 12px; font-size: 13px; color: var(--oyun-soluk); text-align: center; }
 
 .bk-oyun-ortu {
   position: fixed; inset: 0; z-index: 70; display: grid; place-items: center; padding: 32px;
-  background: rgba(0, 0, 0, .75);
+  background: rgba(0, 0, 0, calc(187 / 255));   /* Android 0xBB000000 */
 }
 .bk-oyun-ortu.hafif { background: rgba(0, 0, 0, .5); }
 .bk-oyun-ortu .govde { display: grid; justify-items: center; gap: 12px; text-align: center; position: relative; }
@@ -706,7 +709,7 @@
 .bk-oyun-dugmeler { display: flex; gap: 12px; margin-top: 4px; }
 .bk-oyun-dugme {
   border: 0; border-radius: 14px; cursor: pointer; padding: 12px 24px;
-  font-family: "bk-baslik", system-ui, sans-serif; font-size: 16px; font-weight: 700;
+  font-family: "bk-main", system-ui, sans-serif; font-size: 16px; font-weight: 700;
   background: #3a2a00; color: #fff;
 }
 .bk-oyun-dugme.sari { background: #edc22e; color: #000; }
@@ -738,8 +741,8 @@
 .bk-bb {
   position: relative; min-height: 100vh; box-sizing: border-box;
   display: flex; flex-direction: column; align-items: center;
-  padding: 8px 0 24px; color: #fff;
-  transition: background .4s ease-in-out; touch-action: none; user-select: none;
+  padding: 0 0 24px; color: #fff;   /* Android: üstte fazladan boşluk yok */
+  transition: background .4s cubic-bezier(.4, 0, .2, 1); touch-action: none; user-select: none;
 }
 .bk-bb-ust {
   position: relative; width: 100%; padding: 10px 8px; box-sizing: border-box;
@@ -750,7 +753,7 @@
 .bk-bb-ust .sag span { font-size: 10px; font-weight: 700; color: rgba(255,255,255,.5); }
 .bk-bb-ust .orta b {
   font-family: "bk-sayilar", system-ui, sans-serif; font-size: 28px; font-weight: 400;
-  transition: transform .22s ease-out;
+  transition: transform .22s cubic-bezier(.4, 0, .2, 1);   /* Android tween(220, FastOutSlowIn) */
 }
 .bk-bb-ust .orta b[data-zipla="true"] { transform: scale(1.35); transition: none; }
 .bk-bb-ust .sag {
@@ -761,7 +764,8 @@
 
 .bk-bb-izgara {
   /* tahta = ekranın %94'ü, ama üst bar + rozet + tepsi + ipucu için yer bırak */
-  width: min(94vw, 560px, calc(100vh - 300px));
+  /* Android fillMaxWidth(0.94f) 2dp kenarlık DAHİL */
+  width: calc(min(94vw, 560px, calc(100vh - 300px)) - 4px);
   padding: 2px; margin-top: 6px; box-sizing: content-box;
   background: #2a3f70;
 }
@@ -770,10 +774,7 @@
 .bk-bb-rozet {
   height: 36px; display: grid; place-items: center; width: 100%;
 }
-.bk-bb-rozet span {
-  font-size: 20px; font-weight: 700;
-  animation: bk-bb-rozet .3s cubic-bezier(.2, 1.5, .4, 1) both;
-}
+.bk-bb-rozet span { font-weight: 700; display: inline-block; }   /* boy/süre/ölçek türe göre satır içi (Android) */
 @keyframes bk-bb-rozet { from { transform: scale(.85); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 
 .bk-bb-tepsi {
@@ -784,18 +785,21 @@
 .bk-bb-tepsi canvas { display: block; }
 
 .bk-bb-geri {
-  position: absolute; left: 8px; top: 8px; width: 44px; height: 44px;
+  position: absolute; left: 8px; top: 10px; width: 44px; height: 44px;
   border: 0; background: none; color: #fff; font-size: 22px; cursor: pointer;
 }
 .bk-bb-popup {
-  position: absolute; left: 50%; top: 42%; transform: translate(-50%, -50%);
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
   font-size: 30px; font-weight: 700; color: #ffd740; pointer-events: none;
-  animation: bk-bb-popup .7s ease-out both;
+  animation: bk-bb-popup 1.03s linear both;
 }
+/* Android: a 0→1 (180 ms) · 500 ms bekle · 1→0 (350 ms); translationY = −(1−a)·70 PİKSEL (≈25 CSS px)
+   → yukarıdan inerek gelir, çıkarken yükselir; ekranın ortasında */
 @keyframes bk-bb-popup {
-  0% { opacity: 0; transform: translate(-50%, -50%); }
-  25% { opacity: 1; transform: translate(-50%, -50%); }
-  100% { opacity: 0; transform: translate(-50%, calc(-50% - 70px)); }
+  0%     { opacity: 0; transform: translate(-50%, calc(-50% - 25px)); animation-timing-function: cubic-bezier(.4,0,.2,1); }
+  17.5%  { opacity: 1; transform: translate(-50%, -50%); }
+  66%    { opacity: 1; transform: translate(-50%, -50%); animation-timing-function: cubic-bezier(.4,0,.2,1); }
+  100%   { opacity: 0; transform: translate(-50%, calc(-50% - 25px)); }
 }
 
 /* Parçacıklar + sürüklenen parça — tıklamayı geçirir */
@@ -848,16 +852,18 @@
 }
 
 .bk-wl-izgara {
+  /* Android: fillMaxWidth(0.78f).padding(horizontal = 4.dp) — kutu boyuna üst sınır yok */
   display: grid; gap: 6px; margin-top: 16px;
-  width: min(78vw, 340px);
+  width: calc(min(78vw, 440px) - 8px);
 }
 .bk-wl-izgara .satir { display: grid; gap: 6px; }
-.bk-wl-izgara .satir[data-sallan="true"] { animation: bk-wl-salla .3s linear; }
+.bk-wl-izgara .satir[data-sallan="true"] { animation: bk-wl-salla .35s cubic-bezier(.4, 0, .2, 1); }
+/* Android: 3 × (10 → −10, 50'şer ms) + 0'a 50 ms; translationX PİKSEL → 10/2.75 ≈ 3.6 CSS px */
 @keyframes bk-wl-salla {
   0%, 100% { transform: translateX(0); }
-  16% { transform: translateX(10px); } 33% { transform: translateX(-10px); }
-  50% { transform: translateX(10px); } 66% { transform: translateX(-10px); }
-  83% { transform: translateX(10px); }
+  14.3% { transform: translateX(3.6px); } 28.6% { transform: translateX(-3.6px); }
+  42.9% { transform: translateX(3.6px); } 57.1% { transform: translateX(-3.6px); }
+  71.4% { transform: translateX(3.6px); } 85.7% { transform: translateX(-3.6px); }
 }
 .bk-wl-izgara .goz {
   aspect-ratio: 1; border-radius: 8px; display: grid; place-items: center;
@@ -902,7 +908,7 @@
   flex: 1; min-width: 0; height: 52px; border: 0; border-radius: 6px; cursor: pointer;
   background: #4a5a7a; color: #fff;
   font-family: "bk-main", system-ui, sans-serif; font-size: 15px; font-weight: 700;
-  transition: background-color .3s;
+  transition: background-color .3s cubic-bezier(.4, 0, .2, 1);   /* Android tween(300) */
 }
 .bk-wl-klavye .tus[data-durum="dogru"]   { background: #538d4e; }
 .bk-wl-klavye .tus[data-durum="yerinde"] { background: #b59f3b; }
@@ -912,11 +918,8 @@
 .bk-wl-klavye .tus.sil { background: #7a2020; }
 .bk-wl-klavye .tus.gir { background: #1b7a3a; }
 
-@media (max-width: 420px) {
-  .bk-wl-baslik { font-size: 42px; }
-  .bk-wl-klavye .tus { height: 46px; font-size: 13px; }
-  .bk-wl-klavye .ikili { height: 60px; }
-}
+/* Dar ekranda küçültme KALDIRILDI (1 Eki 2026): telefonların neredeyse hepsi ≤420px olduğundan web'de
+   Wordle hep Android'den küçüktü (başlık 42/54, tuş 46/52). Android tüm telefonlarda 54 · 52/15 · 68. */
 
 /* ----------------------------------------------------------------- sudoku */
 /* Android SudokuScreen.kt: seçili göz #D4E0FF · aynı sayı #E8DFFF · vurgu #F0F0FF ·
@@ -956,10 +959,11 @@
   display: flex; align-items: center; gap: 8px;
   width: 100%; max-width: 560px; padding: 4px; box-sizing: border-box;
 }
-.bk-sdk-ust .geri { width: 40px; height: 40px; border: 0; background: none; color: #1a1a3e; font-size: 20px; cursor: pointer; }
+/* Android IconButton: 48dp dokunma alanı, ortada 24dp Material ikon, zeminsiz */
+.bk-sdk-ikon-dugme { width: 48px; height: 48px; flex: 0 0 48px; display: grid; place-items: center; border: 0; background: none; padding: 0; cursor: pointer; }
 .bk-sdk-ust .rozet { border-radius: 8px; padding: 4px 10px; font-size: 12px; font-weight: 700; }
 .bk-sdk-ust .sure { color: #6670aa; font-size: 14px; }
-.bk-sdk-ust .kalpler { display: flex; gap: 4px; font-size: 18px; padding-right: 8px; }
+.bk-sdk-ust .kalpler { display: flex; gap: 4px; padding-right: 8px; }
 .bk-sdk-puan { color: #787ff9; font-size: 20px; font-weight: 700; padding: 6px 0; }
 
 .bk-sdk-tahta {
@@ -970,7 +974,7 @@
 .bk-sdk-tahta .goz {
   position: relative; border: 0; cursor: pointer; background: transparent;
   border-right: 0.7px solid #ccccdd; border-bottom: 0.7px solid #ccccdd;
-  font-family: "bk-main", system-ui, sans-serif; font-size: min(22px, 4.6vw); color: #4a7cff;
+  font-family: "bk-main", system-ui, sans-serif; font-size: 22px; color: #4a7cff;   /* Android sabit 22sp */
   display: grid; place-items: center; padding: 0;
 }
 .bk-sdk-tahta .goz[data-sag="true"] { border-right: 2px solid #787ff9; }
@@ -986,7 +990,7 @@
 }
 .bk-sdk-tahta .notlar > i {
   display: grid; place-items: center; font-style: normal;
-  font-size: min(8px, 1.9vw); color: #9999bb;
+  font-family: "bk-main", system-ui, sans-serif; font-size: 8px; color: #9999bb;
 }
 
 .bk-sdk-bildirim { height: 28px; display: grid; place-items: center; width: 100%; padding: 0 20px; box-sizing: border-box; }
@@ -1006,11 +1010,12 @@
   border: 0; background: none; color: #fff; cursor: pointer; padding: 6px 14px;
   font-family: "bk-main", system-ui, sans-serif; font-size: 13px;
 }
-.bk-sdk-eylemler button b { font-size: 26px; font-weight: 400; line-height: 1; }
+
 .bk-sdk-eylemler button:disabled { opacity: .3; cursor: default; }
 .bk-sdk-eylemler button[data-aktif="true"] { color: #787ff9; }
 .bk-sdk-eylemler .hak {
-  position: absolute; right: 4px; top: 0; width: 18px; height: 18px; border-radius: 50%;
+  /* Android: düğmenin sağ üst köşesi + (2, 2) dp */
+  position: absolute; right: -2px; top: 2px; width: 18px; height: 18px; border-radius: 50%;
   background: #ff6b00; color: #fff; font-style: normal; font-size: 11px; font-weight: 700;
   display: grid; place-items: center;
 }
@@ -1047,15 +1052,21 @@
   margin-top: 4px;
 }
 .bk-sdk-sonuc .ikincil {
+  width: 100%;   /* Android: satırın tamamı dokunulur */
   border: 0; background: none; color: #6670aa; cursor: pointer; padding: 6px 0;
   font-family: "bk-main", system-ui, sans-serif; font-size: 13px;
 }
+/* Oyun bitti kartı: Android aralık 12, "Zorluk Seç" 14 / dikey 8, başlık 24 */
+.bk-sdk-sonuc[data-bitti] { gap: 12px; }
+.bk-sdk-sonuc[data-bitti] b { font-size: 24px; }
+.bk-sdk-sonuc[data-bitti] > span { font-size: 15px; }
+.bk-sdk-sonuc[data-bitti] .ikincil { font-size: 14px; padding: 8px 0; }
 
 /* --------------------------------------------------------- kelime gezmece */
 /* Android GamesScreen.kt: dünya kartı 160px görsel + #151929E5 bant,
    bulmaca gözü beyaz %40 (bulununca #1D2645, ipucu #3D2800), çark #4A7BFF. */
 .bk-kg-hub {
-  min-height: 100vh; box-sizing: border-box; padding: 8px 0 24px;
+  min-height: 100vh; box-sizing: border-box; padding: 0 0 24px;
   display: flex; flex-direction: column; align-items: center;
   background: var(--zemin); color: #fff;
 }
@@ -1064,7 +1075,10 @@
   width: 100%; max-width: 560px; padding: 8px 12px 4px; box-sizing: border-box;
 }
 .bk-kg-ust b { flex: 1; text-align: center; font-size: 18px; font-weight: 700; }
-.bk-kg-ust .ses { width: 36px; height: 36px; border: 0; background: none; cursor: pointer; font-size: 18px; }
+.bk-kg-ust .ses { width: 36px; height: 36px; border: 0; background: none; cursor: pointer; display: grid; place-items: center; padding: 0; }
+.bk-kg-ust .ses.oyun { width: 28px; height: 28px; }
+/* Android: "←" metni 18sp, 36dp kutu, zeminsiz */
+.bk-kg-geri { width: 36px; height: 36px; flex: 0 0 36px; border: 0; background: none; color: #fff; font-size: 18px; cursor: pointer; padding: 0; font-family: system-ui, sans-serif; }
 
 .bk-kg-dunyalar {
   display: grid; gap: 12px; width: 100%; max-width: 520px; padding: 8px 16px; box-sizing: border-box;
@@ -1112,8 +1126,9 @@
 .bk-kg-bulmaca .goz {
   aspect-ratio: 1; border-radius: 6px; display: grid; place-items: center;
   background: rgba(255, 255, 255, .4); border: 1px solid rgba(255, 255, 255, .25);
-  font-weight: 700; font-size: min(18px, 3.6vw); color: #fff;
-  transition: background-color .35s, transform .25s;
+  font-weight: 700; font-size: calc(var(--kg-goz, 40px) * .38); color: #fff;
+  /* Android: zemin tween(350); parlama spring(MediumBouncy, Medium) */
+  transition: background-color .35s cubic-bezier(.4, 0, .2, 1), transform .3s cubic-bezier(.3, 1.6, .5, 1);
 }
 .bk-kg-bulmaca .goz[data-acik="true"]  { background: #1d2645; }
 .bk-kg-bulmaca .goz[data-ipucu="true"] { background: #3d2800; color: #ffb830; }
@@ -1140,11 +1155,28 @@
   color: rgba(255, 255, 255, .7); font-size: 22px;
 }
 
+/* Android: karartma YOK; kart yatayda 24 boşluk, köşe 24, #111827 α .94, iç 24/24/24/28;
+   giriş fadeIn 300 + alttan ¼ kayma 380 ms */
+.bk-kg-kutlama-ortu {
+  position: fixed; inset: 0; z-index: 70; display: grid; place-items: center; padding: 0 24px;
+  pointer-events: none;
+}
+.bk-kg-kutlama-ortu > * { pointer-events: auto; }
+.bk-kg-konfeti { position: fixed; inset: 0; z-index: 69; pointer-events: none; }
 .bk-kg-kutlama {
   display: grid; justify-items: center; gap: 14px; text-align: center;
-  background: #0e1a3a; border-radius: 20px; padding: 24px;
-  width: 100%; max-width: 340px; box-sizing: border-box;
+  background: rgba(17, 24, 39, calc(240 / 255)); border-radius: 24px; padding: 24px 24px 28px;
+  width: 100%; max-width: 460px; box-sizing: border-box;
+  animation: bk-kg-kart .38s cubic-bezier(.4, 0, .2, 1) both;
 }
+@keyframes bk-kg-kart { from { opacity: 0; transform: translateY(25%); } to { opacity: 1; transform: translateY(0); } }
+/* Android girisAnimasyonu: ızgara sağdan, çark soldan (900px ≈ 300dp) 480 ms FastOutSlowIn, alfa 300 ms */
+.bk-kg-bulmaca { animation: bk-kg-sag .48s cubic-bezier(.4, 0, .2, 1) both, bk-kg-alfa .3s cubic-bezier(.4, 0, .2, 1) both; }
+.bk-kg-cark-kap { animation: bk-kg-sol .48s cubic-bezier(.4, 0, .2, 1) .06s both, bk-kg-alfa .3s cubic-bezier(.4, 0, .2, 1) both; }
+@keyframes bk-kg-sag { from { transform: translateX(300px); } to { transform: translateX(0); } }
+@keyframes bk-kg-sol { from { transform: translateX(-300px); } to { transform: translateX(0); } }
+@keyframes bk-kg-alfa { from { opacity: 0; } to { opacity: 1; } }
+.bk-kg-oyun { overflow-x: hidden; }
 .bk-kg-kutlama .bas { display: flex; align-items: center; gap: 10px; }
 .bk-kg-kutlama .tik {
   width: 30px; height: 30px; border-radius: 50%; background: #2ecc71; color: #fff;
@@ -2594,6 +2626,8 @@ a.bk-konu-dugme:active { border-bottom-width: 3px; transform: translateY(4px); }
   min-height: 100vh; min-height: 100dvh; padding-bottom: 150px; /* bant + "Doğru" yazısı */
 }
 .bk-quiz .bk-test-ust { margin-bottom: 16px; }
+.bk-quiz .bk-cikis img { width: 28px; height: 28px; }   /* Android cikis 28dp */
+.bk-quiz-sayfa { font-family: system-ui, Roboto, sans-serif; font-size: 12px; letter-spacing: .4px; color: rgba(255,255,255,.65); text-align: center; margin: 16px 0 0; }
 .bk-quiz .bk-cikis { background: none; border: 0; padding: 0; cursor: pointer; }
 .bk-quiz-izgara { flex: 1; display: flex; flex-direction: column; gap: 12px; }
 /* Satır tavanı: masaüstünde 5 satır ekranı doldurunca kutular dev oluyor; telefonda
@@ -2607,17 +2641,30 @@ a.bk-konu-dugme:active { border-bottom-width: 3px; transform: translateY(4px); }
 .bk-quiz-kutu {
   position: relative; overflow: hidden; height: 100%; min-height: 58px; min-width: 0;
   padding: 10px 14px; border-radius: 16px; cursor: pointer; overflow-wrap: anywhere;
-  background: var(--kutu); border: 2px solid var(--kutu-cizgi); border-bottom-width: 5px;
-  color: var(--yazi); font-family: "bk-main", system-ui, sans-serif; font-size: 15px; line-height: 1.35;
+  /* Android: kenar rengi tüm kutu, yüzey 3dp içeride (altta 5dp kabartma); yazı bodyMedium Roboto 14 / .25 */
+  background: var(--kutu); border: 3px solid var(--kutu-cizgi); border-bottom-width: 5px;
+  color: var(--yazi); font-family: system-ui, Roboto, sans-serif; font-size: 14px; letter-spacing: .25px; line-height: 20px;
   display: grid; place-items: center; text-align: center;
   transition: opacity .25s;
 }
 .bk-quiz-kutu:hover:not([disabled]) { background: #22315a; }
-.bk-quiz-kutu[data-durum="secili"] { background: var(--secili); border-color: var(--secili-cizgi); }
-/* Android: kilitlenen çift alpha 0.52 — "bitti, artık dokunulmaz" */
-.bk-quiz-kutu[data-durum="dogru"]  { background: var(--yesil); border-color: var(--yesil-koyu); color: #06371c; opacity: .52; }
+/* Android: seçili kutunun YÜZEYİ değişmez (#1F2C4E), yalnız kenar #8085A7 */
+.bk-quiz-kutu[data-durum="secili"] { border-color: var(--secili-cizgi); }
+/* Android: kilitlenen çift alpha 0.52, yazı BEYAZ */
+.bk-quiz-kutu[data-durum="dogru"]  { background: var(--yesil); border-color: var(--yesil-koyu); color: #fff; opacity: .52; }
 .bk-quiz-kutu[data-durum="yanlis"] { background: var(--kirmizi); border-color: var(--kirmizi-koyu); }
-.bk-quiz-kutu[data-anim="dogru"]  { animation: bk-zipla .52s ease-out both; }
+.bk-quiz-kutu[data-anim="dogru"]  { animation: bk-quiz-zipla .52s ease-out both; }
+/* Android MatchTile: bounceY −8 PİKSEL (≈ −3 CSS px), ölçek 1.06 — bk-zipla'nın −8px'i 3 kat yüksekti */
+@keyframes bk-quiz-zipla {
+  0%   { transform: translateY(0) scale(1); }
+  17%  { transform: translateY(-3px) scale(1.06); }
+  45%  { transform: translateY(1px)  scale(.985); }
+  70%  { transform: translateY(-.4px) scale(1.008); }
+  100% { transform: translateY(0) scale(1); }
+}
+/* Android MatchTile'da parıltı yalnız bant (üçgen parçacık yok) */
+.bk-quiz-kutu .bk-parilti .ucgen { display: none; }
+.bk-quiz-kutu .bk-parilti { border-radius: 16px; }
 .bk-quiz-kutu[data-anim="yanlis"] { animation: bk-sarsil .405s linear both; }
 .bk-quiz-kutu:disabled { cursor: default; }
 /* Pasif kutular SOLMAZ: sağ sütun, soldan seçim yapılmadan önce zaten pasif;
@@ -3245,16 +3292,21 @@ html[data-bk-oturum="1"] .bk-oturum-sayfa[data-durum="bilinmiyor"] .bk-oturum-be
 .bk-ok-sahne .bk-bolum-goz { background: #e6e9f2; color: #2b3350; }
 .bk-ok-sahne .bk-bolum-goz[data-durum="bitti"] { background: #2b3350; color: #fff; }
 .bk-ok-sahne .bk-bolum-goz[data-durum="sirada"] { background: #edc22e; color: #000; }
-.bk-ok-hak { display: flex; align-items: center; gap: 6px; width: 60px; justify-content: flex-end; font-family: "bk-baslik", system-ui, sans-serif; font-size: 18px; color: #2b3350; }
+/* Android: hakicon 22 · 4 boşluk · MainFont kalın 18 */
+.bk-ok-hak { display: flex; align-items: center; gap: 4px; font-family: "bk-main", system-ui, sans-serif; font-size: 18px; font-weight: 700; color: #2b3350; }
+.bk-ok-hak b { font-weight: 700; }
+.bk-bolum-ipucu { margin: 0 0 18px; padding: 0 24px; font-family: "bk-main", system-ui, sans-serif; }
 .bk-ok-hak img { width: 22px; height: 22px; }
+/* Android: tahta = (genişlik − 48) × 0.90; köşe = hücre × 0.16 (SVG rect), gölge yok; üstte 18 boşluk */
 .bk-ok-tahta {
-  width: min(520px, calc(100vw - 40px), calc(100vh - 220px)); max-width: 100%;
-  border-radius: 14px; overflow: hidden; background: #fff; box-shadow: 0 6px 24px rgba(43,51,80,.10);
+  width: min(calc((min(100vw, 560px) - 48px) * .9), calc(100vh - 200px)); max-width: 100%; margin-top: 18px;
   touch-action: manipulation; user-select: none;
 }
 .bk-ok-tahta svg { display: block; }
-.bk-ok { cursor: pointer; transition: transform .23s ease-out; }
-.bk-ok[data-durum="carpti"] { transition: transform .09s ease-out; }
+.bk-ok { cursor: pointer; transition: transform .23s cubic-bezier(.4, 0, .2, 1); }
+.bk-ok path:nth-child(2), .bk-ok polygon { transition: stroke .48s cubic-bezier(.4, 0, .2, 1), fill .48s cubic-bezier(.4, 0, .2, 1); }
+.bk-ok[data-durum="carpti"] { transition: transform .09s cubic-bezier(.4, 0, .2, 1); }
+.bk-ok[data-durum="carpti"] path:nth-child(2), .bk-ok[data-durum="carpti"] polygon { transition: none; }
 .bk-ok[data-durum="cikiyor"] { pointer-events: none; }
 @media (hover: hover) { .bk-ok[data-durum="duruyor"]:hover path:nth-child(2), .bk-ok[data-durum="duruyor"]:hover polygon { filter: brightness(1.25); } }
 
@@ -3269,13 +3321,15 @@ html[data-bk-oturum="1"] .bk-oturum-sayfa[data-durum="bilinmiyor"] .bk-oturum-be
 .bk-yapboz-tahta .hayalet { position: absolute; inset: 0; background-size: 100% 100%; opacity: .16; }
 .bk-yapboz-tahta .parca {
   position: absolute; width: calc(100% / var(--n)); height: calc(100% / var(--n)); padding: 0; border: 0; cursor: pointer;
-  background-size: calc(var(--n) * 100%) calc(var(--n) * 100%); box-shadow: inset 0 0 0 1px #000;
-  transition: left .13s ease-out, top .13s ease-out;
+  /* Android: parça 0.5dp aralık + 1.2dp siyah kenar; kayma tween(130) */
+  background-size: calc(var(--n) * 100%) calc(var(--n) * 100%); box-shadow: inset 0 0 0 1.7px #000;
+  transition: left .13s cubic-bezier(.4, 0, .2, 1), top .13s cubic-bezier(.4, 0, .2, 1);
 }
 .bk-yapboz-tahta[data-bitti="true"] .parca { box-shadow: none; cursor: default; }
 .bk-yapboz-tahta .parca span {
-  position: absolute; top: 4px; right: 6px; color: #fff; font-family: "bk-main", system-ui, sans-serif; font-weight: 700;
-  font-size: clamp(11px, calc(20cqw / var(--n)), 26px); text-shadow: 0 0 7px rgba(0,0,0,.7);
+  /* Android: hücre × 0.20, sağ üst 4 iç boşluk, gölge blurRadius 7 PİKSEL (≈2.5 CSS px) */
+  position: absolute; top: 4px; right: 4px; color: #fff; font-family: "bk-main", system-ui, sans-serif; font-weight: 700;
+  font-size: calc(20cqw / var(--n)); text-shadow: 0 0 2.5px rgba(0,0,0,.7);
 }
 
 /* ------------------------------------------------- İstatistik → Bilgie Koç sekmesi */
@@ -3418,3 +3472,147 @@ html[data-bk-oturum="1"] .bk-oturum-sayfa[data-durum="bilinmiyor"] .bk-oturum-be
   background: none; border: 0; cursor: pointer; font: inherit; font-size: 14px;
   color: #FFD54F; text-decoration: underline;
 }
+
+/* ---------------------------------------------------------------- ortak çıkış onayı
+   Android ExitConfirmDialog (CikisOnayi.tsx). Kabartma: dış renk tüm kutu, iç renk 3/3/9 içeride. */
+.bk-cikis-onay {
+  position: fixed; inset: 0; z-index: 90; display: grid; place-items: center;
+  background: rgba(0, 0, 0, calc(170 / 255));
+}
+.bk-cikis-onay .kart {
+  position: relative; width: 82%; max-width: 420px; box-sizing: border-box;
+  padding: 28px 24px; border-radius: 20px; background: #4a538e;
+  display: grid; gap: 20px; text-align: center; color: #fff;
+}
+.bk-cikis-onay .kart::before {
+  content: ""; position: absolute; inset: 3px 3px 9px 3px; border-radius: 18px; background: #0c1a3f;
+}
+.bk-cikis-onay .kart > * { position: relative; margin: 0; }
+.bk-cikis-onay h3 { font-family: "bk-baslik", system-ui, sans-serif; font-weight: 400; font-size: 18px; }
+.bk-cikis-onay p {
+  font-family: "bk-baslik", system-ui, sans-serif; font-size: 13px; line-height: 19px; color: rgba(255,255,255,.7);
+}
+.bk-cikis-onay .dugmeler { display: grid; gap: 10px; }
+.bk-cikis-onay button {
+  position: relative; height: 52px; border: 0; border-radius: 12px; cursor: pointer; color: #fff;
+  font-family: "bk-baslik", system-ui, sans-serif; font-size: 15px; font-weight: 400;
+  isolation: isolate;
+}
+.bk-cikis-onay button::before {
+  content: ""; position: absolute; inset: 3px 3px 9px 3px; border-radius: 10px; z-index: -1;
+}
+.bk-cikis-onay .cik { background: #8b1a1a; }
+.bk-cikis-onay .cik::before { background: #b71c1c; }
+.bk-cikis-onay .vazgec { background: #4a538e; }
+.bk-cikis-onay .vazgec::before { background: #2c335e; }
+/* Çıkış ikonu artık düğme (onay penceresi açar) — bağlantı görünümü korunur */
+button.bk-cikis { background: none; border: 0; padding: 0; cursor: pointer; line-height: 0; }
+/* Defter: Android cikis ikonu #1A1A2E'ye boyalı, 28dp */
+.bk-defter-cikis img { width: 28px; height: 28px; filter: brightness(0) saturate(100%) invert(8%) sepia(16%) saturate(1800%) hue-rotate(205deg); opacity: 1; }
+
+/* ---------------------------------------------------------------- test alt bandı + aksiyon düğmesi
+   Android TestBottomResultBanner: #2ECC71 / #E74C3C, ekran altına kadar; içerik 12 yatay, 14 üst,
+   alt = 14 + 56 + 8 (düğme alanı) + güvenli alan. Giriş: alttan kayma 220 ms FastOutSlowIn + solma 120 ms;
+   çıkış 160 ms FastOutLinearIn + 110 ms. Yazı Roboto (titleMedium 16/500, bodyMedium 14). */
+.bk-sonuc-bandi {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 10;
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 14px 12px calc(14px + 56px + 8px + env(safe-area-inset-bottom));
+  background: #2ecc71; color: #fff; font-family: system-ui, Roboto, sans-serif;
+  transform: translateY(100%); opacity: 0; pointer-events: none;
+  transition: transform .16s cubic-bezier(.4, 0, 1, 1), opacity .11s cubic-bezier(.4, 0, 1, 1);
+}
+.bk-sonuc-bandi[data-dogru="false"] { background: #e74c3c; }
+.bk-sonuc-bandi[data-gorunur="true"] {
+  transform: translateY(0); opacity: 1;
+  transition: transform .22s cubic-bezier(.4, 0, .2, 1), opacity .12s cubic-bezier(0, 0, .2, 1);
+}
+.bk-sonuc-bandi svg { flex: 0 0 32px; }
+.bk-sonuc-bandi .yazi { display: grid; gap: 4px; }
+.bk-sonuc-bandi b { font-size: 16px; font-weight: 500; letter-spacing: .15px; line-height: 24px; }
+.bk-sonuc-bandi span { font-size: 14px; letter-spacing: .25px; line-height: 20px; color: rgba(255,255,255,.85); }
+
+/* Android TestStrokeActionButton: 260×56, alttan 14 + 6 yukarı, köşe 18, 2px kenar; "Devam Et" iken
+   (bant üstünde) siyah %16 zemin + beyaz %92 kenar + 6px içeride siyah %22 plaka. Basınca 0.97. */
+.bk-aksiyon {
+  position: fixed; left: 50%; bottom: calc(20px + env(safe-area-inset-bottom)); z-index: 11;
+  width: 260px; height: 56px; margin-left: -130px; border-radius: 18px; cursor: pointer;
+  border: 2px solid rgba(255,255,255,.25); background: transparent; color: #fff;
+  font-family: system-ui, Roboto, sans-serif; font-size: 16px; font-weight: 500; letter-spacing: .15px;
+  transition: transform .07s cubic-bezier(.4, 0, .2, 1);
+}
+.bk-aksiyon:active:not([disabled]) { transform: scale(.97); }
+.bk-aksiyon[data-ton="dogru"]  { background: rgba(46,204,113,.10); border-color: rgba(46,204,113,.75); }
+.bk-aksiyon[data-ton="yanlis"] { background: rgba(231,76,60,.10); border-color: rgba(231,76,60,.75); }
+.bk-aksiyon[data-bant] { background: rgba(0,0,0,.16); border-color: rgba(255,255,255,.92); isolation: isolate; }
+/* Android plaka dış kenardan 6dp içeride, köşe 18 (2px kenarın içinden 4px) */
+.bk-aksiyon[data-bant]::before {
+  content: ""; position: absolute; inset: 4px; border-radius: 18px; background: rgba(0,0,0,.22); z-index: -1;
+}
+.bk-aksiyon[disabled] { opacity: .55; cursor: default; }
+
+/* ---------------------------------------------------------------- bölümlü oyunlar (BolumOrtak.tsx)
+   Android OyunBolumOrtak.kt — OyunUstBar: Row(padding 8/10) · geri kutusu 4 dış + 6 iç, köşe 12, ikon 24
+   (açık tema #2B3350, koyu beyaz %12) · 8 boşluk · başlık MainFont 20 normal · sağ 12 iç boşluk */
+.bk-bolum-ust {
+  display: flex; align-items: center; width: 100%; max-width: 560px; box-sizing: border-box;
+  padding: 10px 8px; align-self: center;
+}
+.bk-bolum-ust .geri {
+  margin: 4px; padding: 6px; border: 0; border-radius: 12px; cursor: pointer; background: #2b3350; line-height: 0;
+}
+.bk-bolum-ust[data-tema="koyu"] .geri { background: rgba(255,255,255,.12); }
+.bk-bolum-ust .ad { flex: 1; margin-left: 8px; font-family: "bk-main", system-ui, sans-serif; font-size: 20px; font-weight: 400; color: #2b3350; }
+.bk-bolum-ust[data-tema="koyu"] .ad { color: #fff; }
+.bk-bolum-ust .sag { padding-right: 12px; display: flex; align-items: center; }
+
+/* Seçim kartı + ızgara — MainFont (eskiden bk-baslik), Oyna dikey 14 tam genişlik, gölge yok */
+.bk-bolum-kart .ust { align-items: flex-end; }
+.bk-bolum-kart .ust span { font-family: "bk-main", system-ui, sans-serif; }
+.bk-bolum-kart .bk-oyun-dugme { width: 100%; padding: 14px 0; color: #000; }
+.bk-bolum-goz { font-family: "bk-main", system-ui, sans-serif; }
+.bk-bolum-baslik { font-family: "bk-main", system-ui, sans-serif; font-weight: 400; }
+.bk-ok-sahne .bk-bolum-kart { box-shadow: none; }
+
+.bk-bolum-onay-dugme {
+  flex: 1; border: 0; border-radius: 14px; cursor: pointer; padding: 13px 0;
+  font-family: "bk-main", system-ui, sans-serif; font-size: 15px; font-weight: 700;
+}
+.bk-bolum-onay {
+  position: fixed; inset: 0; z-index: 80; display: grid; place-items: center; padding: 0 32px;
+  background: rgba(0,0,0,.5);
+}
+.bk-bolum-onay .kart {
+  width: 100%; max-width: 420px; box-sizing: border-box; padding: 24px; border-radius: 20px; background: #fff;
+  display: grid; justify-items: center; gap: 14px; text-align: center;
+}
+.bk-bolum-onay .kart b { font-family: "bk-main", system-ui, sans-serif; font-size: 20px; font-weight: 700; color: #2b3350; }
+.bk-bolum-onay .kart span { font-family: "bk-main", system-ui, sans-serif; font-size: 14px; color: #5a617a; }
+.bk-bolum-onay .ikili { display: flex; gap: 10px; width: 100%; }
+
+/* BolumBitisOverlay: kart ¾ yükseklikte (boş alanın 3 payı üstte, 1 payı altta), karartma yok */
+.bk-bolum-bitis {
+  position: fixed; inset: 0; z-index: 70; display: grid; grid-template-rows: 3fr auto 1fr;
+  justify-items: center; padding: 0 24px; pointer-events: none;
+}
+.bk-bolum-bitis .kart {
+  grid-row: 2; pointer-events: auto; width: 100%; max-width: 460px; box-sizing: border-box;
+  display: grid; justify-items: center; gap: 18px; text-align: center;
+  background: rgba(17, 24, 39, calc(240 / 255)); border-radius: 24px; padding: 24px 24px 28px; color: #fff;
+  animation: bk-kg-kart .38s cubic-bezier(.4, 0, .2, 1) both;
+}
+.bk-bolum-bitis .bas { display: flex; align-items: center; gap: 10px; }
+.bk-bolum-bitis .tik {
+  width: 30px; height: 30px; flex: 0 0 30px; border-radius: 50%; background: #2ecc71; color: #fff;
+  display: grid; place-items: center; font-size: 15px; font-weight: 700; font-family: system-ui, sans-serif;
+}
+.bk-bolum-bitis .bas b { font-family: "bk-main", system-ui, sans-serif; font-size: 18px; font-weight: 700; }
+.bk-bolum-bitis .alt { font-family: "bk-main", system-ui, sans-serif; font-size: 14px; color: rgba(255,255,255,.85); }
+.bk-bolum-bitis .devam {
+  width: 100%; border: 0; border-radius: 14px; background: #4a7bff; color: #fff; cursor: pointer; padding: 15px 0;
+  font-family: "bk-main", system-ui, sans-serif; font-size: 16px; font-weight: 700;
+}
+
+.bk-yapboz-ad { margin: 0 0 12px; padding: 0 20px; text-align: center; font-family: "bk-main", system-ui, sans-serif; font-size: 13px; color: rgba(255,255,255,.85); }
+/* Android OyunUstBar ekran kenarından 8+4 içeride; sahnenin 20 yatay / 16 üst boşluğunu dengele */
+.bk-oyun-sahne > .bk-bolum-ust { margin: -16px -20px 0; width: calc(100% + 40px); }

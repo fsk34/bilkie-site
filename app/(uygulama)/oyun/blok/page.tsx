@@ -15,6 +15,7 @@ import { useOturum } from "../../../lib/oturum";
 import { enIyiSkorOku, enIyiSkorYaz } from "../../../lib/veri";
 import { sesCal, sesleriOnYukle } from "../../ses";
 import Reklam from "../Reklam";
+import CikisOnayi from "../../CikisOnayi";
 import {
   BB_BOS_GOZ, BB_BOYUT, BB_ZEMIN,
   baslangicIzgarasi, birYereUyarMi, blokCiz, comboCarpani,
@@ -23,11 +24,27 @@ import {
 } from "./bb";
 
 const TEMIZLEME_SURE = 520;   // ms — uygulamadaki clearAnim süresi
+// Android Canvas sabitleri PİKSEL (3f boşluk, 2f/3.5f çizgi, parçacık hızı px/sn, popup 70f…). Kanvas burada
+// devicePixelRatio ile ölçekli → birim CSS px (= dp); aynı sayılar ~3 kat kalın/hızlı çıkıyordu (1 Eki 2026).
+// Android'in tipik yoğunluğuyla dp'ye çevrilir.
+const PX = 1 / 2.75;
+/** Android dragLiftPx: parça parmağın 2,2 hücre üstünde, en çok 100dp */
+const kaldirmaPx = (goz: number, k: number) => (k > 0 ? Math.min(goz * k, 100) : 0);
+/** Android detectDragGestures dokunma eşiği (~8dp): salt dokunuşta parça kalkmaz */
+const SURUKLEME_ESIGI = 8;
 /** Combo sesleri — uygulamada blast (3+ çizgi) her zaman combo4 sesini çalar. */
 const COMBO_SESI = ["bb_combo1", "bb_combo1", "bb_combo2", "bb_combo3", "bb_combo4"] as const;
 
 type Parcacik = { x: number; y: number; vx: number; vy: number; renk: Renk; boy: number };
-type Rozet = { metin: string; renk: string } | null;
+// Android: tür başına boyut/süre/ölçek — combo 20sp 180·750·280 (.85+.15a) · blast 22sp 150·700·300 (.8+.3a)
+// · seri 19sp 200·900·300 (.85+.15a)
+type Rozet = { metin: string; renk: string; boy: number; giris: number; cikis: number; taban: number; k: number; a: number } | null;
+type RozetTuru = "combo" | "blast" | "seri";
+const ROZET: Record<RozetTuru, { boy: number; giris: number; bekle: number; cikis: number; taban: number; k: number }> = {
+  combo: { boy: 20, giris: 180, bekle: 750, cikis: 280, taban: 0.85, k: 0.15 },
+  blast: { boy: 22, giris: 150, bekle: 700, cikis: 300, taban: 0.8, k: 0.3 },
+  seri:  { boy: 19, giris: 200, bekle: 900, cikis: 300, taban: 0.85, k: 0.15 },
+};
 
 export default function BlokPatla() {
   // Oyunun sesleri sayfa açılırken belleğe (ilk çalışta gecikme olmasın)
@@ -53,6 +70,7 @@ export default function BlokPatla() {
   const surukleRef = useRef({
     idx: -1, x: 0, y: 0, baslangicDokunus: { x: 0, y: 0 }, baslangicKonum: { x: 0, y: 0 },
     onizR: -1, onizC: -1, gecerli: false, carpan: 1, kaldirma: 0,
+    bekleyen: -1,   // dokunulan tepsi kutusu; eşik aşılınca sürükleme başlar
   });
   const temizRef = useRef<{
     gozler: Set<string>; satirlar: number[]; sutunlar: number[]; renk: Renk; bas: number;
@@ -168,20 +186,20 @@ export default function BlokPatla() {
           }
         } else if (onizTemiz && oniz && surukParca) {
           blokCiz(ctx, l, t, goz, acikla(surukParca.renk, parlama * 0.55));
-          cerceve(ctx, l + 1, t + 1, goz - 2, `rgba(255,255,255,${parlama * 0.75})`, 2);
+          cerceve(ctx, l + PX, t + PX, goz - 2 * PX, `rgba(255,255,255,${parlama * 0.75})`, 2 * PX);
         } else if (onizTemiz && gozRenk) {
           blokCiz(ctx, l, t, goz, acikla(gozRenk, parlama * 0.55));
-          cerceve(ctx, l + 1, t + 1, goz - 2, `rgba(255,255,255,${parlama * 0.75})`, 2);
+          cerceve(ctx, l + PX, t + PX, goz - 2 * PX, `rgba(255,255,255,${parlama * 0.75})`, 2 * PX);
         } else if (gozRenk) {
           blokCiz(ctx, l, t, goz, gozRenk);
         } else if (oniz && surukParca) {
           blokCiz(ctx, l, t, goz, surukParca.renk, 0.5);
         } else if (kotuOniz) {
           ctx.fillStyle = "rgba(255,0,0,.25)";
-          ctx.fillRect(l + 3, t + 3, goz - 6, goz - 6);
+          ctx.fillRect(l + 3 * PX, t + 3 * PX, goz - 6 * PX, goz - 6 * PX);
         } else {
           ctx.fillStyle = BB_BOS_GOZ;
-          ctx.fillRect(l + 3, t + 3, goz - 6, goz - 6);
+          ctx.fillRect(l + 3 * PX, t + 3 * PX, goz - 6 * PX, goz - 6 * PX);
         }
       }
     }
@@ -189,7 +207,7 @@ export default function BlokPatla() {
     // Altın satır/sütun kenarlığı
     if (onizSatirlar.length || onizSutunlar.length) {
       ctx.strokeStyle = `rgba(255,215,64,${parlama * 0.85})`;
-      ctx.lineWidth = 3.5;
+      ctx.lineWidth = 3.5 * PX;
       for (const r of onizSatirlar) ctx.strokeRect(0, r * goz, boy, goz);
       for (const c of onizSutunlar) ctx.strokeRect(c * goz, 0, goz, boy);
     }
@@ -229,11 +247,11 @@ export default function BlokPatla() {
         const cy = ((Math.min(...satirlar) + Math.max(...satirlar) + 1) * goz) / 2;
         const enBuyuk = boy * 0.8;
         const ters1 = 1 - sok;
-        halka(ctx, cx, cy, sok * enBuyuk, `rgba(255,255,255,${ters1 * ters1 * 0.88})`, ters1 * 5 + 1.5);
+        halka(ctx, cx, cy, sok * enBuyuk, `rgba(255,255,255,${ters1 * ters1 * 0.88})`, (ters1 * 5 + 1.5) * PX);
         if (sok > 0.12) {
           const s2 = (sok - 0.12) / 0.88;
           const ters2 = 1 - s2;
-          halka(ctx, cx, cy, s2 * enBuyuk * 0.86, rgba(temiz.renk, ters2 * ters2 * 0.55), ters2 * 3 + 1);
+          halka(ctx, cx, cy, s2 * enBuyuk * 0.86, rgba(temiz.renk, ters2 * ters2 * 0.55), (ters2 * 3 + 1) * PX);
         }
       }
     }
@@ -256,7 +274,7 @@ export default function BlokPatla() {
       if (saydam > 0) {
         for (const p of parcaciklarRef.current) {
           const px = p.x + p.vx * dt;
-          const py = p.y + p.vy * dt + 350 * dt * dt;
+          const py = p.y + p.vy * dt + 350 * PX * dt * dt;
           ctx.fillStyle = rgba(p.renk, saydam);
           ctx.beginPath();
           ctx.arc(px, py, p.boy, 0, Math.PI * 2);
@@ -270,7 +288,7 @@ export default function BlokPatla() {
     if (parca) {
       const goz = gozPxRef.current > 0 ? gozPxRef.current : 36;
       const [sy, sx] = sekilBoyu(parca.sekil);
-      const parmakY = s.y - goz * s.kaldirma;
+      const parmakY = s.y - kaldirmaPx(goz, s.kaldirma);
       const x0 = s.x - (sx / 2) * goz;
       const y0 = parmakY - (sy / 2) * goz;
       for (const [r, c] of parca.sekil) blokCiz(ctx, x0 + c * goz, y0 + r * goz, goz, parca.renk);
@@ -354,7 +372,7 @@ export default function BlokPatla() {
     if (!parca || !tuval || gozPxRef.current <= 0) return;
     const kutu = tuval.getBoundingClientRect();
     const goz = gozPxRef.current;
-    const parmakY = s.y - goz * s.kaldirma;
+    const parmakY = s.y - kaldirmaPx(goz, s.kaldirma);
     const sekilG = Math.max(...parca.sekil.map((p) => p[1]));
     const sekilY = Math.max(...parca.sekil.map((p) => p[0]));
     // Kotlin toInt() sıfıra doğru keser → Math.trunc (Math.floor DEĞİL)
@@ -380,9 +398,8 @@ export default function BlokPatla() {
         s.x = e.clientX; s.y = e.clientY;
         s.carpan = dokunmatik ? 1.4 : 1;      // bkz. dosya başındaki sapma notu
         s.kaldirma = dokunmatik ? 2.2 : 0;
-        sesCal("bb_alma", 0.5);
-        setSurukleIdx(i);
-        onizlemeTazele();
+        // Android: kaldırma dokunma eşiği aşılınca (hareket'te) — salt dokunuşta parça zıplamaz
+        s.idx = -1; s.bekleyen = i;
         break;
       }
     }
@@ -390,6 +407,13 @@ export default function BlokPatla() {
 
   const hareket = (e: React.PointerEvent) => {
     const s = surukleRef.current;
+    if (s.idx < 0 && s.bekleyen >= 0) {
+      const dx = e.clientX - s.baslangicDokunus.x, dy = e.clientY - s.baslangicDokunus.y;
+      if (Math.hypot(dx, dy) < SURUKLEME_ESIGI) return;
+      s.idx = s.bekleyen; s.bekleyen = -1;
+      sesCal("bb_alma", 0.5);
+      setSurukleIdx(s.idx);
+    }
     if (s.idx < 0) return;
     s.x = s.baslangicKonum.x + (e.clientX - s.baslangicDokunus.x) * s.carpan;
     s.y = s.baslangicKonum.y + (e.clientY - s.baslangicDokunus.y) * s.carpan;
@@ -406,27 +430,30 @@ export default function BlokPatla() {
         parcayiKoy(parca, s.onizR, s.onizC, idx);
       }
     }
-    s.idx = -1; s.onizR = -1; s.onizC = -1; s.gecerli = false;
+    s.idx = -1; s.bekleyen = -1; s.onizR = -1; s.onizC = -1; s.gecerli = false;
     setSurukleIdx(-1);
   };
 
   /* ------------------------------------------------------------ oyun akışı */
 
-  const rozetGoster = useCallback((metin: string, renk: string) => {
+  const rozetGoster = useCallback((metin: string, renk: string, tur: RozetTuru) => {
     rozetJetonRef.current += 1;
     const jeton = rozetJetonRef.current;
-    setRozet({ metin, renk });
-    window.setTimeout(() => { if (rozetJetonRef.current === jeton) setRozet(null); }, 950);
+    const z = ROZET[tur];
+    const r = { metin, renk, boy: z.boy, giris: z.giris, cikis: z.cikis, taban: z.taban, k: z.k };
+    setRozet({ ...r, a: 0 });   // Android snapTo(0) → animateTo(1)
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      if (rozetJetonRef.current === jeton) setRozet({ ...r, a: 1 });
+    }));
+    window.setTimeout(() => { if (rozetJetonRef.current === jeton) setRozet({ ...r, a: 0 }); }, z.giris + z.bekle);
+    window.setTimeout(() => { if (rozetJetonRef.current === jeton) setRozet(null); }, z.giris + z.bekle + z.cikis);
   }, []);
 
   const skorEkle = useCallback((delta: number) => {
     const yeni = skorRef.current + delta;
     skorRef.current = yeni;
     setSkor(yeni);
-    if (yeni > enIyiRef.current) {
-      enIyiRef.current = yeni;
-      setEnIyi(yeni);   // yalnız yerelde; sunucu yazması oyun sonunda / çıkışta (rekoruGonder)
-    }
+    // EN İYİ oyun sırasında DEĞİŞMEZ (Android: bestScore yalnız oyun bitince güncellenir) — bitisKontrol'de
     setSkorZipla(true);
     window.setTimeout(() => setSkorZipla(false), 220);
   }, []);
@@ -450,6 +477,7 @@ export default function BlokPatla() {
     if (kalan.every((p) => !birYereUyarMi(g, p.sekil))) {
       setBitti(true);
       setZemin(BB_ZEMIN);
+      if (skorRef.current > enIyiRef.current) { enIyiRef.current = skorRef.current; setEnIyi(skorRef.current); }
       rekorRef.current();
     }
   }, []);
@@ -468,7 +496,7 @@ export default function BlokPatla() {
     window.setTimeout(() => {
       if (buTurTemizlendiRef.current) {
         seriRef.current += 1;
-        if (seriRef.current >= 2) rozetGoster(`🔥 ${seriRef.current} TUR SERİSİ!`, "#FFD740");
+        if (seriRef.current >= 2) rozetGoster(`🔥 ${seriRef.current} TUR SERİSİ!`, "#FFD740", "seri");
       } else {
         seriRef.current = 0;
       }
@@ -508,13 +536,13 @@ export default function BlokPatla() {
 
     if (patlama) {
       setZemin(rgba(koyu(parca.renk, 0.35)));
-      rozetGoster("💥 BLAST!", "#FF6E40");
+      rozetGoster("💥 BLAST!", "#FF6E40", "blast");
     } else {
       const [metin, renk] =
         combo === 1 ? ["İYİ!", "#80DEEA"] :
         combo === 2 ? ["HARIKA!", "#69F0AE"] :
         combo === 3 ? ["MÜKEMMEL!", "#FFD740"] : ["EFSANEVİ!", "#FF6E40"];
-      rozetGoster(metin, renk);
+      rozetGoster(metin, renk, "combo");
     }
 
     const gozler = new Set<string>();
@@ -535,7 +563,7 @@ export default function BlokPatla() {
         const cy = kutu.top + (r + 0.5) * goz;
         for (let i = 0; i < 4; i++) {
           const aci = Math.random() * Math.PI * 2;
-          const hiz = 180 + Math.random() * 320;
+          const hiz = (180 + Math.random() * 320) * PX;   // Android px/sn
           yeniParcaciklar.push({
             x: cx, y: cy, vx: Math.cos(aci) * hiz, vy: Math.sin(aci) * hiz,
             renk: parca.renk, boy: (5 + Math.random() * 7) * (goz / 50),
@@ -560,7 +588,7 @@ export default function BlokPatla() {
       setIzgara(temizlenmis);
       skorEkle(gercekPuan);
       setPopup(gercekPuan);
-      window.setTimeout(() => setPopup(0), 700);
+      window.setTimeout(() => setPopup(0), 1030);   // Android: 180 + 500 + 350 ms
       temizRef.current = null;
       parcaciklarRef.current = [];
       tepsidenDus(idx, temizlenmis);
@@ -610,7 +638,15 @@ export default function BlokPatla() {
         </div>
 
         <div className="bk-bb-rozet">
-          {rozet && <span style={{ color: rozet.renk }}>{rozet.metin}</span>}
+          {rozet && (
+            <span
+              style={{
+                color: rozet.renk, fontSize: rozet.boy, opacity: rozet.a,
+                transform: `scale(${rozet.taban + rozet.k * rozet.a})`,
+                transition: `opacity ${rozet.a ? rozet.giris : rozet.cikis}ms cubic-bezier(.4,0,.2,1), transform ${rozet.a ? rozet.giris : rozet.cikis}ms cubic-bezier(.4,0,.2,1)`,
+              }}
+            >{rozet.metin}</span>
+          )}
         </div>
 
         <div className="bk-bb-tepsi">
@@ -648,17 +684,7 @@ export default function BlokPatla() {
         </div>
       )}
 
-      {cikisSor && (
-        <div className="bk-oyun-ortu hafif" onClick={() => setCikisSor(false)}>
-          <div className="bk-oyun-onay" onClick={(e) => e.stopPropagation()}>
-            <div className="sor">Çıkmak istiyor musun?</div>
-            <div className="ikili">
-              <button className="hayir" onClick={() => setCikisSor(false)}>Hayır</button>
-              <button className="evet" onClick={cik}>Evet, Çık</button>
-            </div>
-          </div>
-        </div>
-      )}
+      {cikisSor && <CikisOnayi onVazgec={() => setCikisSor(false)} onCik={cik} />}
     </div>
   );
 }

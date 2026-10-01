@@ -7,6 +7,8 @@
 // ?ders=..&konu=.. (24 Eyl 2026, Android hataTuruKonu): "Tekrar bakacağın sorular" konu satırından
 // gelinirse YALNIZ o konunun yanlışları; genel düğmeler parametresiz → karışık tur.
 
+import { AksiyonDugmesi, AltSonucBandi } from "../TestAlt";
+import CikisOnayi from "../CikisOnayi";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
@@ -32,6 +34,7 @@ export default function HataTuruSayfasi() {
 }
 
 function HataTuru() {
+  const [cikisSor, setCikisSor] = useState(false);   // Android ExitConfirmDialog — eskiden onaysız çıkıyordu
   const router = useRouter();
   const { yukleniyor, kullanici, sinif } = useOturum();
   const arama = useSearchParams();
@@ -165,7 +168,8 @@ function HataTuru() {
       <div className="bk-test">
         <div className="bk-test-ust">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <Link href="/" className="bk-cikis" aria-label="Çık"><img src="/uygulama/cikis.png" alt="" /></Link>
+          <button className="bk-cikis" aria-label="Çık" onClick={() => setCikisSor(true)}><img src="/uygulama/cikis.png" alt="" /></button>
+          {cikisSor && <CikisOnayi onVazgec={() => setCikisSor(false)} onCik={() => router.push("/")} />}
           <div className="bk-cubuk" style={{ flex: 1 }}><i style={{ width: `${oran}%` }} /></div>
           <span className="bk-hata-rozet">HATA TURU</span>
         </div>
@@ -199,20 +203,13 @@ function HataTuru() {
         <div className="bk-kombo"><Lottie ad="dogrubes" bittiginde={() => setKombo(false)} style={{ height: 300 }} /></div>
       )}
 
-      <div className={`bk-alt-bant ${kontrolEdildi ? (dogruMu ? "dogru" : "yanlis") : ""}`} data-gorunur={kontrolEdildi ? "true" : undefined} key={kontrolEdildi ? `bant-${indeks}` : "bant"}>
-        {kontrolEdildi && (
-          <div className="bk-alt-bant-yazi">
-            {dogruMu ? "Bu kez doğru! 🎉" : `Doğru cevap: ${soru.secenekler[soru.dogruIndeks]}`}
-          </div>
-        )}
-        {kontrolEdildi ? (
-          <button className="bk-eylem" data-ton={dogruMu ? "dogru" : "yanlis"} onClick={devamEt}>
-            {indeks + 1 >= sorular.length ? "Bitir" : "Devam Et"}
-          </button>
-        ) : (
-          <button className="bk-eylem" onClick={kontrolEt} disabled={secili == null}>Kontrol Et</button>
-        )}
-      </div>
+      <AltSonucBandi gorunur={kontrolEdildi} dogru={dogruMu} dogruCevap={soru.secenekler[soru.dogruIndeks]} />
+      <AksiyonDugmesi
+        etiket={!kontrolEdildi ? "Kontrol Et" : indeks + 1 >= sorular.length ? "Bitir" : "Devam Et"}
+        etkin={kontrolEdildi || secili != null}
+        ton={!kontrolEdildi ? "normal" : dogruMu ? "dogru" : "yanlis"}
+        onClick={kontrolEdildi ? devamEt : kontrolEt}
+      />
     </div>
   );
 }

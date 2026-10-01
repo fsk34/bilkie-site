@@ -10,6 +10,8 @@
 // Animasyonlar uygulamadan: doğru şıkta zıplama + ışık bandı, yanlışta sarsıntı,
 // alt bant aşağıdan kayar, 5 doğru üst üste "dogrubes" kutlaması.
 
+import { AksiyonDugmesi, AltSonucBandi } from "../../../TestAlt";
+import CikisOnayi from "../../../CikisOnayi";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -46,6 +48,7 @@ type Durum = "yukleniyor" | "hata" | "baglanti" | "bitti_zaten" | "cozuluyor" | 
 const OKUMA_MS = 8000;
 
 export default function TestSayfasi() {
+  const [cikisSor, setCikisSor] = useState(false);   // Android ExitConfirmDialog — eskiden onaysız çıkıyordu
   const params = useParams<{ ders: string; konu: string }>();
   const router = useRouter();
   const dersKey = params?.ders ?? "";
@@ -246,7 +249,8 @@ export default function TestSayfasi() {
       <div className="bk-test">
         <div className="bk-test-ust">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <Link href={`/ders/${dersKey}`} className="bk-cikis" aria-label="Çık"><img src="/uygulama/cikis.png" alt="" /></Link>
+          <button className="bk-cikis" aria-label="Çık" onClick={() => setCikisSor(true)}><img src="/uygulama/cikis.png" alt="" /></button>
+          {cikisSor && <CikisOnayi onVazgec={() => setCikisSor(false)} onCik={() => router.push(`/ders/${dersKey}`)} />}
           <div className="bk-cubuk" style={{ flex: 1 }}><i style={{ width: `${oran}%` }} /></div>
           {/* Can ikonu uygulamanınki (Android TestScreens.kt: R.drawable.hakicon); önce ❤️ emojisiydi. */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -297,28 +301,15 @@ export default function TestSayfasi() {
         </div>
       )}
 
-      <div
-        className={`bk-alt-bant ${kontrolEdildi ? (dogruMu ? "dogru" : "yanlis") : ""}`}
-        data-gorunur={kontrolEdildi ? "true" : undefined}
-        key={kontrolEdildi ? `bant-${indeks}` : "bant"}
-      >
-        {/* Uygulamada olduğu gibi: kontrol edilmeden alt bantta yazı YOK
-            (ilerleme zaten üstteki çubukta görünüyor). */}
-        {kontrolEdildi && (
-          <div className="bk-alt-bant-yazi">
-            {dogruMu ? "Doğru! 🎉" : `Doğru cevap: ${soru.secenekler[soru.dogruIndeks]}`}
-          </div>
-        )}
-        {kontrolEdildi ? (
-          <button className="bk-eylem" data-ton={dogruMu ? "dogru" : "yanlis"} onClick={devamEt}>
-            {indeks + 1 >= sorular.length ? "Bitir" : "Devam Et"}
-          </button>
-        ) : (
-          <button className="bk-eylem" onClick={kontrolEt} disabled={secili == null}>
-            Kontrol Et
-          </button>
-        )}
-      </div>
+      {/* Android TestBottomResultBanner + TestStrokeActionButton (Test'te doğru cevap bantta yazmaz,
+          son soruda da "Devam Et") */}
+      <AltSonucBandi gorunur={kontrolEdildi} dogru={dogruMu} />
+      <AksiyonDugmesi
+        etiket={kontrolEdildi ? "Devam Et" : "Kontrol Et"}
+        etkin={kontrolEdildi || secili != null}
+        ton={!kontrolEdildi ? "normal" : dogruMu ? "dogru" : "yanlis"}
+        onClick={kontrolEdildi ? devamEt : kontrolEt}
+      />
     </div>
   );
 }

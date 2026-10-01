@@ -11,7 +11,8 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import Lottie from "../../Lottie";
+import { BolumBitis, BolumCikisOnayi, OyunUstBar } from "../../BolumOrtak";
+import Reklam from "../Reklam";
 import UcNokta from "../../UcNokta";
 import { useOturum } from "../../../lib/oturum";
 import { gorselAdresi, harikalariGetir, harikalarOnbellekten, kesfetGetir, kesfetOnbellekten } from "../../../lib/kesif";
@@ -119,16 +120,13 @@ export default function Yapboz() {
     const hepsi = ilerleme > toplam;
     return (
       <div className="bk bk-oyun-sahne bk-yapboz-sahne">
-        <div className="bk-oyun-ust">
-          <button className="bk-oyun-geri" aria-label="Geri" onClick={() => router.push("/oyunlar")}>‹</button>
-          <div className="bk-oyun-ad" style={{ color: "#fff" }}>Resim Yapboz</div>
-          <span style={{ width: 40 }} />
-        </div>
-        <p className="bk-oyun-ipucu" style={{ marginTop: 0 }}>Parçaları boşluğa kaydır, resmi tamamla. Her turda yapboz büyür: 3×3 → 4×4 → 5×5.</p>
+        {/* Android: Yapboz seçim ekranında ipucu yazısı yok */}
+        <OyunUstBar baslik="Resim Yapboz" tema="koyu" onGeri={() => router.push("/oyunlar")} />
+        <div style={{ height: 18 }} />
         {havuz.length === 0 ? <div className="bk-oyun-ipucu">Görseller yüklenemedi.</div> : (
           <>
             <div className="bk-bolum-kart">
-              <div className="ust"><span>{hepsi ? "Tüm bölümler tamam!" : `Bölüm ${ilerleme} · ${bolumBilgi(ilerleme).boyut}×${bolumBilgi(ilerleme).boyut}`}</span><small>{Math.min(ilerleme - 1, toplam)} / {toplam} tamamlandı</small></div>
+              <div className="ust"><span>{hepsi ? "Tüm bölümler tamam!" : `Bölüm ${ilerleme}`}</span><small>{Math.min(ilerleme - 1, toplam)} / {toplam} tamamlandı</small></div>
               <div className="cubuk"><i style={{ width: `${Math.min(100, ((ilerleme - 1) / toplam) * 100)}%` }} /></div>
               <button className="bk-oyun-dugme sari" onClick={() => basla(hepsi ? 1 : ilerleme)}>{hepsi ? "Baştan oyna" : "Oyna"}</button>
             </div>
@@ -150,12 +148,12 @@ export default function Yapboz() {
 
   return (
     <div className="bk bk-oyun-sahne bk-yapboz-sahne">
-      <div className="bk-oyun-ust">
-        <button className="bk-oyun-geri" aria-label="Geri" onClick={() => setCikisSor(true)}>‹</button>
-        <div className="bk-oyun-ad" style={{ color: "#fff", fontSize: 22 }}>Bölüm {bolumNo} · {n}×{n}</div>
-        {url ? <div className="bk-yapboz-hedef" style={{ aspectRatio: oran, backgroundImage: `url(${url})` }} aria-label="Hedef resim" /> : <span style={{ width: 40 }} />}
-      </div>
-      <p className="bk-oyun-ipucu" style={{ margin: "0 0 12px" }}>{gorsel?.ad ?? ""} — parçaları boşluğa kaydır.</p>
+      <OyunUstBar
+        baslik={`Bölüm ${bolumNo}`} tema="koyu" onGeri={() => setCikisSor(true)}
+        sag={url ? <div className="bk-yapboz-hedef" style={{ aspectRatio: oran, backgroundImage: `url(${url})` }} aria-label="Hedef resim" /> : undefined}
+      />
+      {/* Android: görselin adı 13, beyaz %85; ardından 12 boşluk */}
+      <p className="bk-yapboz-ad">{gorsel?.ad ?? ""}</p>
 
       {!url ? <UcNokta style={{ padding: 60 }} /> : (
         <div className="bk-yapboz-tahta" data-bitti={kazandi} style={{ aspectRatio: oran, ["--n" as string]: n, ["--oran" as string]: oran }}>
@@ -180,30 +178,16 @@ export default function Yapboz() {
         </div>
       )}
 
+      {/* Alt banner (Android YapbozBolumOyun: BannerAdView) */}
+      <div style={{ flex: 1 }} />
+      <Reklam />
       {kazandi && (
-        <div className="bk-oyun-ortu">
-          <Lottie ad="confetti" className="bk-oyun-konfeti" />
-          <div className="govde">
-            <div style={{ fontSize: 40, fontWeight: 700, color: "#EDC22E" }} className="baslik">Bölüm {bolumNo} tamam!</div>
-            <div style={{ fontSize: 18 }}>{gorsel?.ad} tamamlandı. Harikasın!</div>
-            <div className="bk-oyun-dugmeler">
-              <button className="bk-oyun-dugme sari" onClick={devam}>{bolumNo >= toplam ? "Bitir" : "Sonraki bölüm"}</button>
-            </div>
-          </div>
-        </div>
+        <BolumBitis
+          baslik={`Bölüm ${bolumNo} tamam!`} altMetin={`${gorsel?.ad ?? ""} tamamlandı. Harikasın!`}
+          dugme={bolumNo >= toplam ? "Bitir" : "Sonraki bölüm →"} onDevam={devam}
+        />
       )}
-      {cikisSor && (
-        <div className="bk-oyun-ortu hafif" onClick={() => setCikisSor(false)}>
-          <div className="bk-oyun-onay" onClick={(e) => e.stopPropagation()}>
-            <div className="sor">Bölümden çıkılsın mı?</div>
-            <div className="not">İlerlemen bu bölüm için kaybolur.</div>
-            <div className="ikili">
-              <button className="bk-oyun-dugme" style={{ flex: 1 }} onClick={() => setCikisSor(false)}>Kal</button>
-              <button className="bk-oyun-dugme sari" style={{ flex: 1 }} onClick={() => { setCikisSor(false); setAsama("secim"); }}>Çık</button>
-            </div>
-          </div>
-        </div>
-      )}
+      {cikisSor && <BolumCikisOnayi onKal={() => setCikisSor(false)} onCik={() => { setCikisSor(false); setAsama("secim"); }} />}
     </div>
   );
 }

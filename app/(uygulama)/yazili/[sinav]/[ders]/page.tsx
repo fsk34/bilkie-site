@@ -5,11 +5,13 @@
 // Uygulamada olduğu gibi ilerleme ve ödüller SON halkada yazılır
 // (completedSteps + XP = doğru-yanlış doğrusu × 4 + ACT_YAZILI serisi).
 
+import { AksiyonDugmesi, AltSonucBandi } from "../../../TestAlt";
+import CikisOnayi from "../../../CikisOnayi";
 import Link from "next/link";
 import Perde from "../../../Perde";
 import SonucAkisi, { type SeriArgs } from "../../../sonuc/SonucAkisi";
 import type { GorevDegisimi } from "../../../../lib/gorevYaz";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useOturum } from "../../../../lib/oturum";
 import { useUstBilgi } from "../../../../lib/canliVeri";
@@ -50,6 +52,8 @@ const BOLUM_ADI: Record<Bolum, string> = {
 type Durum = "yukleniyor" | "hata" | "cozuluyor" | "bitti";
 
 export default function YaziliCalismaSayfasi() {
+  const router = useRouter();
+  const [cikisSor, setCikisSor] = useState(false);   // Android ExitConfirmDialog — eskiden onaysız çıkıyordu
   const params = useParams<{ sinav: string; ders: string }>();
   const sinavKey = params?.sinav ?? "";
   const dersKey = params?.ders ?? "";
@@ -355,7 +359,8 @@ export default function YaziliCalismaSayfasi() {
       <div className="bk-test">
         <div className="bk-test-ust">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <Link href={`/yazili/${sinavKey}`} className="bk-cikis" aria-label="Çık"><img src="/uygulama/cikis.png" alt="" /></Link>
+          <button className="bk-cikis" aria-label="Çık" onClick={() => setCikisSor(true)}><img src="/uygulama/cikis.png" alt="" /></button>
+          {cikisSor && <CikisOnayi onVazgec={() => setCikisSor(false)} onCik={() => router.push(`/yazili/${sinavKey}`)} />}
           <div className="bk-cubuk" style={{ flex: 1 }}><i style={{ width: `${oran}%` }} /></div>
           <div style={{ fontFamily: "bk-baslik, system-ui" }}>❤️ {can}</div>
         </div>
@@ -476,20 +481,17 @@ export default function YaziliCalismaSayfasi() {
         )}
       </div>
 
-      <div className={`bk-alt-bant ${kontrol ? (dogruMu ? "dogru" : "yanlis") : ""}`}>
-        {kontrol && (
-          <div className="bk-alt-bant-yazi">
-            {dogruMu ? "Doğru! 🎉" : `Doğrusu: ${dogruCevapMetni(bolum, indeks, siralama, acik, test, dy)}`}
-          </div>
-        )}
-        {kontrol ? (
-          <button className="bk-eylem" data-ton={dogruMu ? "dogru" : "yanlis"} onClick={devamEt}>
-            {indeks + 1 >= soruSayisi && bolumIndeks + 1 >= bolumler.length ? "Bitir" : "Devam Et"}
-          </button>
-        ) : (
-          <button className="bk-eylem" onClick={kontrolEt} disabled={!cevapVar}>Kontrol Et</button>
-        )}
-      </div>
+      <AltSonucBandi
+        gorunur={kontrol}
+        dogru={dogruMu}
+        dogruCevap={bolum === "siralama" || bolum === "acikuclu" ? dogruCevapMetni(bolum, indeks, siralama, acik, test, dy) : null}
+      />
+      <AksiyonDugmesi
+        etiket={kontrol ? "Devam Et" : "Kontrol Et"}
+        etkin={kontrol || cevapVar}
+        ton={!kontrol ? "normal" : dogruMu ? "dogru" : "yanlis"}
+        onClick={kontrol ? devamEt : kontrolEt}
+      />
     </div>
   );
 }

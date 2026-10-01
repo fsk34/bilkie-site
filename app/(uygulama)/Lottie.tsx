@@ -11,13 +11,15 @@ type Props = {
   /** dosya adı, uzantısız: "resultscreen" | "streaktest" | "streakdefter" | "streakyazili" | "dogrubes" | "confetti" */
   ad: string;
   dongu?: boolean;
+  /** döngüsüz oynatmada kaç tur (Android iterations); verilmezse 1 */
+  tekrar?: number;
   /** döngüsüz oynatma bitince */
   bittiginde?: () => void;
   className?: string;
   style?: React.CSSProperties;
 };
 
-export default function Lottie({ ad, dongu = false, bittiginde, className, style }: Props) {
+export default function Lottie({ ad, dongu = false, tekrar, bittiginde, className, style }: Props) {
   const kap = useRef<HTMLDivElement | null>(null);
   const bittiRef = useRef(bittiginde);
   bittiRef.current = bittiginde;
@@ -34,7 +36,8 @@ export default function Lottie({ ad, dongu = false, bittiginde, className, style
         anim = lottie.loadAnimation({
           container: kap.current,
           renderer: "svg",
-          loop: dongu,
+          // lottie-web: sayı verilirse o kadar EK tur oynar → toplam `tekrar` tur için tekrar − 1
+          loop: dongu ? true : tekrar && tekrar > 1 ? tekrar - 1 : false,
           autoplay: true,
           path: `/uygulama/lottie/${ad}.json`,
         });
@@ -48,7 +51,7 @@ export default function Lottie({ ad, dongu = false, bittiginde, className, style
     })();
 
     return () => { iptal = true; anim?.destroy(); };
-  }, [ad, dongu]);
+  }, [ad, dongu, tekrar]);
 
   return <div ref={kap} className={className} style={style} aria-hidden />;
 }

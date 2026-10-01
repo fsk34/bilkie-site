@@ -17,6 +17,7 @@ import {
   wordleSeviyeOku,
 } from "../../../lib/veri";
 import { sesCal, sesleriOnYukle } from "../../ses";
+import CikisOnayi from "../../CikisOnayi";
 
 type Durum = "bos" | "yazili" | "dogru" | "yerinde" | "yok";
 type Goz = { harf: string; durum: Durum };
@@ -141,7 +142,7 @@ function Giris({
         ) : (
           <>
             <div className="bk-wl-cubuk" style={{ marginTop: 48 }}>
-              <i style={{ width: `${oran}%` }} />
+              <i style={{ width: `${oran}%`, transition: "width .9s cubic-bezier(.4,0,.2,1)" }} />   {/* Android tween(900) */}
             </div>
             <p className="bk-wl-not" style={{ marginTop: 10 }}>
               Bölüm {seviye} / {WORDLE_BOLUM_SAYISI}
@@ -288,7 +289,7 @@ function Oyun({
     <div className="bk">
       <div className="bk-wl-sahne oyun">
         <div className="bk-wl-ust">
-          <button className="bk-wl-geri duz" aria-label="Geri" onClick={() => (bitti ? onCik() : setCikisSor(true))}>←</button>
+          <button className="bk-wl-geri duz" aria-label="Geri" onClick={() => setCikisSor(true)}>←</button>   {/* Android: her zaman onay */}
           <div className="orta">
             <b>Wordle</b>
             {!yukleniyor && <span>Bölüm {bolumNo}&nbsp;&nbsp;•&nbsp;&nbsp;{harfSayisi} harf</span>}
@@ -356,14 +357,15 @@ function Oyun({
       </div>
 
       {kutlama && (
-        <div className="bk-oyun-ortu">
-          <div className="govde" style={{ width: "100%", maxWidth: 420 }}>
+        // Android: karartma 0xCC (%80); aralıklar 6 · 32 · 8 · 36 (sabit boşluklar, ızgara aralığı yok)
+        <div className="bk-oyun-ortu" style={{ background: "rgba(0,0,0,.8)" }}>
+          <div className="govde" style={{ width: "100%", maxWidth: 420, gap: 0 }}>
             <div style={{ fontSize: 28, fontWeight: 800 }}>Harika! 🎉</div>
-            <div style={{ fontSize: 15, color: "#AAAAAA" }}>Bölüm {bolumNo} tamamlandı</div>
+            <div style={{ fontSize: 15, color: "#AAAAAA", marginTop: 6 }}>Bölüm {bolumNo} tamamlandı</div>
             <div className="bk-wl-cubuk" style={{ width: "100%", marginTop: 32 }}>
               <i style={{ width: `${ilerlemeHedefi ? cubukBitis : cubukBaslangic}%`, transition: "width 1s cubic-bezier(.4,0,.2,1)" }} />
             </div>
-            <div className="bk-wl-not">{bolumNo + 1} / {WORDLE_BOLUM_SAYISI}</div>
+            <div className="bk-wl-not" style={{ marginTop: 8 }}>{bolumNo + 1} / {WORDLE_BOLUM_SAYISI}</div>
             <button className="bk-wl-dugme" style={{ marginTop: 36 }} onClick={onBolumBitti}>
               {bolumIndeksi >= WORDLE_BOLUM_SAYISI - 1 ? "Tebrikler!" : "Devam Et"}
             </button>
@@ -371,17 +373,7 @@ function Oyun({
         </div>
       )}
 
-      {cikisSor && (
-        <div className="bk-oyun-ortu hafif" onClick={() => setCikisSor(false)}>
-          <div className="bk-oyun-onay" onClick={(e) => e.stopPropagation()}>
-            <div className="sor">Çıkmak istiyor musun?</div>
-            <div className="ikili">
-              <button className="hayir" onClick={() => setCikisSor(false)}>Hayır</button>
-              <button className="evet" onClick={onCik}>Evet, Çık</button>
-            </div>
-          </div>
-        </div>
-      )}
+      {cikisSor && <CikisOnayi onVazgec={() => setCikisSor(false)} onCik={onCik} />}
     </div>
   );
 }

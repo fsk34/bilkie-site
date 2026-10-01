@@ -5,6 +5,7 @@
 // veritabanında bu kullanıcıya ait HİÇBİR kayıt yoktur. Yarıda çıkılırsa
 // geriye kalan boş Auth kaydı da silinir ("çıkarsan kayıt oluşmaz").
 
+import CikisOnayi from "../../CikisOnayi";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { signOut } from "firebase/auth";
@@ -172,32 +173,11 @@ export default function GoogleKurulumSayfasi() {
       </div>
 
       {cikisSorusu && (
-        <div className="bk-ortu">
-          <div className="bk-kart bk-soru-kutu">
-            <h3>Çıkmak istediğine emin misin?</h3>
-            <p className="bk-soluk">
-              Şimdi çıkarsan kaydın oluşmayacak. Sınıfını ve avatarını seçmeden kayıt
-              tamamlanmıyor.
-            </p>
-            <div style={{ display: "flex", gap: 10, marginTop: 14 }}>
-              <button
-                className="bk-dugme acik"
-                style={{ flex: 1 }}
-                onClick={() => setCikisSorusu(false)}
-              >
-                Vazgeç
-              </button>
-              <button
-                className="bk-dugme kirmizi"
-                style={{ flex: 1 }}
-                disabled={kaydediyor}
-                onClick={iptalEt}
-              >
-                Çık
-              </button>
-            </div>
-          </div>
-        </div>
+        <CikisOnayi
+          mesaj="Şimdi çıkarsan kaydın oluşmayacak. Sınıfını ve avatarını seçmeden kayıt tamamlanmıyor."
+          onVazgec={() => setCikisSorusu(false)}
+          onCik={() => { if (!kaydediyor) void iptalEt(); }}
+        />
       )}
     </div>
   );

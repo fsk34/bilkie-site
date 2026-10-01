@@ -11,7 +11,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import Lottie from "../../Lottie";
+import { BolumBitis, BolumCikisOnayi, OnayDugme, OyunUstBar } from "../../BolumOrtak";
 import UcNokta from "../../UcNokta";
 import { useOturum } from "../../../lib/oturum";
 import { oyunBolumu, oyunBolumuYaz } from "../../../lib/veri";
@@ -79,11 +79,19 @@ function oklariKur(b: Bolum): Ok[] {
 type Nokta = [number, number];
 
 /** Şaftlar düz, köşeler yuvarlak (R=0,28 hücre): nokta listesinden SVG yolu (birim = hücre). */
+/** Android FastOutLinearInEasing = cubic-bezier(0.4, 0, 1, 1) */
+function fastOutLinearIn(x: number): number {
+  const b = (t: number, p1: number, p2: number) => 3 * (1 - t) * (1 - t) * t * p1 + 3 * (1 - t) * t * t * p2 + t * t * t;
+  let lo = 0, hi = 1, t = x;
+  for (let k = 0; k < 20; k++) { t = (lo + hi) / 2; if (b(t, 0.4, 1) < x) lo = t; else hi = t; }
+  return b(t, 0, 1);
+}
+
 function yolCiz(p: Nokta[]): string {
   if (p.length === 0) return "";
   if (p.length === 1) return `M${p[0][0]} ${p[0][1]} l0.001 0`;
   let d = `M${p[0][0]} ${p[0][1]}`;
-  const R = 0.28;
+  const R = 0.11;   // Android densifyRounded CORNER_R
   for (let i = 1; i < p.length; i++) {
     const [x, y] = p[i];
     if (i < p.length - 1) {
@@ -208,14 +216,15 @@ export default function OkBulmaca() {
       setOklar((l) => l.map((o) => (o.id === id ? { ...o, durum: "cikiyor" as const } : o)));
       // Yılan gibi kendi yolunu izleyerek çıkar (Android: 430 ms, FastOutLinear); uzun yol biraz daha sürer
       const mesafe = cikisMesafesi(a);
-      cikisRef.current[id] = { basla: performance.now(), sure: 430 + mesafe * 12, mesafe };
+      // Android: tween(430 + maxStart·2, FastOutLinearIn) — maxStart ≈ hücre başına 4 yoğun nokta → 8 ms/hücre
+      cikisRef.current[id] = { basla: performance.now(), sure: 430 + mesafe * 8, mesafe };
       const adim = () => {
         const simdi = performance.now();
         const yeni: Record<number, number> = {};
         const bitenler: number[] = [];
         for (const [k, v] of Object.entries(cikisRef.current)) {
           const t = Math.min(1, (simdi - v.basla) / v.sure);
-          yeni[Number(k)] = v.mesafe * t * t;          // hızlanarak (ease-in)
+          yeni[Number(k)] = v.mesafe * fastOutLinearIn(t);   // Android FastOutLinearInEasing
           if (t >= 1) bitenler.push(Number(k));
         }
         setCikis(yeni);
@@ -233,7 +242,8 @@ export default function OkBulmaca() {
     } else {
       sesCal("yanlis", 0.6);
       setOklar((l) => l.map((o) => (o.id === id ? { ...o, durum: "carpti" as const } : o)));
-      zamanlayicilar.current.push(setTimeout(() => setOklar((l) => l.map((o) => (o.id === id ? { ...o, durum: "duruyor" as const } : o))), 420));
+      // Android: 0,3 hücre ileri 90 ms → geri 230 ms; kırmızı 480 ms'de söner (CSS geçişi)
+      zamanlayicilar.current.push(setTimeout(() => setOklar((l) => l.map((o) => (o.id === id ? { ...o, durum: "duruyor" as const } : o))), 90));
       setHak((h) => { const y = h - 1; if (y <= 0) setHakBitti(true); return y; });
     }
   }, [oklar, kazandi, hakBitti, onuAcik, cikisMesafesi]);
@@ -251,12 +261,8 @@ export default function OkBulmaca() {
     const hepsi = ilerleme > OK_BOLUM_SAYISI;
     return (
       <div className="bk bk-oyun-sahne bk-ok-sahne">
-        <div className="bk-oyun-ust">
-          <button className="bk-oyun-geri" aria-label="Geri" onClick={() => router.push("/oyunlar")}>‹</button>
-          <div className="bk-oyun-ad">Ok Bulmaca</div>
-          <span style={{ width: 40 }} />
-        </div>
-        <p className="bk-oyun-ipucu" style={{ marginTop: 0 }}>Ucu açık oka dokun, tahtadan çıksın. Önü kapalıysa hakkın gider!</p>
+        <OyunUstBar baslik="Ok Bulmaca" tema="acik" onGeri={() => router.push("/oyunlar")} />
+        <p className="bk-oyun-ipucu bk-bolum-ipucu">Ucu açık oka dokun, tahtadan çıksın. Önü kapalıysa hakkın gider!</p>
         <div className="bk-bolum-kart">
           <div className="ust"><span>{hepsi ? "Tüm bölümler tamam!" : `Bölüm ${ilerleme}`}</span><small>{Math.min(ilerleme - 1, OK_BOLUM_SAYISI)} / {OK_BOLUM_SAYISI} tamamlandı</small></div>
           <div className="cubuk"><i style={{ width: `${Math.min(100, ((ilerleme - 1) / OK_BOLUM_SAYISI) * 100)}%` }} /></div>
@@ -279,19 +285,15 @@ export default function OkBulmaca() {
   const R = bolum.satir, C = bolum.sutun;
   return (
     <div className="bk bk-oyun-sahne bk-ok-sahne">
-      <div className="bk-oyun-ust">
-        <button className="bk-oyun-geri" aria-label="Geri" onClick={() => setCikisSor(true)}>‹</button>
-        <div className="bk-oyun-ad" style={{ fontSize: 22 }}>Bölüm {bolumNo}</div>
-        <div className="bk-ok-hak" aria-label={`${hak} hak`}>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/uygulama/hakicon.svg" alt="" /><b>{hak}</b>
-        </div>
-      </div>
-      <p className="bk-oyun-ipucu" style={{ margin: "0 0 12px" }}>Ucu açık oka dokun → tahtadan çıkar. Önü kapalıysa hakkın gider!</p>
+      <OyunUstBar
+        baslik={`Bölüm ${bolumNo}`} tema="acik" onGeri={() => setCikisSor(true)}
+        // eslint-disable-next-line @next/next/no-img-element
+        sag={<span className="bk-ok-hak" aria-label={`${hak} hak`}><img src="/uygulama/hakicon.svg" alt="" /><b>{hak}</b></span>}
+      />
 
       <div className="bk-ok-tahta" style={{ aspectRatio: `${C} / ${R}` }}>
         <svg viewBox={`0 0 ${C} ${R}`} width="100%" height="100%">
-          <rect width={C} height={R} fill="#FFFFFF" rx={0.3} />
+          <rect width={C} height={R} fill="#FFFFFF" rx={0.16} />   {/* Android köşe = hücre × 0.16 */}
           {/* Noktalar yalnız BOŞ hücrelerde (Android görünümü). Çıkan okta hücre = o anki gövdenin altı:
               kuyruk geçince nokta belirir, baş gelince kaybolur; ince şaftın altından nokta sızmaz. */}
           {(() => {
@@ -308,11 +310,11 @@ export default function OkBulmaca() {
               }
             }
             return Array.from({ length: R }, (_, r) => Array.from({ length: C }, (_, c) =>
-              dolu.has(`${r},${c}`) ? null : <circle key={`${r}-${c}`} cx={c + 0.5} cy={r + 0.5} r={0.05} fill={NOKTA} />
+              dolu.has(`${r},${c}`) ? null : <circle key={`${r}-${c}`} cx={c + 0.5} cy={r + 0.5} r={0.035} fill={NOKTA} />
             ));
           })()}
           {oklar.filter((o) => o.durum !== "cikti").map((o) => {
-            const m = o.durum === "carpti" ? 0.18 : 0;
+            const m = o.durum === "carpti" ? 0.3 : 0;   // Android vur = hücre × 0.3
             const renk = o.durum === "carpti" ? KIRMIZI : LACIVERT;
             const sIlerleme = o.durum === "cikiyor" ? (cikis[o.id] ?? 0) : 0;
             const { p, yon: [dr, dc] } = yilanPenceresi(o.hucreler, o.yon, sIlerleme, R + C + o.hucreler.length + 2);
@@ -320,9 +322,11 @@ export default function OkBulmaca() {
             // İnce şaft (0,11 hücre) + küçük üçgen ok başı (Android ArrowBolum ölçüleri):
             // şaft başın tabanında biter; uç tabandan 0,34 ileride, yarım genişlik 0,2
             const [kx, ky] = p[p.length - 1];
-            const tx = kx + dc * 0.34, ty = ky + dr * 0.34;
+            // Android drawOk: uç 0.262, taban 0.014, yarım genişlik 0.117 (hücre)
+            const bx = kx + dc * 0.014, by = ky + dr * 0.014;
+            const tx = kx + dc * 0.262, ty = ky + dr * 0.262;
             const px = -dr, py = dc;
-            const ax = kx + px * 0.2, ay = ky + py * 0.2, cx = kx - px * 0.2, cy = ky - py * 0.2;
+            const ax = bx + px * 0.117, ay = by + py * 0.117, cx = bx - px * 0.117, cy = by - py * 0.117;
             return (
               <g
                 key={o.id}
@@ -333,7 +337,7 @@ export default function OkBulmaca() {
               >
                 {/* geniş görünmez vuruş alanı: parmakla kolay tutulsun */}
                 <path d={yolCiz(p)} fill="none" stroke="transparent" strokeWidth={0.9} strokeLinecap="round" strokeLinejoin="round" />
-                <path d={yolCiz(p)} fill="none" stroke={renk} strokeWidth={0.11} strokeLinecap="round" strokeLinejoin="round" />
+                <path d={yolCiz(p)} fill="none" stroke={renk} strokeWidth={0.083} strokeLinecap="round" strokeLinejoin="round" />
                 <polygon points={`${tx},${ty} ${ax},${ay} ${cx},${cy}`} fill={renk} />
               </g>
             );
@@ -342,41 +346,25 @@ export default function OkBulmaca() {
       </div>
 
       {kazandi && (
-        <div className="bk-oyun-ortu">
-          <Lottie ad="confetti" className="bk-oyun-konfeti" />
-          <div className="govde">
-            <div style={{ fontSize: 40, fontWeight: 700, color: "#EDC22E" }} className="baslik">Bölüm {bolumNo} tamam!</div>
-            <div style={{ fontSize: 18 }}>Tüm oklar çıktı. Harikasın!</div>
-            <div className="bk-oyun-dugmeler">
-              <button className="bk-oyun-dugme sari" onClick={devam}>{bolumNo >= OK_BOLUM_SAYISI ? "Bitir" : "Sonraki bölüm"}</button>
-            </div>
-          </div>
-        </div>
+        <BolumBitis
+          baslik={`Bölüm ${bolumNo} tamam!`} altMetin="Tüm oklar çıktı. Harikasın!"
+          dugme={bolumNo >= OK_BOLUM_SAYISI ? "Bitir" : "Sonraki bölüm →"} onDevam={devam}
+        />
       )}
       {hakBitti && !kazandi && (
-        <div className="bk-oyun-ortu">
-          <div className="bk-oyun-onay">
-            <div className="sor">Hakların bitti</div>
-            <div className="not">Bu bölümü baştan dene; okların sırasını bulacaksın.</div>
+        // Android HakBittiDialog: beyaz kart (reklamla +1 hak web'de yok)
+        <div className="bk-bolum-onay">
+          <div className="kart">
+            <b>Hakların bitti!</b>
+            <span>Bölümü baştan dene; okların sırasını bulacaksın.</span>
             <div className="ikili">
-              <button className="bk-oyun-dugme" style={{ flex: 1 }} onClick={() => setAsama("secim")}>Bölümler</button>
-              <button className="bk-oyun-dugme sari" style={{ flex: 1 }} onClick={() => basla(bolumNo)}>Tekrar dene</button>
+              <OnayDugme metin="Bölümler" zemin="#E6E9F2" renk="#2B3350" onClick={() => setAsama("secim")} />
+              <OnayDugme metin="Tekrar dene" zemin="#EDC22E" renk="#000" onClick={() => basla(bolumNo)} />
             </div>
           </div>
         </div>
       )}
-      {cikisSor && (
-        <div className="bk-oyun-ortu hafif" onClick={() => setCikisSor(false)}>
-          <div className="bk-oyun-onay" onClick={(e) => e.stopPropagation()}>
-            <div className="sor">Bölümden çıkılsın mı?</div>
-            <div className="not">İlerlemen bu bölüm için kaybolur.</div>
-            <div className="ikili">
-              <button className="bk-oyun-dugme" style={{ flex: 1 }} onClick={() => setCikisSor(false)}>Kal</button>
-              <button className="bk-oyun-dugme sari" style={{ flex: 1 }} onClick={() => { setCikisSor(false); setAsama("secim"); }}>Çık</button>
-            </div>
-          </div>
-        </div>
-      )}
+      {cikisSor && <BolumCikisOnayi onKal={() => setCikisSor(false)} onCik={() => { setCikisSor(false); setAsama("secim"); }} />}
     </div>
   );
 }

@@ -4,12 +4,13 @@
 // Kâğıt zemin + çizgiler, blok tipleri ve renkleri uygulamayla aynı.
 // Son sayfada "Devam Et": ilerleme + (ilk kez ise) 50 XP + seri işareti yazılır.
 
+import CikisOnayi from "../../../CikisOnayi";
 import Link from "next/link";
 import Perde from "../../../Perde";
 import UcNokta from "../../../UcNokta";
 import SonucAkisi, { type SeriArgs } from "../../../sonuc/SonucAkisi";
 import { gorevOlayiUygula, type GorevDegisimi } from "../../../../lib/gorevYaz";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { dersBul } from "../../../dersler";
 import { useOturum } from "../../../../lib/oturum";
@@ -32,6 +33,8 @@ import DefterBlokGorunumu from "../../DefterBlokGorunumu";
 type Durum = "yukleniyor" | "hata" | "okuma" | "bitti";
 
 export default function DefterOkuyucuSayfasi() {
+  const router = useRouter();
+  const [cikisSor, setCikisSor] = useState(false);   // Android ExitConfirmDialog — eskiden onaysız çıkıyordu
   const params = useParams<{ ders: string; unite: string }>();
   const dersKey = params?.ders ?? "";
   const uniteKey = params?.unite ?? "";
@@ -221,7 +224,8 @@ export default function DefterOkuyucuSayfasi() {
   return (
     <div className="bk-defter">
       <div className="bk-defter-ust">
-        <Link href={`/ders/${dersKey}`} aria-label="Çık">✕</Link>
+        <button className="bk-cikis bk-defter-cikis" aria-label="Çık" onClick={() => setCikisSor(true)} style={{ visibility: sonSayfa ? "hidden" : "visible" }}>{/* eslint-disable-next-line @next/next/no-img-element */}<img src="/uygulama/cikis.png" alt="" /></button>
+          {cikisSor && <CikisOnayi onVazgec={() => setCikisSor(false)} onCik={() => router.push(`/ders/${dersKey}`)} />}
         <span className="bk-defter-sayac">{indeks + 1}/{sayfalar.length}</span>
         <span style={{ width: 22 }} />
       </div>
