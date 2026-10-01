@@ -1084,6 +1084,7 @@
   display: grid; gap: 12px; width: 100%; max-width: 520px; padding: 8px 16px; box-sizing: border-box;
 }
 .bk-kg-dunya { position: relative; border-radius: 16px; overflow: hidden; }
+.bk-kg-dunya.etkin { cursor: pointer; }
 .bk-kg-dunya img { display: block; width: 100%; height: 160px; object-fit: cover; }
 .bk-kg-dunya .kilit {
   position: absolute; inset: 0; display: grid; place-items: center;

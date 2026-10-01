@@ -122,7 +122,9 @@ export default function KelimeGezmece() {
             const bitti = simdiki > d.son;
             const yapilan = bitti ? 10 : kilitli ? 0 : simdiki - d.bas;
             return (
-              <div key={d.ad} className="bk-kg-dunya">
+              // Kartın tamamı dokunulur (Android/iOS ile aynı); düğmenin tıklaması da buraya kabarır
+              <div key={d.ad} className={`bk-kg-dunya${!kilitli && !bitti ? " etkin" : ""}`}
+                onClick={!kilitli && !bitti ? () => { setBolumNo(simdiki); setEkran("oyun"); } : undefined}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={`/uygulama/kg/${d.gorsel}.jpg`} alt={d.ad} loading="lazy" />
                 {kilitli && <span className="kilit">🔒</span>}
@@ -137,7 +139,7 @@ export default function KelimeGezmece() {
                   {bitti ? (
                     <span className="bitti">✓ Tamamlandı</span>
                   ) : !kilitli ? (
-                    <button className="oyna" onClick={() => { setBolumNo(simdiki); setEkran("oyun"); }}>
+                    <button className="oyna">
                       {simdiki === d.bas ? "Başla" : "Devam Et"}
                     </button>
                   ) : (
