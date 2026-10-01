@@ -18,6 +18,12 @@ import { sinifSinirla, xpEkle } from "./veri";
 export const XP_QUIZ_TAMAM = 30;   // Android/iOS: XpRules.QUIZ_COMPLETE_XP
 
 export type QuizCifti = { sol: string; sag: string };
+
+/** Bağlantı yok / zaman aşımı — "bulunamadı" DEĞİL. Fırlatılır ki önbelleğe (null olarak) yazılmasın;
+ *  eskiden okuma hatası sessizce null'a düşüp sekme kapanana kadar "bulunamadı" kalıyordu. */
+export class QuizYuklenemedi extends Error {
+  constructor() { super("quiz yüklenemedi"); this.name = "QuizYuklenemedi"; }
+}
 export type QuizUnitesi = { baslik: string; sayfaBoyu: number; ciftler: QuizCifti[] };
 
 /** Android `unitKeyCandidates` — aynı ünite farklı anahtarlarla durabiliyor. */
@@ -74,13 +80,10 @@ export async function quizUnitesiGetir(
 
     let bulunan: Record<string, unknown> | null = null;
     for (const yol of yollar) {
-      let ham: Record<string, unknown> | null = null;
-      try {
-        const snap = await get(dbRef(quizDb, yol));
-        ham = snap.exists() ? (snap.val() as Record<string, unknown>) : null;
-      } catch {
-        continue;
-      }
+      // Android/iOS: zaman aşımı (8 sn) = bağlantı yok → diğer yolları denemek boşuna bekletir → "yüklenemedi"
+      const snap = await tavanli(get(dbRef(quizDb, yol)), 8_000);
+      if (snap === undefined) throw new QuizYuklenemedi();
+      const ham = snap.exists() ? (snap.val() as Record<string, unknown>) : null;
       if (!ham) continue;
 
       // Düğümde "units" çocuğu varsa içine in
@@ -92,11 +95,12 @@ export async function quizUnitesiGetir(
 
       const adaylar = new Set(uniteAdaylari(uniteKey));
       const sira = Math.max(0, (Number.parseInt(uniteKey.replace(/\D/g, ""), 10) || 1) - 1);
+      // Sıra dışıysa başka ünitenin quizini AÇMA (Android/iOS): bu yolda yok say → sonunda "bulunamadı"
       const secilen =
         anahtarlar.find((k) => adaylar.has(k)) ??
         anahtarlar.find((k) => k.startsWith(`${uniteKey}_`)) ??
-        anahtarlar[sira] ??
-        anahtarlar[0];
+        anahtarlar[sira];
+      if (!secilen) continue;
 
       bulunan = (kok[secilen] ?? null) as Record<string, unknown> | null;
       if (bulunan) break;

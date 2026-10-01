@@ -33,7 +33,8 @@ import {
   type QuizUnitesi,
 } from "../../../../lib/quiz";
 
-type Durum = "yukleniyor" | "hata" | "oynaniyor" | "kaydediliyor" | "bitti";
+// "yuklenemedi" = bağlantı/zaman aşımı (Tekrar Dene) · "bulunamadi" = veride gerçekten yok
+type Durum = "yukleniyor" | "yuklenemedi" | "bulunamadi" | "oynaniyor" | "kaydediliyor" | "bitti";
 
 /** Deterministik olmayan karıştırma (Android: `shuffled()`). */
 function karistir<T>(dizi: T[]): T[] {
@@ -58,6 +59,7 @@ export default function QuizSayfasi() {
   const [kazanilanXp, setKazanilanXp] = useState(0);
   const [ilkKez, setIlkKez] = useState(false);
   const [cikisSorusu, setCikisSorusu] = useState(false);
+  const [deneme, setDeneme] = useState(0);   // "Tekrar Dene" yüklemeyi yeniden başlatır
 
   const geriYolu = `/ders/${dersKey}`;
 
@@ -68,18 +70,18 @@ export default function QuizSayfasi() {
       try {
         const q = await quizUnitesiGetir(sinif, dersKey, uniteKey);
         if (iptal) return;
-        if (!q || q.ciftler.length === 0) { setDurum("hata"); return; }
+        if (!q || q.ciftler.length === 0) { setDurum("bulunamadi"); return; }
         // Android: `loaded.copy(pairs = loaded.pairs.shuffled())` — önbellekteki nesne
         // değişmesin diye kopya karıştırılır.
         setVeri({ ...q, ciftler: karistir(q.ciftler) });
         setSayfa(0);
         setDurum("oynaniyor");
       } catch {
-        if (!iptal) setDurum("hata");
+        if (!iptal) setDurum("yuklenemedi");   // QuizYuklenemedi ya da beklenmeyen hata
       }
     })();
     return () => { iptal = true; };
-  }, [yukleniyor, sinif, dersKey, uniteKey]);
+  }, [yukleniyor, sinif, dersKey, uniteKey, deneme]);
 
   const sayfaSayisi = veri ? Math.max(1, Math.ceil(veri.ciftler.length / veri.sayfaBoyu)) : 1;
   const sayfaCiftleri = useMemo(() => {
@@ -106,12 +108,22 @@ export default function QuizSayfasi() {
     setDurum("bitti");
   }, [kullanici, sinif, dersKey, uniteKey]);
 
-  if (durum === "yukleniyor") return <Perde metin="Quiz yükleniyor…" nokta />;
+  if (durum === "yukleniyor") return <Perde metin="Quiz yükleniyor…" nokta cikis={geriYolu} />;
   if (durum === "kaydediliyor") return <Perde metin="Kaydediliyor…" nokta />;
 
-  if (durum === "hata") {
+  if (durum === "yuklenemedi") {
     return (
-      <Perde metin="Bu ünite için quiz bulunamadı.">
+      <Perde metin="Quiz yüklenemedi. İnternet bağlantını kontrol et." cikis={geriYolu}>
+        <button className="bk-dugme" onClick={() => { setDurum("yukleniyor"); setDeneme((d) => d + 1); }}>
+          Tekrar Dene
+        </button>
+      </Perde>
+    );
+  }
+
+  if (durum === "bulunamadi") {
+    return (
+      <Perde metin="Bu ünite için quiz bulunamadı." cikis={geriYolu}>
         <Link className="bk-dugme" href={geriYolu}>Ünitelere dön</Link>
       </Perde>
     );
