@@ -125,7 +125,8 @@ function Icerik() {
               <img className="ikon" src={`/uygulama/${s.ikon}.png`} alt="" />
               <span className="ad">{dersEtiketi(d, sinif)}</span>
               <span className="iz">
-                <i className="dolgu" style={{ width: `${p * 100}%`, background: s.dolgu }} />
+                {/* Android/iOS: dolgu yalnız oran > 0 iken (CSS'teki 14px alt sınır %0'da da yuvarlak çiziyordu) */}
+                {p > 0 && <i className="dolgu" style={{ width: `${p * 100}%`, background: s.dolgu }} />}
                 {p > 0.15 && <i className="parlak" style={{ width: `calc(${p * 100}% - 14px)`, background: s.parlak }} />}
               </span>
             </Link>
