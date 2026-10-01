@@ -417,6 +417,11 @@ function Oyun({
   }, [secili, bitti, kazandi, verilenGozler, tahta, bulmaca, notlar, hataliGozler, zorluk, gecmis, kazandiMi]);
 
   const ipucu = useCallback(() => {
+    // Verilemiyorsa hak HARCANMAZ (Android ipucuVerilebilir) — çözülmüş hücrede ücretsiz hak gidiyordu
+    const verilebilir = !!secili && !bitti && !kazandi
+      && !verilenGozler.has(`${secili[0]},${secili[1]}`)
+      && tahta[secili[0]][secili[1]] !== bulmaca.cozum[secili[0]][secili[1]];
+    if (!verilebilir) { bildir("İpucu için boş ya da yanlış bir hücre seç"); return; }
     if (ucretsizIpucu) {
       ipucuKullanildiYaz();
       setUcretsizIpucu(false);
@@ -424,7 +429,7 @@ function Oyun({
     } else {
       setIpucuUyarisi(true);
     }
-  }, [ucretsizIpucu, ipucuUygula]);
+  }, [ucretsizIpucu, ipucuUygula, secili, bitti, kazandi, verilenGozler, tahta, bulmaca, bildir]);
 
   // Fiziksel klavye (web eklemesi)
   useEffect(() => {

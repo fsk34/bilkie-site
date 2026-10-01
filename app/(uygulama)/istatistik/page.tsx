@@ -373,7 +373,9 @@ function DefterBolumu({ bilgi }: { bilgi: DefterKarti | null }) {
             <i style={{ width: bos ? "100%" : `${(kalan / toplam) * 100}%`, background: D_KALAN }} />
           </div>
           <div className="bk-ist-nokta" style={{ gap: 0 }}>
-            Tamamlandı: %{bilgi?.yuzde ?? 0}&nbsp;&nbsp;({bitti}/{bilgi?.toplam ?? 0})
+            {/* Devamda yüzdesi de (Android/iOS ile aynı yuvarlama) */}
+            Tamamlandı: %{bilgi?.yuzde ?? 0} · Devamda: %{(bilgi?.toplam ?? 0) > 0 ? Math.min(100, Math.round((devam / (bilgi?.toplam ?? 1)) * 100)) : 0}
+            &nbsp;&nbsp;({bitti}/{bilgi?.toplam ?? 0} · {devam}/{bilgi?.toplam ?? 0})
           </div>
           <div className="bk-ist-notlar">
             <span className="bk-ist-nokta"><b style={{ background: D_BITTI }} />Bitti: {bitti}</span>
