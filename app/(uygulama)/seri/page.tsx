@@ -6,6 +6,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import Kabuk from "../Kabuk";
 import { useOturum } from "../../lib/oturum";
 import {
@@ -25,8 +26,13 @@ const HAFTA = ["Pt","Sa","Ça","Pe","Cu","Ct","Pa"];
 const RENK_TEST   = "#DECF95";
 const RENK_DEFTER = "#DEA495";
 const RENK_YAZILI = "#9C95DE";
-const RENK_BOS    = "rgba(255,255,255,0.33)";
+const RENK_BOS_GUN  = "rgba(255,255,255,0.333)";   // Android ColorInactiveRing 0x55
+const RENK_BOS_BANT = "rgba(255,255,255,0.25)";    // Android büyük halka boşken
 const RENK_SERI   = "#CB8000";
+
+// Android StreakCache: ay verisi bellekte; ekrana dönünce bant/takvim hazır açılır, arkada tazelenir.
+// Eskiden her girişte bant griden turuncuya, sayı "—"den değere flaş yapıyordu (1 Eki).
+const onbellek = new Map<string, SeriAy>();
 
 export default function SeriSayfasi() {
   return (
@@ -38,15 +44,13 @@ export default function SeriSayfasi() {
 
 function SeriIcerik() {
   const { kullanici } = useOturum();
+  const router = useRouter();
   const [kaydirma, setKaydirma] = useState(0);   // 0 = bu ay, -1 = önceki ay…
-  const [veri, setVeri] = useState<SeriAy | null>(null);
-  // Üstteki bant BUGÜNE bakar, gezilen aya değil (uygulamada da öyle):
-  // yalnızca içinde bulunduğumuz ay yüklendiğinde güncellenir.
-  const [bugunMaskesi, setBugunMaskesi] = useState(0);
 
   const bugun = gunAnahtari();
   const [buYil, buAy] = [Number(bugun.slice(0, 4)), Number(bugun.slice(5, 7))];
   const bugunGun = Number(bugun.slice(8, 10));
+  const buAyAnahtari = bugun.slice(0, 7);
 
   // Gösterilen ay (Istanbul takvimine göre kaydırılmış)
   const { yil, ay } = useMemo(() => {
@@ -55,24 +59,35 @@ function SeriIcerik() {
   }, [buYil, buAy, kaydirma]);
 
   const ayAnahtari = `${yil}-${String(ay).padStart(2, "0")}`;
-  const buAyMi = kaydirma === 0;
+  const uid = kullanici?.uid ?? "";
+  const buAyOnbellek = uid ? onbellek.get(`${uid}|${buAyAnahtari}`) : undefined;
+
+  // Seri sayısı ve bugünün maskesi BUGÜNE bakar, gezilen aya değil (Android: ay değişiminden bağımsız)
+  const [sayi, setSayi] = useState<number | null>(buAyOnbellek ? buAyOnbellek.sayi : null);
+  const [bugunMaskesi, setBugunMaskesi] = useState(buAyOnbellek?.gunler[bugunGun] ?? 0);
+  // Takvim gezilen ayın verisi; ay değişince HEMEN o ayın önbelleğine ya da boşa döner
+  // (eskiden önceki ayın çizgileri yeni ay gelene kadar ekranda kalıyordu).
+  const [gunler, setGunler] = useState<Record<number, number>>(buAyOnbellek?.gunler ?? {});
 
   useEffect(() => {
-    if (!kullanici) { setVeri(null); return; }
+    if (!uid) return;
+    const anahtar = `${uid}|${ayAnahtari}`;
+    setGunler(onbellek.get(anahtar)?.gunler ?? {});
     let iptal = false;
-    seriAyiOku(kullanici.uid, ayAnahtari)
+    seriAyiOku(uid, ayAnahtari)
       .then((v) => {
+        onbellek.set(anahtar, v);
         if (iptal) return;
-        setVeri(v);
-        if (buAyMi) setBugunMaskesi(v.gunler[bugunGun] ?? 0);
+        setGunler(v.gunler);
+        setSayi(Math.max(0, v.sayi));
+        if (ayAnahtari === buAyAnahtari) setBugunMaskesi(v.gunler[bugunGun] ?? 0);
       })
-      .catch(() => { if (!iptal) setVeri(null); });
+      // Android: okunamazsa eldeki değer kalır, yükleniyor biter
+      .catch(() => { if (!iptal) setSayi((s) => s ?? 0); });
     return () => { iptal = true; };
-  }, [kullanici, ayAnahtari, buAyMi, bugunGun]);
+  }, [uid, ayAnahtari, buAyAnahtari, bugunGun]);
 
-  const gunler = veri?.gunler ?? {};
   const bugunAktif = bugunMaskesi !== 0;
-
   const satirlar = useMemo(() => aylikIzgara(yil, ay), [yil, ay]);
 
   if (!kullanici) {
@@ -91,26 +106,25 @@ function SeriIcerik() {
 
   return (
     <>
-      <div
-        className="bk-seri-bant"
-        style={{ background: bugunAktif ? RENK_SERI : "#2C335E" }}
-      >
-        <Halka maske={bugunMaskesi} boyut={100} kalinlik={14} />
+      {/* Android üst bandı: geri + "Seri" üstte, halka + sayı dikey ortada */}
+      <div className="bk-seri-bant" style={{ background: bugunAktif ? RENK_SERI : "#2C335E" }}>
+        <button className="geri" onClick={() => router.back()} aria-label="Geri">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/uygulama/cikis.png" alt="" />
+        </button>
+        <span className="baslik">Seri</span>
+        <Halka maske={bugunMaskesi} boyut={110} kalinlik={16} bos={RENK_BOS_BANT} yuvarlak />
         <div>
-          <div className="sayi">{veri ? Math.max(0, veri.sayi) : "—"}</div>
+          <div className="sayi">{sayi == null ? "—" : sayi}</div>
           <div className="etiket">günlük seri!</div>
         </div>
       </div>
 
-      <div className="bk-kart" style={{ marginBottom: 18 }}>
+      <div className="bk-seri-kart bk-seri-takvim">
         <div className="bk-takvim-ust">
-          <button className="bk-ay-dugme" onClick={() => setKaydirma((k) => k - 1)} aria-label="Önceki ay">‹</button>
+          <button className="bk-ay-dugme" onClick={() => setKaydirma((k) => k - 1)} aria-label="Önceki ay">&lt;</button>
           <h3>{AYLAR[ay - 1]} {yil}</h3>
-          <button
-            className="bk-ay-dugme"
-            onClick={() => setKaydirma((k) => k + 1)}
-            aria-label="Sonraki ay"
-          >›</button>
+          <button className="bk-ay-dugme" onClick={() => setKaydirma((k) => k + 1)} aria-label="Sonraki ay">&gt;</button>
         </div>
 
         <div className="bk-hafta">
@@ -120,25 +134,30 @@ function SeriIcerik() {
         <div className="bk-satirlar">
           {satirlar.map((satir, i) => (
             <div className="bk-hafta-satir" key={i}>
-              {/* Ardışık aktif günlerin arkasındaki turuncu şerit */}
-              {seritler(satir, gunler).map((s, j) => (
-                <span
-                  key={j}
-                  className="bk-seri-serit"
-                  style={{
-                    left: `calc(${(s.bas / 7) * 100}% + 6px)`,
-                    width: `calc(${((s.son - s.bas + 1) / 7) * 100}% - 12px)`,
-                  }}
-                />
-              ))}
+              {/* Ardışık aktif günlerin arkasındaki turuncu çizgi — Android: 20 kalın, yuvarlak uç,
+                  rakam merkezinden (üstten 13,5) ilk günün merkezinden son günün merkezine; tek gün ±12 */}
+              {seritler(satir, gunler).map((s, j) => {
+                const n = s.son - s.bas;
+                const ek = n === 0 ? 12 : 0;
+                return (
+                  <span
+                    key={j}
+                    className="bk-seri-serit"
+                    style={{
+                      left: `calc((100% - 84px) / 7 * ${s.bas + 0.5} + ${s.bas * 14 - 10 - ek}px)`,
+                      width: `calc((100% - 84px) / 7 * ${n} + ${n * 14 + 20 + ek * 2}px)`,
+                    }}
+                  />
+                );
+              })}
               <div className="bk-gunler">
                 {satir.map((gun, k) =>
                   gun == null ? (
-                    <div className="bk-gun bos" key={k}>0</div>
+                    <div className="bk-gun bos" key={k} />
                   ) : (
                     <div className="bk-gun" key={k}>
                       <span className="no">{gun}</span>
-                      <Halka maske={gunler[gun] ?? 0} boyut={22} kalinlik={5} />
+                      <Halka maske={gunler[gun] ?? 0} boyut={22} kalinlik={5} bos={RENK_BOS_GUN} />
                     </div>
                   )
                 )}
@@ -148,15 +167,15 @@ function SeriIcerik() {
         </div>
       </div>
 
-      <div className="bk-kart bk-aciklama">
+      <div className="bk-seri-kart bk-aciklama">
         <p>
           Her gün Test Çözdüğünde, Konu Defteri okuduğunda ya da Yazılıya Hazırlık
           yaptığında seri artar.
         </p>
         <div className="bk-etiketler">
-          <span className="bk-etiket"><i style={{ background: RENK_DEFTER }} /> Konu Defteri</span>
-          <span className="bk-etiket"><i style={{ background: RENK_TEST }} /> Konu Testi</span>
-          <span className="bk-etiket"><i style={{ background: RENK_YAZILI }} /> Yazılı Çözümü</span>
+          <Etiket ad="Konu Defteri" renk={RENK_DEFTER} />
+          <Etiket ad="Konu Testi" renk={RENK_TEST} />
+          <Etiket ad="Yazılı Çözümü" renk={RENK_YAZILI} />
         </div>
       </div>
     </>
@@ -165,35 +184,58 @@ function SeriIcerik() {
 
 /* --------------------------------------------------------------- yardımcı */
 
-/** Maskedeki her aktivite için halkada eşit bir dilim (uygulamadaki Canvas çizimi). */
-function Halka({ maske, boyut, kalinlik }: { maske: number; boyut: number; kalinlik: number }) {
+/** Android StreakLegendItem: yazı üstte, altında 20'lik halka (4 kalın). */
+function Etiket({ ad, renk }: { ad: string; renk: string }) {
+  return (
+    <span className="bk-etiket">
+      {ad}
+      <svg width={24} height={24} viewBox="0 0 24 24" style={{ margin: -2 }}>
+        <circle cx={12} cy={12} r={10} fill="none" stroke={renk} strokeWidth={4} />
+      </svg>
+    </span>
+  );
+}
+
+/**
+ * Maskedeki her aktivite için halkada eşit dilim (Android Canvas çizimi).
+ * Sıra Android'deki gibi test → defter → yazılı (eskiden defter önceydi).
+ * Android drawArc kutunun KENARINA çizer: çizgi merkezi `boyut`luk çember, kalınlığın yarısı
+ * dışarı taşar. Yerleşim yine `boyut` (negatif kenar boşluğu).
+ */
+function Halka({ maske, boyut, kalinlik, bos, yuvarlak }: {
+  maske: number; boyut: number; kalinlik: number; bos: string; yuvarlak?: boolean;
+}) {
   const renkler: string[] = [];
-  if (maske & ACT_DEFTER) renkler.push(RENK_DEFTER);
   if (maske & ACT_TEST)   renkler.push(RENK_TEST);
+  if (maske & ACT_DEFTER) renkler.push(RENK_DEFTER);
   if (maske & ACT_YAZILI) renkler.push(RENK_YAZILI);
 
-  const r = (boyut - kalinlik) / 2;
+  const tam = boyut + kalinlik;
+  const m = tam / 2;
+  const r = boyut / 2;
   const cevre = 2 * Math.PI * r;
+  const uc = yuvarlak ? "round" : "butt";
 
   return (
-    <svg className="halka" width={boyut} height={boyut} viewBox={`0 0 ${boyut} ${boyut}`}>
+    <svg className="halka" width={tam} height={tam} viewBox={`0 0 ${tam} ${tam}`} style={{ margin: -kalinlik / 2 }}>
       {renkler.length === 0 ? (
-        <circle cx={boyut / 2} cy={boyut / 2} r={r} fill="none" stroke={RENK_BOS} strokeWidth={kalinlik} />
+        <circle cx={m} cy={m} r={r} fill="none" stroke={bos} strokeWidth={kalinlik} />
       ) : (
         renkler.map((renk, i) => {
           const dilim = cevre / renkler.length;
           return (
             <circle
               key={i}
-              cx={boyut / 2}
-              cy={boyut / 2}
+              cx={m}
+              cy={m}
               r={r}
               fill="none"
               stroke={renk}
               strokeWidth={kalinlik}
+              strokeLinecap={uc}
               strokeDasharray={`${dilim} ${cevre - dilim}`}
               strokeDashoffset={-dilim * i}
-              transform={`rotate(-90 ${boyut / 2} ${boyut / 2})`}
+              transform={`rotate(-90 ${m} ${m})`}
             />
           );
         })

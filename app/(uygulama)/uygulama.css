@@ -567,54 +567,79 @@
    Aktivite renkleri: test #DECF95, defter #DEA495, yazılı #9C95DE, boş beyaz %33.
    Seri çizgisi ve etkin başlık bandı #CB8000. */
 
+/* Android StreakScreen birebir (1 Eki): bant 230 (Android 260 − durum çubuğu), halka 110/16,
+   sayı sayilar 48, etiket konu 18, aralık 48; kartlar 4A538E kenar (3 · alt 9) + APP_BG iç. */
 .bk-seri-bant {
-  border-radius: 18px; padding: 22px 24px; margin-bottom: 18px;
-  display: flex; align-items: center; gap: 28px;
+  position: relative; border-radius: 18px; min-height: 230px; margin-bottom: 16px;
+  display: flex; align-items: center; gap: 48px; padding: 0 32px 0 24px;
 }
-.bk-seri-bant .sayi {
-  font-family: "bk-baslik", system-ui, sans-serif; font-size: 44px; line-height: 1;
+.bk-seri-bant .geri {
+  position: absolute; left: 14px; top: 16px; width: 24px; height: 24px;
+  border: 0; background: none; padding: 0; cursor: pointer;
 }
-.bk-seri-bant .etiket { font-size: 17px; margin-top: 6px; }
+.bk-seri-bant .geri img { width: 24px; height: 24px; display: block; }
+.bk-seri-bant .baslik {
+  position: absolute; left: 0; right: 0; top: 16px; text-align: center;
+  font-family: "bk-baslik", system-ui, sans-serif; font-size: 18px;
+}
+.bk-seri-bant .halka { flex: 0 0 auto; }
+.bk-seri-bant .sayi { font-family: "bk-sayilar", system-ui, sans-serif; font-size: 48px; line-height: 1; }
+.bk-seri-bant .etiket { font-family: "bk-konu", system-ui, sans-serif; font-size: 18px; }
+
+/* Android drawBehind: dış #4A538E r18, iç APP_BG 3 içeride, altta 9 (kabartma). İçerik dış kenardan 16. */
+.bk-seri-kart {
+  background: #0C1A3F; border: 3px solid #4A538E; border-bottom-width: 9px; border-radius: 18px;
+}
+.bk-seri-takvim { padding: 13px 13px 15px; margin-bottom: 20px; }   /* alt: 16 − 9 + Spacer 8 */
 
 .bk-takvim-ust {
   display: flex; align-items: center; justify-content: space-between;
-  margin-bottom: 14px;
+  margin-bottom: 12px;
 }
-.bk-takvim-ust h3 { font-size: 17px; }
-/* Uygulamadaki ay okları: 32×32 kare, beyaz %13 zemin, köşe 10 */
+.bk-takvim-ust h3 { font-family: "bk-takvim", system-ui, sans-serif; font-size: 16px; font-weight: 400; }
+/* Ay okları: 32×32, beyaz 0x22 zemin, köşe 10; yazı sistem fontu kalın 16 (Android'de font verilmemiş) */
 .bk-ay-dugme {
   width: 32px; height: 32px; flex: 0 0 32px;
-  background: rgba(255,255,255,.13); border: 0; color: #fff; cursor: pointer;
-  font-family: "bk-main", system-ui, sans-serif; font-size: 16px; font-weight: 700;
+  background: rgba(255,255,255,.133); border: 0; color: #fff; cursor: pointer;
+  font-family: system-ui, sans-serif; font-size: 16px; font-weight: 700;
   border-radius: 10px; line-height: 1;
 }
 .bk-ay-dugme:hover { background: rgba(255,255,255,.22); }
 
 .bk-hafta, .bk-gunler {
-  display: grid; grid-template-columns: repeat(7, 1fr); gap: 10px;
+  display: grid; grid-template-columns: repeat(7, 1fr); column-gap: 14px;
 }
+.bk-hafta { margin-bottom: 10px; }
 .bk-hafta div {
-  text-align: center; font-size: 13px; color: rgba(255,255,255,.8); padding-bottom: 4px;
+  text-align: center; font-family: "bk-konu", system-ui, sans-serif; font-size: 15px;
+  color: rgba(255,255,255,.8);
 }
-.bk-satirlar { position: relative; display: grid; gap: 10px; }
+.bk-satirlar { display: grid; row-gap: 14px; }
 .bk-hafta-satir { position: relative; }
-/* Ardışık aktif günlerin arkasındaki turuncu seri şeridi */
+/* Seri çizgisi: 20 kalın, merkez rakamın 13,5 altında */
 .bk-seri-serit {
-  position: absolute; top: 4px; height: 22px; border-radius: 999px;
+  position: absolute; top: 3.5px; height: 20px; border-radius: 999px;
   background: #cb8000; pointer-events: none;
 }
-.bk-gun { text-align: center; padding: 2px 0 6px; }
+.bk-gunler { position: relative; }
+.bk-gun { position: relative; height: 60px; }
 .bk-gun .no {
-  position: relative; z-index: 1; font-size: 14px; line-height: 22px; display: block;
+  position: absolute; left: 0; right: 0; top: 0; text-align: center;
+  font-family: "bk-takvim", system-ui, sans-serif; font-size: 15px; line-height: 1.3;
 }
-.bk-gun .halka { margin: 6px auto 0; display: block; }
-.bk-gun.bos { visibility: hidden; }
+/* Gün halkası 22 (5 kalın), hücre altından 6 */
+.bk-gun .halka { position: absolute; left: 50%; bottom: 6px; transform: translateX(-50%); }
 
-.bk-aciklama { display: grid; gap: 14px; }
-.bk-aciklama p { font-size: 14px; line-height: 1.5; }
-.bk-etiketler { display: flex; justify-content: space-around; gap: 12px; flex-wrap: wrap; }
-.bk-etiket { display: flex; align-items: center; gap: 8px; font-size: 13px; }
-.bk-etiket i { width: 16px; height: 16px; border-radius: 50%; display: block; }
+/* Açıklama kartı: içerik dış kenardan yatay 24, dikey 16 */
+.bk-aciklama { display: grid; gap: 14px; padding: 13px 21px 7px; }
+.bk-aciklama p {
+  font-family: "bk-takvim", system-ui, sans-serif; font-size: 14px; line-height: 20px; letter-spacing: .25px;
+}
+.bk-etiketler { display: flex; justify-content: space-between; }
+.bk-etiket {
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  font-family: "bk-baslik", system-ui, sans-serif; font-size: 12px;
+}
 
 /* ---------------------------------------------------------------- oyunlar */
 .bk-rozet-yakinda {
