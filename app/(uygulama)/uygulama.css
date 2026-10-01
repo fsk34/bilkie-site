@@ -862,13 +862,37 @@
 .bk-wl-izgara .goz {
   aspect-ratio: 1; border-radius: 8px; display: grid; place-items: center;
   font-size: 22px; font-weight: 700; border: 1.5px solid transparent;
-  transition: background-color .25s;
+  --son: transparent;
 }
 .bk-wl-izgara .goz[data-durum="bos"]     { background: #0e1a3a; border-color: #1e2e58; }
-.bk-wl-izgara .goz[data-durum="yazili"]  { background: #1a2a50; border-color: #4a5a9a; }
-.bk-wl-izgara .goz[data-durum="dogru"]   { background: #538d4e; }
-.bk-wl-izgara .goz[data-durum="yerinde"] { background: #b59f3b; }
-.bk-wl-izgara .goz[data-durum="yok"]     { background: #3a3a5c; }
+.bk-wl-izgara .goz[data-durum="yazili"]  { background: #1a2a50; border-color: #4a5a9a; animation: bk-wl-pop .1s; }
+.bk-wl-izgara .goz[data-durum="dogru"]   { background: #538d4e; --son: #538d4e; }
+.bk-wl-izgara .goz[data-durum="yerinde"] { background: #b59f3b; --son: #b59f3b; }
+.bk-wl-izgara .goz[data-durum="yok"]     { background: #3a3a5c; --son: #3a3a5c; }
+
+/* Orijinal Wordle kutu animasyonları (powerlanguage kaynak kodu; Android/iOS ile aynı):
+   Pop — harf yazılınca 100 ms · Dönme — rotateX 0→−90° (ease-in), renk tam yarıda, −90°→0 (ease-in);
+   gecikme kutu başına 300 ms, öncesinde "yazılmış" görünür (fill both) · Zıplama — kazanınca 1 sn, 100 ms ara */
+@keyframes bk-wl-pop {
+  from { transform: scale(.8); opacity: 0; }
+  40%  { transform: scale(1.1); opacity: 1; }
+}
+.bk-wl-izgara .goz[data-acilis] { animation: bk-wl-don .5s ease-in both; }
+@keyframes bk-wl-don {
+  0%       { transform: rotateX(0);      background: #1a2a50; border-color: #4a5a9a; }
+  50%      { transform: rotateX(-90deg); background: #1a2a50; border-color: #4a5a9a; }
+  50.01%   { transform: rotateX(-90deg); background: var(--son); border-color: transparent; }
+  100%     { transform: rotateX(0);      background: var(--son); border-color: transparent; }
+}
+.bk-wl-izgara .goz[data-zipla] { animation: bk-wl-zipla 1s; }
+@keyframes bk-wl-zipla {
+  0%, 20% { transform: translateY(0); }
+  40% { transform: translateY(-30px); }
+  50% { transform: translateY(5px); }
+  60% { transform: translateY(-15px); }
+  80% { transform: translateY(2px); }
+  100% { transform: translateY(0); }
+}
 
 .bk-wl-klavye {
   display: grid; gap: 5px; width: 100%; max-width: 560px; padding: 0 4px 8px; box-sizing: border-box;

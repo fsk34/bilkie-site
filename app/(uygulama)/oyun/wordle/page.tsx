@@ -33,6 +33,11 @@ const HARFLER = new Set(KLAVYE.flat());
 
 const bosGoz = (): Goz => ({ harf: "", durum: "bos" });
 
+// Kutu animasyon zamanları (orijinal Wordle): dönme 2 × 250 ms, kutular arası 300 ms; zıplama 1 sn, kutular arası 100 ms
+const WL_FLIP_ARA = 300, WL_FLIP_YARI = 250, WL_ZIPLAMA = 1000, WL_ZIPLAMA_ARA = 100;
+const acilisMs = (n: number) => (n - 1) * WL_FLIP_ARA + 2 * WL_FLIP_YARI;
+const ziplamaMs = (n: number) => (n - 1) * WL_ZIPLAMA_ARA + WL_ZIPLAMA;
+
 /** Tahmini hedefe göre değerlendirir (Android wlEvaluate): önce tam yerinde, sonra havuzdan eşleşme. */
 function degerlendir(tahmin: string, hedef: string): Durum[] {
   const sonuc: Durum[] = Array.from(tahmin, () => "yok");
@@ -164,12 +169,18 @@ function Oyun({
   const [kutlama, setKutlama] = useState(false);
   const [cikisSor, setCikisSor] = useState(false);
   const [ilerlemeHedefi, setIlerlemeHedefi] = useState(0);
+  // Kutu animasyonları (orijinal Wordle; Android/iOS ile aynı): son tahmin satırı 300 ms arayla dönerek açılır,
+  // kazanınca satır zıplar. Açılış sürerken giriş kilitli, klavye rengi bekler.
+  const [acilanSatir, setAcilanSatir] = useState(-1);
+  const [aciliyor, setAciliyor] = useState(false);
+  const [ziplayanSatir, setZiplayanSatir] = useState(-1);
 
   const harfSayisi = hedef.length || 5;
 
   const kelimeYukle = useCallback(() => {
     setYukleniyor(true);
     setTahminler([]); setSuanki(""); setBitti(false); setKazandi(false); setKutlama(false);
+    setAcilanSatir(-1); setAciliyor(false); setZiplayanSatir(-1);
     wordleKelime(bolumIndeksi)
       .then((k) => { setHedef(k); setYukleniyor(false); })
       .catch(() => { setHedef(""); setYukleniyor(false); });
@@ -177,18 +188,23 @@ function Oyun({
 
   useEffect(() => { kelimeYukle(); }, [kelimeYukle]);
 
-  // Kazanınca: 700 ms sonra kutlama örtüsü + sonraki kelimeyi arka planda çek (uygulamadaki prefetch)
+  // Kazanınca: kutular açılır → satır zıplar → kutlama örtüsü (eskiden sabit 700 ms);
+  // sonraki kelime arka planda çekilir (uygulamadaki prefetch)
   useEffect(() => {
     if (!kazandi) return;
     if (bolumIndeksi < WORDLE_BOLUM_SAYISI - 1) void wordleKelime(bolumIndeksi + 1).catch(() => {});
+    const satir = tahminler.length - 1;
+    const zz = window.setTimeout(() => setZiplayanSatir(satir), acilisMs(harfSayisi));
     const z = window.setTimeout(() => {
       setKutlama(true);
       sesCal("wordle_levelcompleted", 0.6);
       wordleSeviyeIlerlet(uid, bolumIndeksi + 1);
       // Çubuk dolumu: mevcut bölümden sonrakine (uygulamadaki 1 sn'lik animasyon)
       window.setTimeout(() => setIlerlemeHedefi(1), 400);
-    }, 700);
-    return () => window.clearTimeout(z);
+    }, acilisMs(harfSayisi) + ziplamaMs(harfSayisi) + 200);
+    return () => { window.clearTimeout(z); window.clearTimeout(zz); };
+    // tahminler/harfSayisi kazanıldığı andaki değerler — yeniden tetiklenmesin
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [kazandi, bolumIndeksi, uid]);
 
   useEffect(() => { setIlerlemeHedefi(0); }, [bolumIndeksi]);
@@ -196,7 +212,8 @@ function Oyun({
   /** Klavyede her harfin en iyi bilinen durumu (doğru > yerinde > yok). */
   const tusDurumlari = useMemo(() => {
     const harita: Record<string, Durum> = {};
-    for (const satir of tahminler) {
+    // Orijinal Wordle: klavye renkleri kutular döndükten SONRA güncellenir
+    for (const satir of (aciliyor ? tahminler.slice(0, -1) : tahminler)) {
       for (const g of satir) {
         const onceki = harita[g.harf];
         if (!onceki || g.durum === "dogru" || (g.durum === "yerinde" && onceki === "yok")) {
@@ -205,13 +222,13 @@ function Oyun({
       }
     }
     return harita;
-  }, [tahminler]);
+  }, [tahminler, aciliyor]);
 
   // ⚠️ setState güncelleyicisinin İÇİNDE yan etki (ses, başka setState) OLMAZ:
   // React geliştirme kipinde güncelleyiciyi iki kez çağırıyor → tahmin iki kez ekleniyordu.
   // Güncel değerler doğrudan okunur, yazmalar güncelleyicinin dışında yapılır.
   const tus = useCallback((t: string) => {
-    if (bitti || yukleniyor || !hedef) return;
+    if (bitti || yukleniyor || !hedef || aciliyor) return;
 
     if (t === "SIL") { setSuanki((s) => s.slice(0, -1)); return; }
 
@@ -224,6 +241,9 @@ function Oyun({
 
       const yeniTahminler = [...tahminler, gozler];
       setTahminler(yeniTahminler);
+      setAcilanSatir(yeniTahminler.length - 1);
+      setAciliyor(true);
+      window.setTimeout(() => setAciliyor(false), acilisMs(hedef.length));
       setSuanki("");
       if (suanki === hedef) { setKazandi(true); setBitti(true); }
       else if (yeniTahminler.length >= SATIR_SAYISI) setBitti(true);
@@ -231,7 +251,7 @@ function Oyun({
     }
 
     if (suanki.length < hedef.length) setSuanki(suanki + t);
-  }, [bitti, yukleniyor, hedef, suanki, tahminler]);
+  }, [bitti, yukleniyor, hedef, suanki, tahminler, aciliyor]);
 
   // Fiziksel klavye (web eklemesi)
   useEffect(() => {
@@ -292,13 +312,23 @@ function Oyun({
                   style={{ gridTemplateColumns: `repeat(${harfSayisi}, 1fr)` }}
                 >
                   {satir.map((g, c) => (
-                    <div key={c} className="goz" data-durum={g.durum}>{g.harf}</div>
+                    <div
+                      key={c}
+                      className="goz"
+                      data-durum={g.durum}
+                      data-acilis={r === acilanSatir || undefined}
+                      data-zipla={r === ziplayanSatir || undefined}
+                      style={{
+                        animationDelay: r === ziplayanSatir ? `${c * WL_ZIPLAMA_ARA}ms`
+                          : r === acilanSatir ? `${c * WL_FLIP_ARA}ms` : undefined,
+                      }}
+                    >{g.harf}</div>
                   ))}
                 </div>
               ))}
             </div>
 
-            {bitti && !kazandi && <p className="bk-wl-not" style={{ marginTop: 14 }}>Bir dahaki sefere! 💪</p>}
+            {bitti && !kazandi && !aciliyor && <p className="bk-wl-not" style={{ marginTop: 14 }}>Bir dahaki sefere! 💪</p>}
 
             <div style={{ flex: 1 }} />
 
