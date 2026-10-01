@@ -8,7 +8,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useOturum } from "../../../lib/oturum";
 import { enIyiSkorOku, enIyiSkorYaz } from "../../../lib/veri";
-import { sesCal } from "../../ses";
+import { sesCal, sesleriOnYukle } from "../../ses";
 import Reklam from "../Reklam";
 
 const N = 4;
@@ -101,6 +101,8 @@ function degistiMi(eski: Tas[], yeni: Tas[]): boolean {
 }
 
 export default function Oyun2048() {
+  // Oyunun sesleri sayfa açılırken belleğe (ilk çalışta gecikme olmasın)
+  useEffect(() => { sesleriOnYukle(["t2048_pop", "t2048_kaydirma"]); }, []);
   const router = useRouter();
   const { kullanici } = useOturum();
 

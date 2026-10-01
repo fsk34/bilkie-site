@@ -15,7 +15,7 @@ import Lottie from "../../Lottie";
 import UcNokta from "../../UcNokta";
 import { useOturum } from "../../../lib/oturum";
 import { oyunBolumu, oyunBolumuYaz } from "../../../lib/veri";
-import { sesCal } from "../../ses";
+import { sesCal, sesleriOnYukle } from "../../ses";
 import veri from "./oklar.json";
 import { get, ref as dbRef } from "firebase/database";
 import { okBulmacaDb } from "../../../lib/firebase";
@@ -128,6 +128,8 @@ function yilanPenceresi(hucreler: Hucre[], yon: Hucre, s: number, uzanti: number
 }
 
 export default function OkBulmaca() {
+  // Oyunun sesleri sayfa açılırken belleğe (ilk çalışta gecikme olmasın)
+  useEffect(() => { sesleriOnYukle(["t2048_kaydirma", "yanlis", "levelcompleted"]); }, []);
   const router = useRouter();
   const { kullanici, yukleniyor } = useOturum();
   const [asama, setAsama] = useState<"yukleniyor" | "secim" | "oyun">("yukleniyor");

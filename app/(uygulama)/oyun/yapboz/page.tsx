@@ -16,7 +16,7 @@ import UcNokta from "../../UcNokta";
 import { useOturum } from "../../../lib/oturum";
 import { gorselAdresi, harikalariGetir, harikalarOnbellekten, kesfetGetir, kesfetOnbellekten } from "../../../lib/kesif";
 import { oyunBolumu, oyunBolumuYaz } from "../../../lib/veri";
-import { sesCal } from "../../ses";
+import { sesCal, sesleriOnYukle } from "../../ses";
 
 type Gorsel = { yol: string; ad: string };
 const EN_BUYUK = 5;
@@ -44,6 +44,8 @@ function cozuldu(b: number[], n: number): boolean {
 }
 
 export default function Yapboz() {
+  // Oyunun sesleri sayfa açılırken belleğe (ilk çalışta gecikme olmasın)
+  useEffect(() => { sesleriOnYukle(["t2048_kaydirma", "levelcompleted"]); }, []);
   const router = useRouter();
   const { kullanici, yukleniyor } = useOturum();
   const [havuz, setHavuz] = useState<Gorsel[] | null>(null);

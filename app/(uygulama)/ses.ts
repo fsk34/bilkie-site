@@ -67,6 +67,14 @@ export function sesleriHazirla() {
   window.addEventListener("keydown", uyandir);
 }
 
+/** Bir ekranın seslerini o ekran açılırken belleğe alır (Android: oyun açılınca SoundPool.load).
+ *  Ön yüklenmeyen ses İLK çalışında indirilip yavaş HTMLAudio yolundan çalıyordu (50–150 ms + indirme);
+ *  Blok Patla'nın combo sesleri bir oyunda az çıktığı için neredeyse hep "ilk çalış"tı (1 Eki 2026). */
+export function sesleriOnYukle(adlar: SesAdi[]) {
+  if (typeof window === "undefined") return;
+  for (const ad of adlar) void tamponIndir(ad);
+}
+
 export function sesCal(ad: SesAdi, sesSeviyesi = 0.7) {
   if (typeof window === "undefined") return;
   try {

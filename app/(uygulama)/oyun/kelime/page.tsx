@@ -13,7 +13,7 @@ import Carkifelek, { type Harf } from "./Carkifelek";
 import { DUNYALAR, dunyaBul } from "./dunyalar";
 import { useOturum } from "../../../lib/oturum";
 import { KG_BOLUM_SAYISI, kgBolum, kgSeviyeOku, kgSeviyeYaz, type KgBolum } from "../../../lib/veri";
-import { sesCal, type SesAdi } from "../../ses";
+import { sesCal, type SesAdi, sesleriOnYukle } from "../../ses";
 
 /** Harf seçildikçe çalan nota dizisi — Android noteIds sırası. */
 const NOTALAR: SesAdi[] = [
@@ -48,6 +48,8 @@ const karistir = <T,>(d: T[]): T[] => {
 };
 
 export default function KelimeGezmece() {
+  // Oyunun sesleri sayfa açılırken belleğe (ilk çalışta gecikme olmasın)
+  useEffect(() => { sesleriOnYukle(["note_do", "note_re", "note_mi", "note_fa", "note_sol", "note_la", "note_si", "note_do2", "note_re2", "note_mi3", "levelcompleted"]); }, []);
   const router = useRouter();
   const { kullanici, yukleniyor } = useOturum();
   const [ekran, setEkran] = useState<"hub" | "oyun">("hub");

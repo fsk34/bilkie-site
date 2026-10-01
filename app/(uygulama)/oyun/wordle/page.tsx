@@ -16,7 +16,7 @@ import {
   wordleSeviyeIlerlet,
   wordleSeviyeOku,
 } from "../../../lib/veri";
-import { sesCal } from "../../ses";
+import { sesCal, sesleriOnYukle } from "../../ses";
 
 type Durum = "bos" | "yazili" | "dogru" | "yerinde" | "yok";
 type Goz = { harf: string; durum: Durum };
@@ -54,6 +54,8 @@ function degerlendir(tahmin: string, hedef: string): Durum[] {
 }
 
 export default function Wordle() {
+  // Oyunun sesleri sayfa açılırken belleğe (ilk çalışta gecikme olmasın)
+  useEffect(() => { sesleriOnYukle(["wordle_harf", "wordle_dogruharf", "wordle_levelcompleted"]); }, []);
   const router = useRouter();
   const { kullanici, yukleniyor } = useOturum();
   const [ekran, setEkran] = useState<"giris" | "oyun">("giris");

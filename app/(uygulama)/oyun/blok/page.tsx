@@ -13,7 +13,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useOturum } from "../../../lib/oturum";
 import { enIyiSkorOku, enIyiSkorYaz } from "../../../lib/veri";
-import { sesCal } from "../../ses";
+import { sesCal, sesleriOnYukle } from "../../ses";
 import Reklam from "../Reklam";
 import {
   BB_BOS_GOZ, BB_BOYUT, BB_ZEMIN,
@@ -30,6 +30,8 @@ type Parcacik = { x: number; y: number; vx: number; vy: number; renk: Renk; boy:
 type Rozet = { metin: string; renk: string } | null;
 
 export default function BlokPatla() {
+  // Oyunun sesleri sayfa açılırken belleğe (ilk çalışta gecikme olmasın)
+  useEffect(() => { sesleriOnYukle(["bb_alma", "bb_yerlestir", "bb_combo1", "bb_combo2", "bb_combo3", "bb_combo4"]); }, []);
   const router = useRouter();
   const { kullanici } = useOturum();
 
