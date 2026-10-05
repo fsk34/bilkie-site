@@ -7,7 +7,9 @@
 // ?ders=..&konu=.. (24 Eyl 2026, Android hataTuruKonu): "Tekrar bakacağın sorular" konu satırından
 // gelinirse YALNIZ o konunun yanlışları; genel düğmeler parametresiz → karışık tur.
 
-import { AksiyonDugmesi, AltSonucBandi } from "../TestAlt";
+import { AksiyonDugmesi, AltSonucBandi, TestNotDugmesi } from "../TestAlt";
+import { NotlarOkumaPaneli } from "../notlar/NotlarSayfasi";
+import { NOT_DERSLER } from "../../lib/notlar";
 import CikisOnayi from "../CikisOnayi";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -47,6 +49,7 @@ function HataTuru() {
   const [indeks, setIndeks] = useState(0);
   const [secili, setSecili] = useState<number | null>(null);
   const [kontrolEdildi, setKontrolEdildi] = useState(false);
+  const [notPaneli, setNotPaneli] = useState(false);   // çözerken notlara bakma paneli
   const [dogruSayisi, setDogruSayisi] = useState(0);
   const [kombo, setKombo] = useState(false);
   const [akis, setAkis] = useState<{ sonuc: SonucArgs; seriSozu: Promise<SeriArgs | null>; gorevSozu: Promise<GorevDegisimi[]> } | null>(null);
@@ -204,6 +207,10 @@ function HataTuru() {
       )}
 
       <AltSonucBandi gorunur={kontrolEdildi} dogru={dogruMu} dogruCevap={soru.secenekler[soru.dogruIndeks]} />
+      <TestNotDugmesi bantAcik={kontrolEdildi} onClick={() => setNotPaneli(true)} />
+      {notPaneli && (
+        <NotlarOkumaPaneli ders={(NOT_DERSLER as readonly string[]).includes(soru.ders) ? soru.ders : null} onKapat={() => setNotPaneli(false)} />
+      )}
       <AksiyonDugmesi
         etiket={!kontrolEdildi ? "Kontrol Et" : indeks + 1 >= sorular.length ? "Bitir" : "Devam Et"}
         etkin={kontrolEdildi || secili != null}

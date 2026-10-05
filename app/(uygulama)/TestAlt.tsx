@@ -6,7 +6,7 @@
 // canlı yeşil/kırmızı bant düğmenin ARKASINDAN alttan kayarak gelir (✓/✗ 32 · "Doğru"/"Yanlış" ·
 // isteğe bağlı "Doğru cevap: …").
 
-import { useRef } from "react";
+import { useLayoutEffect, useRef } from "react";
 
 export function AltSonucBandi({ gorunur, dogru, dogruCevap }: {
   gorunur: boolean; dogru: boolean; dogruCevap?: string | null;
@@ -43,6 +43,28 @@ export function AksiyonDugmesi({ etiket, etkin, ton, onClick }: {
       onClick={onClick}
     >
       {etiket}
+    </button>
+  );
+}
+
+/**
+ * Not düğmesi (yalnız ikon, sağa yaslı) — Android NotDugmesiKatmani. Şıklar ile Kontrol Et arasında durur;
+ * Doğru/Yanlış bandı gelince bandın hemen üstüne kayar (altında kalmasın).
+ */
+export function TestNotDugmesi({ bantAcik, onClick }: { bantAcik: boolean; onClick: () => void }) {
+  // Konum doğrudan DOM'a yazılır (bandın yüksekliği yerleşimden sonra ölçülebiliyor; state'e koymak
+  // effect içinde setState = basamaklı render olurdu). CSS geçişi kaymayı canlandırır.
+  const ref = useRef<HTMLButtonElement>(null);
+  useLayoutEffect(() => {
+    const d = ref.current; if (!d) return;
+    const bant = bantAcik ? document.querySelector<HTMLElement>(".bk-sonuc-bandi") : null;
+    // offsetHeight transform'dan etkilenmez: bant daha kayarken de son yüksekliği verir
+    d.style.bottom = bant && bant.offsetHeight > 0 ? `${bant.offsetHeight + 10}px` : "";
+  }, [bantAcik]);
+  return (
+    <button ref={ref} className="bk-not-dugme" onClick={onClick} aria-label="Notlarım">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src="/uygulama/notlar.png" alt="" width={26} height={26} />
     </button>
   );
 }

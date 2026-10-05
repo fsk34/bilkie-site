@@ -85,6 +85,18 @@ export default function Yapboz() {
   }, [havuz]);
   const { gorsel, boyut: n } = useMemo(() => bolumBilgi(bolumNo), [bolumBilgi, bolumNo]);
 
+  // Önceden indirme: seçimde sıradaki bölüm, oyunda bir sonraki bölümün görseli tarayıcı önbelleğine
+  // iner → bölüm açılınca 2-3 sn beklenmez (uygulamalardaki ön yükleme)
+  useEffect(() => {
+    if (!havuz?.length || toplam === 0) return;
+    const hedef = asama === "oyun" ? bolumNo + 1 : Math.min(ilerleme, toplam);
+    const g = hedef >= 1 && hedef <= toplam ? bolumBilgi(hedef).gorsel : null;
+    if (!g) return;
+    let iptal = false;
+    gorselAdresi(g.yol).then((u) => { if (u && !iptal) { const im = new Image(); im.src = u; } }).catch(() => {});
+    return () => { iptal = true; };
+  }, [havuz, toplam, asama, bolumNo, ilerleme, bolumBilgi]);
+
   const basla = useCallback(async (no: number) => {
     const m = Math.min(Math.max(1, no), Math.max(1, toplam));
     const { gorsel: g, boyut } = bolumBilgi(m);

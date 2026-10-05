@@ -41,13 +41,13 @@ function cocuklar(snap: DataSnapshot): DataSnapshot[] {
     ⚠️ Adres erişim jetonu taşıdığı için YALNIZ bellekte tutulur, sessionStorage'a yazılmaz. */
 export async function gorselAdresi(yol: string): Promise<string | null> {
   if (!yol) return null;
-  return onbellekli(`storageAdres:${yol}`, async () => {
-    try {
-      return await getDownloadURL(storageRef(storage, yol));
-    } catch {
-      return null;
-    }
-  });
+  // Hata önbelleğe yazılmaz (eskiden null yazılıyordu → çevrimdışı bir kez denenen görsel sekme
+  // boyunca hiç gelmiyordu); fırlatıp dışarıda null'a çevrilir.
+  try {
+    return await onbellekli(`storageAdres:${yol}`, () => getDownloadURL(storageRef(storage, yol)));
+  } catch {
+    return null;
+  }
 }
 
 /* ------------------------------------------------------------ Meslek Grupları */

@@ -16,7 +16,7 @@ import { auth } from "./firebase";
 import { hatirlananlariUnut } from "./canli";
 import { sessizHata } from "./hata";
 import { onbellegiBosalt } from "./onbellek";
-import { profilOku, type Profil } from "./veri";
+import { bekleyenleriIzle, profilOku, type Profil } from "./veri";
 import { kullaniciAdiOnar } from "./profilYaz";
 
 /* Profil önbelleği (localStorage, uid başına). Kapı Auth cevabıyla açılır; profil için
@@ -69,6 +69,10 @@ export function OturumSaglayici({ children }: { children: React.ReactNode }) {
       setProfil(null);
     }
   }, []);
+
+  // İnternetsiz yapılmış oyun rekoru/bölümü: girişte ve bağlantı her gelişinde sunucuya gönder
+  const uid = kullanici?.uid;
+  useEffect(() => (uid ? bekleyenleriIzle(uid) : undefined), [uid]);
 
   useEffect(() => {
     // Oturum değişince önceki kullanıcının gecikmiş DB cevabı uygulanmasın

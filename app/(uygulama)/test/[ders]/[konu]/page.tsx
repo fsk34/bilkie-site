@@ -10,7 +10,9 @@
 // Animasyonlar uygulamadan: doğru şıkta zıplama + ışık bandı, yanlışta sarsıntı,
 // alt bant aşağıdan kayar, 5 doğru üst üste "dogrubes" kutlaması.
 
-import { AksiyonDugmesi, AltSonucBandi } from "../../../TestAlt";
+import { AksiyonDugmesi, AltSonucBandi, TestNotDugmesi } from "../../../TestAlt";
+import { NotlarOkumaPaneli } from "../../../notlar/NotlarSayfasi";
+import { NOT_DERSLER } from "../../../../lib/notlar";
 import CikisOnayi from "../../../CikisOnayi";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
@@ -62,6 +64,7 @@ export default function TestSayfasi() {
   const [indeks, setIndeks] = useState(0);
   const [secili, setSecili] = useState<number | null>(null);
   const [kontrolEdildi, setKontrolEdildi] = useState(false);
+  const [notPaneli, setNotPaneli] = useState(false);   // çözerken notlara bakma paneli
   const [dogruSayisi, setDogruSayisi] = useState(0);
   // Can CANLI dinleyiciden (users/{uid}/lives): yazma transaction'la, yerelde anında yansır
   const ust = useUstBilgi(sinif);
@@ -304,6 +307,10 @@ export default function TestSayfasi() {
       {/* Android TestBottomResultBanner + TestStrokeActionButton (Test'te doğru cevap bantta yazmaz,
           son soruda da "Devam Et") */}
       <AltSonucBandi gorunur={kontrolEdildi} dogru={dogruMu} />
+      <TestNotDugmesi bantAcik={kontrolEdildi} onClick={() => setNotPaneli(true)} />
+      {notPaneli && (
+        <NotlarOkumaPaneli ders={(NOT_DERSLER as readonly string[]).includes(dersKey) ? dersKey : null} onKapat={() => setNotPaneli(false)} />
+      )}
       <AksiyonDugmesi
         etiket={kontrolEdildi ? "Devam Et" : "Kontrol Et"}
         etkin={kontrolEdildi || secili != null}

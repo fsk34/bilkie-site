@@ -133,6 +133,92 @@ function NotListesi({ uid, yeniNot, ac }: { uid: string; yeniNot: () => void; ac
   );
 }
 
+/* ============================================================ okuma paneli */
+
+/**
+ * Test / Hata Turu çözerken alttan açılan not paneli (yalnız okuma) — Android NotlarOkumaPaneli.
+ * Varsayılan o anki dersin notları, "Tümü" ile hepsi; nota dokununca sayfaları okunur.
+ */
+export function NotlarOkumaPaneli({ ders, onKapat }: { ders: string | null; onKapat: () => void }) {
+  const { kullanici } = useOturum();
+  const uid = kullanici?.uid ?? null;
+  const [notlar, setNotlar] = useState<NotOzet[] | null>(null);
+  const [tumu, setTumu] = useState(ders == null);
+  const [acik, setAcik] = useState<NotOzet | null>(null);
+  const [sayfalar, setSayfalar] = useState<NotSayfa[] | null>(null);
+  const [sayfaHatasi, setSayfaHatasi] = useState(false);
+
+  useEffect(() => (uid ? notlariDinle(uid, setNotlar) : undefined), [uid]);
+  useEffect(() => {
+    if (!acik || !uid) return;
+    let iptal = false;
+    notSayfalari(uid, acik.id)
+      .then((s) => { if (!iptal) { setSayfalar(s); setSayfaHatasi(false); } })
+      .catch(() => { if (!iptal) { setSayfalar([]); setSayfaHatasi(true); } });
+    return () => { iptal = true; };
+  }, [acik, uid]);
+  useEffect(() => {
+    const k = (e: KeyboardEvent) => { if (e.key === "Escape") onKapat(); };
+    window.addEventListener("keydown", k);
+    return () => window.removeEventListener("keydown", k);
+  }, [onKapat]);
+
+  const notAc = (n: NotOzet | null) => { setSayfalar(null); setSayfaHatasi(false); setAcik(n); };
+  const gorunen = (notlar ?? []).filter((n) => tumu || n.ders === ders);
+  const hic = () => {};
+
+  return (
+    <div className="bk-not-panel-zemin" onClick={onKapat}>
+      <div className="bk-not-panel" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Notlarım">
+        <div className="tutamak" />
+        <div className="ust">
+          {acik && <button className="geri" onClick={() => notAc(null)} aria-label="Not listesine dön">←</button>}
+          <div className="baslik">
+            <b>{acik ? acik.baslik || "Başlıksız not" : "Notlarım"}</b>
+            {!acik && ders && <small>{tumu ? "Tüm notlar" : notDersAdi(ders)}</small>}
+          </div>
+          {!acik && ders && <button className="bk-kesif-cip" data-secili={tumu} onClick={() => setTumu(!tumu)}>{tumu ? "Bu ders" : "Tümü"}</button>}
+          <button className="kapat" onClick={onKapat}>Kapat</button>
+        </div>
+        <div className="icerik">
+          {!uid ? <div className="bk-kesif-bos">Notlar için giriş yapmalısın.</div>
+          : acik ? (
+            sayfalar == null ? <UcNokta style={{ padding: 24 }} />
+            : sayfalar.length === 0 ? <div className="bk-kesif-bos">{sayfaHatasi ? "Not açılamadı. İnternet bağlantını kontrol et." : "Bu not boş."}</div>
+            : <div className="sayfalar">
+                {sayfalar.map((s, i) => (
+                  <Kagit key={i} ozet={acik} sayfa={s} cizimModu={false} arac="kalem" sekil="" renk={NOT_RENKLER[0]} kalinlik={2.5}
+                    metinDegisti={hic} gorselBoyut={hic} gorselSil={hic} inkEkle={hic} saltOkunur />
+                ))}
+              </div>
+          )
+          : notlar == null ? <UcNokta style={{ padding: 24 }} />
+          : gorunen.length === 0 ? (
+            <div className="bk-kesif-bos">
+              {notlar.length === 0
+                ? <>Henüz not yok.<br />Notlarını ana ekrandaki &quot;Notlarım&quot;dan yazabilirsin.</>
+                : <>Bu derse ait notun yok.<br />Tüm notlarını görmek için &quot;Tümü&quot;ne dokun.</>}
+            </div>
+          ) : (
+            <div className="bk-ady-liste">
+              {gorunen.map((n) => (
+                <button key={n.id} className="bk-kesif-kart bk-not-kart" onClick={() => notAc(n)}>
+                  <div className="ust">
+                    <b>{n.baslik || "Başlıksız not"}</b>
+                    {n.ders && <span className="etiket">{notDersAdi(n.ders)}</span>}
+                  </div>
+                  {n.onizleme && <div className="onizleme">{n.onizleme}</div>}
+                  <div className="alt">{tarih(n.guncelleme)}  ·  {n.sayfaSayisi} sayfa</div>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ================================================================== editör */
 
 function NotEditor({ uid, acik, kapat }: { uid: string; acik: Acik; kapat: () => void }) {
@@ -486,15 +572,17 @@ function kagitStili(ozet: NotOzet): React.CSSProperties {
   return s;
 }
 
-function Kagit({ ozet, sayfa, cizimModu, arac, sekil, renk, kalinlik, metinDegisti, gorselBoyut, gorselSil, inkEkle }: {
+function Kagit({ ozet, sayfa, cizimModu, arac, sekil, renk, kalinlik, metinDegisti, gorselBoyut, gorselSil, inkEkle, saltOkunur = false }: {
   ozet: NotOzet; sayfa: NotSayfa; cizimModu: boolean; arac: string; sekil: string; renk: string; kalinlik: number;
   metinDegisti: (bi: number, v: string) => void; gorselBoyut: (bi: number) => void; gorselSil: (bi: number) => void; inkEkle: (o: InkOgesi) => void;
+  /** Test ekranındaki not paneli: yazı/çizim/görsel düzenlenmez */
+  saltOkunur?: boolean;
 }) {
   // Boş kâğıda tıklayınca imleç SON metin bloğunun sonuna gider (Word alışkanlığı); metin
   // alanlarının/görsellerin kendisine tıklanınca karışılmaz.
   const kagitRef = useRef<HTMLDivElement>(null);
   function bosaTiklandi(e: React.MouseEvent) {
-    if (cizimModu) return;
+    if (cizimModu || saltOkunur) return;
     const t = e.target as HTMLElement;
     if (t.closest("textarea, img, button")) return;
     const alanlar = kagitRef.current?.querySelectorAll<HTMLTextAreaElement>("textarea.blok");
@@ -506,11 +594,11 @@ function Kagit({ ozet, sayfa, cizimModu, arac, sekil, renk, kalinlik, metinDegis
       <div className="bloklar">
         {sayfa.bloklar.map((b, bi) =>
           b.t === "metin"
-            ? <MetinBlok key={bi} v={b.v} devre={cizimModu} onChange={(v) => metinDegisti(bi, v)} />
-            : <GorselBlok key={bi + b.yol} b={b} adim={kagitOlcusu(ozet.kagit).adim} tikla={() => gorselBoyut(bi)} sil={() => gorselSil(bi)} />
+            ? <MetinBlok key={bi} v={b.v} devre={cizimModu || saltOkunur} onChange={(v) => metinDegisti(bi, v)} />
+            : <GorselBlok key={bi + b.yol} b={b} adim={kagitOlcusu(ozet.kagit).adim} tikla={() => gorselBoyut(bi)} sil={() => gorselSil(bi)} saltOkunur={saltOkunur} />
         )}
       </div>
-      <CizimKatmani ink={sayfa.ink} etkin={cizimModu} arac={arac} sekil={sekil} renk={renk} kalinlik={kalinlik} inkEkle={inkEkle} />
+      <CizimKatmani ink={sayfa.ink} etkin={cizimModu && !saltOkunur} arac={arac} sekil={sekil} renk={renk} kalinlik={kalinlik} inkEkle={inkEkle} />
     </div>
   );
 }
@@ -521,7 +609,7 @@ function MetinBlok({ v, devre, onChange }: { v: string; devre: boolean; onChange
   return <textarea ref={ref} className="blok" value={v} disabled={devre} rows={2} onChange={(e) => onChange(e.target.value)} placeholder="Buraya yaz…" />;
 }
 
-function GorselBlok({ b, adim, tikla, sil }: { b: Extract<NotBlok, { t: "gorsel" }>; adim: number; tikla: () => void; sil: () => void }) {
+function GorselBlok({ b, adim, tikla, sil, saltOkunur = false }: { b: Extract<NotBlok, { t: "gorsel" }>; adim: number; tikla: () => void; sil: () => void; saltOkunur?: boolean }) {
   const [url, setUrl] = useState<string | null>(null);
   useEffect(() => { let iptal = false; notGorselUrl(b.yol).then((u) => { if (!iptal) setUrl(u); }); return () => { iptal = true; }; }, [b.yol]);
   const oran = b.boyut === "kucuk" ? "42%" : b.boyut === "orta" ? "70%" : "100%";
@@ -540,8 +628,8 @@ function GorselBlok({ b, adim, tikla, sil }: { b: Extract<NotBlok, { t: "gorsel"
   return (
     <div ref={kutu} className="gorsel" style={{ width: oran }}>
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      {url ? <img src={url} alt="" onClick={tikla} onLoad={hizala} /> : <div className="bekle">…</div>}
-      <button className="sil" onClick={sil} aria-label="Görseli sil">✕</button>
+      {url ? <img src={url} alt="" onClick={saltOkunur ? undefined : tikla} onLoad={hizala} /> : <div className="bekle">…</div>}
+      {!saltOkunur && <button className="sil" onClick={sil} aria-label="Görseli sil">✕</button>}
     </div>
   );
 }

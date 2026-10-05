@@ -400,7 +400,7 @@ function BilkieAIKutusu({ sinif, uid, veri, devam, yazili, seri }: {
   );
 }
 function dersKisa(d: string): string {
-  return ({ turkce: "TÜR", matematik: "MAT", fen: "FEN", sosyal: "SOS", ingilizce: "İNG" } as Record<string, string>)[d] ?? d.slice(0, 3).toUpperCase();
+  return ({ turkce: "TÜR", matematik: "MAT", fen: "FEN", sosyal: "SOS", ingilizce: "İNG" } as Record<string, string>)[d] ?? d.slice(0, 3).toLocaleUpperCase("tr");
 }
 
 /* ------------------------------------------------------------- Yanlışlarım */

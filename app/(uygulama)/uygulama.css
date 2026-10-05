@@ -3642,3 +3642,30 @@ button.bk-cikis { background: none; border: 0; padding: 0; cursor: pointer; line
 .bk-yapboz-ad { margin: 0 0 12px; padding: 0 20px; text-align: center; font-family: "bk-main", system-ui, sans-serif; font-size: 13px; color: rgba(255,255,255,.85); }
 /* Android OyunUstBar ekran kenarından 8+4 içeride; sahnenin 20 yatay / 16 üst boşluğunu dengele */
 .bk-oyun-sahne > .bk-bolum-ust { margin: -16px -20px 0; width: calc(100% + 40px); }
+
+/* Test / Hata Turu not düğmesi + okuma paneli (Android NotDugmesiKatmani / NotlarOkumaPaneli, 5 Eki 2026).
+   Düğme şıklar ile Kontrol Et arasında sağa yaslı (sütun 720px + 16 iç boşluk); bant gelince JS bandın üstüne taşır. */
+.bk-not-dugme {
+  position: fixed; z-index: 12; right: max(16px, calc((100vw - 720px) / 2 + 16px));
+  bottom: calc(88px + env(safe-area-inset-bottom));
+  width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; cursor: pointer;
+  background: #2c335e; border: 1px solid rgba(255,255,255,.16);
+  transition: bottom .22s cubic-bezier(.4, 0, .2, 1);
+}
+.bk-not-dugme:active { transform: scale(.95); }
+.bk-not-panel-zemin { position: fixed; inset: 0; z-index: 40; background: rgba(0,0,0,.55); display: flex; align-items: flex-end; justify-content: center; }
+.bk-not-panel {
+  width: 100%; max-width: 720px; height: 66vh; display: flex; flex-direction: column; gap: 12px;
+  padding: 12px 16px calc(12px + env(safe-area-inset-bottom)); border-radius: 22px 22px 0 0;
+  background: linear-gradient(#25256b, #453486); color: #fff; animation: bk-not-panel-gel .22s cubic-bezier(.4, 0, .2, 1);
+}
+@keyframes bk-not-panel-gel { from { transform: translateY(100%); } to { transform: none; } }
+.bk-not-panel .tutamak { align-self: center; width: 40px; height: 4px; border-radius: 2px; background: rgba(255,255,255,.35); }
+.bk-not-panel .ust { display: flex; align-items: center; gap: 10px; }
+.bk-not-panel .ust .baslik { flex: 1; min-width: 0; display: grid; }
+.bk-not-panel .ust .baslik b { font-family: "bk-baslik", system-ui, sans-serif; font-size: 17px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bk-not-panel .ust .baslik small { font-size: 12px; color: rgba(255,255,255,.7); }
+.bk-not-panel .ust .geri { background: none; border: 0; color: #fff; font-size: 22px; cursor: pointer; padding: 0 4px 0 0; }
+.bk-not-panel .ust .kapat { background: none; border: 0; color: #55c7ff; font-weight: 700; font-size: 15px; cursor: pointer; padding: 4px; }
+.bk-not-panel .icerik { flex: 1; min-height: 0; overflow-y: auto; }
+.bk-not-panel .sayfalar { display: grid; gap: 12px; padding-bottom: 16px; }

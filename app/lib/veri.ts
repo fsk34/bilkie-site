@@ -11,6 +11,7 @@ import {
   endAt,
   get,
   limitToLast,
+  onValue,
   orderByChild,
   ref as dbRef,
   runTransaction,
@@ -1539,11 +1540,94 @@ export function yaziliDersCubuklariCoz(agacHam: unknown): Dilim[] {
  */
 export function buyukseYaz(yol: string, yeni: number, tavan?: number): void {
   const hedef = Math.round(tavan != null ? Math.min(yeni, tavan) : yeni);
+  // Önce tarayıcıya da yazılır: transaction kalıcı DEĞİL — internetsiz yapılan rekor/bölüm
+  // sekme kapanınca kayboluyordu (5 Eki 2026, uygulamalarla aynı kurgu)
+  bekleyenEkle(yol, hedef);
   runTransaction(dbRef(kullaniciDb, yol), (m) => {
     const mevcut = typeof m === "number" ? m : typeof m === "string" && m.trim() !== "" ? Number(m) : null;
     if (mevcut != null && Number.isFinite(mevcut) && mevcut >= hedef) return undefined;
     return hedef;
-  }).catch((e) => sessizHata("oyunIlerleme", e));
+  })
+    // Bitti = yazıldı ya da sunucuda zaten büyüğü var (abort) → bekleyen kayıt düşer
+    .then((r) => {
+      bekleyenOnay(yol, hedef);
+      bilinenYaz(yol, sayi(r.snapshot.val()));
+    })
+    .catch((e) => sessizHata("oyunIlerleme", e));
+}
+
+/* ---- Bekleyen oyun yazmaları: `users/{uid}/…` yolu → değer (localStorage) ---- */
+// Sunucuya ulaştığı onaylanmamış "büyükse yaz"lar. Açılışta/girişte ve bağlantı her geldiğinde
+// yeniden gönderilir; oyun ekranları okurken sunucudakiyle büyüğünü alır.
+// Ayrıca sunucudan son okunan/onaylanan değer ("bilinen") tutulur: internetsiz açılışta rekor 0,
+// bölüm 1 görünmesin.
+const BEKLEYEN_ANAHTAR = "oyun_bekleyen_yazma";
+const BILINEN_ANAHTAR = "oyun_bilinen_deger";
+
+function sozlukOku(anahtar: string): Record<string, number> {
+  try {
+    const v = JSON.parse(localStorage.getItem(anahtar) ?? "{}");
+    return v && typeof v === "object" ? v : {};
+  } catch {
+    return {};
+  }
+}
+
+function sozlukYaz(anahtar: string, k: Record<string, number>): void {
+  try { localStorage.setItem(anahtar, JSON.stringify(k)); } catch { /* depolama kapalı: yalnız sunucu */ }
+}
+
+const bekleyenler = () => sozlukOku(BEKLEYEN_ANAHTAR);
+const bekleyenleriKaydet = (k: Record<string, number>) => sozlukYaz(BEKLEYEN_ANAHTAR, k);
+
+/** Sunucudan okunan / onaylanan değer — yalnız büyürse yazılır. */
+function bilinenYaz(yol: string, deger: number): void {
+  if (!(deger > 0)) return;
+  const k = sozlukOku(BILINEN_ANAHTAR);
+  if (deger > (k[yol] ?? 0)) { k[yol] = deger; sozlukYaz(BILINEN_ANAHTAR, k); }
+}
+
+function bekleyenEkle(yol: string, deger: number): void {
+  const k = bekleyenler();
+  if (deger > (k[yol] ?? 0)) { k[yol] = deger; bekleyenleriKaydet(k); }
+}
+
+function bekleyenOnay(yol: string, deger: number): void {
+  const k = bekleyenler();
+  if (k[yol] != null && k[yol] <= deger) { delete k[yol]; bekleyenleriKaydet(k); }
+}
+
+/** Telefonda/tarayıcıda bilinen en büyük değer: bekleyen ya da son okunan/onaylanan (yoksa 0). */
+export function bekleyenDeger(yol: string): number {
+  const s = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : 0);
+  return Math.max(s(bekleyenler()[yol]), s(sozlukOku(BILINEN_ANAHTAR)[yol]));
+}
+
+/** Bilinçli geri alma (Sudoku baştan) — bekleyen büyük değer sıfırlamayı ezmesin. */
+function bekleyenSil(yol: string): void {
+  for (const a of [BEKLEYEN_ANAHTAR, BILINEN_ANAHTAR]) {
+    const k = sozlukOku(a);
+    if (yol in k) { delete k[yol]; sozlukYaz(a, k); }
+  }
+}
+
+/** Hesap silme: o kullanıcının bekleyenlerinin hepsi düşer. */
+export function bekleyenKullaniciyiSil(uid: string): void {
+  for (const a of [BEKLEYEN_ANAHTAR, BILINEN_ANAHTAR]) {
+    const k = sozlukOku(a);
+    for (const y of Object.keys(k)) if (y.startsWith(`users/${uid}/`)) delete k[y];
+    sozlukYaz(a, k);
+  }
+}
+
+/** Girişte çağrılır: bekleyenleri gönderir + bağlantı her gelişinde yeniden gönderir. Dönüş = dinlemeyi bırak. */
+export function bekleyenleriIzle(uid: string): () => void {
+  const gonder = () => {
+    for (const [yol, v] of Object.entries(bekleyenler())) {
+      if (yol.startsWith(`users/${uid}/`) && typeof v === "number") buyukseYaz(yol, v);
+    }
+  };
+  return onValue(dbRef(kullaniciDb, ".info/connected"), (s) => { if (s.val() === true) gonder(); });
 }
 
 /** Oyun ilerlemesi okuma tavanı (Android 6 sn) */
@@ -1552,7 +1636,10 @@ const OYUN_OKUMA_MS = 6000;
 /** Oyunun en iyi skoru — uygulamayla AYNI düğüm (users/{uid}/{oyun}/bestScore). Okunamazsa null. */
 export async function enIyiSkorOku(uid: string, oyun: string): Promise<number | null> {
   const snap = await tavanli(get(dbRef(kullaniciDb, `users/${uid}/${oyun}/bestScore`)), OYUN_OKUMA_MS);
-  return snap ? Math.max(0, sayi(snap.val())) : null;
+  const bekleyen = bekleyenDeger(`users/${uid}/${oyun}/bestScore`);   // internetsiz yapılmış / son bilinen rekor
+  if (!snap) return bekleyen > 0 ? bekleyen : null;
+  bilinenYaz(`users/${uid}/${oyun}/bestScore`, sayi(snap.val()));
+  return Math.max(0, sayi(snap.val()), bekleyen);
 }
 
 /** Rekor — "büyükse yaz" (okuma gelmemiş olsa bile sunucudaki rekor ezilmez). */
@@ -1582,7 +1669,8 @@ export const wordleSeviyeYolu = (uid: string) => `users/${uid}/wordle/currentLev
 /** Sıradaki bölüm (1..300; 300'ü aşmış eski kayıt 300'e sınırlanır — "301/300" olmasın). Okunamazsa 1. */
 export async function wordleSeviyeOku(uid: string): Promise<number> {
   const snap = await tavanli(get(dbRef(kullaniciDb, wordleSeviyeYolu(uid))), 8000);
-  const v = snap ? sayi(snap.val()) : 1;
+  if (snap) bilinenYaz(wordleSeviyeYolu(uid), sayi(snap.val()));
+  const v = Math.max(snap ? sayi(snap.val()) : 1, bekleyenDeger(wordleSeviyeYolu(uid)));
   return Math.min(WORDLE_BOLUM_SAYISI, v >= 1 ? v : 1);
 }
 
@@ -1608,16 +1696,19 @@ function matrise(ham: unknown): number[][] {
 
 /** Bulmaca İÇERİKTİR — önbelleğe alınır (sudoku/{zorluk}/{idx}). */
 export async function sudokuBulmaca(zorluk: string, idx: number): Promise<SudokuBulmaca | null> {
-  return onbellekli(`sudoku:${zorluk}:${idx}`, async () => {
-    try {
-      const snap = await get(dbRef(sudokuDb, `sudoku/${zorluk}/${idx}`));
+  try {
+    return await onbellekli(`sudoku:${zorluk}:${idx}`, async () => {
+      // Okunamadıysa (çevrimdışı / 10 sn) FIRLATILIR: eskiden null dönüp önbelleğe yazılıyordu →
+      // internet gelse de o bölüm sekme kapanana kadar açılmıyordu (uygulamalar 10 sn bekler)
+      const snap = await tavanli(get(dbRef(sudokuDb, `sudoku/${zorluk}/${idx}`)), 10000);
+      if (!snap) throw new Error("sudoku okunamadı");
       if (!snap.exists()) return null;
       const v = snap.val() ?? {};
       return { bulmaca: matrise(v.puzzle), cozum: matrise(v.solution) };
-    } catch {
-      return null;
-    }
-  }, { kalici: true });
+    }, { kalici: true });
+  } catch {
+    return null;
+  }
 }
 
 export const sudokuIlerlemeYolu = (uid: string) => `users/${uid}/sudoku`;
@@ -1625,12 +1716,18 @@ export const sudokuIlerlemeYolu = (uid: string) => `users/${uid}/sudoku`;
 /** İlerleme (sıradaki bulmaca, 1 tabanlı). Okunamazsa null — (1,1,1) ile ezilmesin. */
 export async function sudokuIlerlemesi(uid: string): Promise<Record<SudokuZorluk, number> | null> {
   const snap = await tavanli(get(dbRef(kullaniciDb, sudokuIlerlemeYolu(uid))), OYUN_OKUMA_MS);
-  if (!snap) return null;
+  // İnternetsiz kazanılmış (sunucuya henüz ulaşmamış) bölümler
+  const b = (z: string) => bekleyenDeger(`${sudokuIlerlemeYolu(uid)}/${z}`);
+  if (!snap) {
+    if (b("easy") + b("medium") + b("hard") === 0) return null;
+    return { easy: Math.max(1, b("easy")), medium: Math.max(1, b("medium")), hard: Math.max(1, b("hard")) };
+  }
   const v = snap.val() ?? {};
+  for (const z of SUDOKU_ZORLUKLARI) bilinenYaz(`${sudokuIlerlemeYolu(uid)}/${z}`, sayi(v[z]));
   return {
-    easy: Math.max(1, sayi(v.easy) || 1),
-    medium: Math.max(1, sayi(v.medium) || 1),
-    hard: Math.max(1, sayi(v.hard) || 1),
+    easy: Math.max(1, sayi(v.easy) || 1, b("easy")),
+    medium: Math.max(1, sayi(v.medium) || 1, b("medium")),
+    hard: Math.max(1, sayi(v.hard) || 1, b("hard")),
   };
 }
 
@@ -1641,6 +1738,7 @@ export function sudokuIlerlemeYaz(uid: string, zorluk: string, bolum: number): v
 
 /** Yalnız "hepsi bitti → baştan": bilinçli geri alma, sunucudan OKUNMUŞ değere göre çağrılır. */
 export function sudokuIlerlemeSifirla(uid: string, zorluk: string): void {
+  bekleyenSil(`users/${uid}/sudoku/${zorluk}`);   // bekleyen 11 sıfırlamayı geri almasın
   set(dbRef(kullaniciDb, `users/${uid}/sudoku/${zorluk}`), 1).catch((e) => sessizHata("sudoku", e));
 }
 
@@ -1690,7 +1788,8 @@ export const kgSeviyeYolu = (uid: string) => `users/${uid}/kelimeGezmece/current
 /** Okunamazsa 1 (yazma "büyükse yaz" olduğu için gerçek ilerleme ezilmez). */
 export async function kgSeviyeOku(uid: string): Promise<number> {
   const snap = await tavanli(get(dbRef(kullaniciDb, kgSeviyeYolu(uid))), OYUN_OKUMA_MS);
-  const v = snap ? sayi(snap.val()) : 1;
+  if (snap) bilinenYaz(kgSeviyeYolu(uid), sayi(snap.val()));
+  const v = Math.max(snap ? sayi(snap.val()) : 1, bekleyenDeger(kgSeviyeYolu(uid)));
   return v >= 1 ? v : 1;
 }
 
@@ -1928,7 +2027,9 @@ export type BolumluOyun = "okbulmaca" | "yapboz";
 /** Okunamazsa (çevrimdışı / 6 sn) 1 — yazma "büyükse yaz" olduğu için gerçek ilerleme ezilmez. */
 export async function oyunBolumu(uid: string, oyun: BolumluOyun): Promise<number> {
   const snap = await tavanli(get(dbRef(kullaniciDb, `users/${uid}/${oyun}`)), OYUN_OKUMA_MS);
-  return snap ? Math.max(1, sayi(snap.val()) || 1) : 1;
+  if (snap) bilinenYaz(`users/${uid}/${oyun}`, sayi(snap.val()));
+  const bekleyen = bekleyenDeger(`users/${uid}/${oyun}`);   // internetsiz geçilmiş / son bilinen bölüm
+  return Math.max(snap ? sayi(snap.val()) || 1 : 1, bekleyen, 1);
 }
 
 export function oyunBolumuYaz(uid: string, oyun: BolumluOyun, bolum: number): void {

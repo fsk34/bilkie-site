@@ -55,6 +55,8 @@ export default function Sudoku() {
   const router = useRouter();
   const { kullanici, yukleniyor } = useOturum();
   const [asama, setAsama] = useState<"secim" | "yukleniyor" | "oyun">("secim");
+  // Bölüm okunamadı (çevrimdışı) — eskiden sessizce seçime dönüyordu
+  const [yuklenemedi, setYuklenemedi] = useState(false);
   const [zorluk, setZorluk] = useState<SudokuZorluk>("easy");
   const [bulmaca, setBulmaca] = useState<SudokuBulmaca | null>(null);
   const [bolum, setBolum] = useState(1);
@@ -73,6 +75,8 @@ export default function Sudoku() {
         // Bu arada kazanılmış bir bölüm varsa geri düşmesin
         setIlerleme((p) => ({ easy: Math.max(p.easy, v.easy), medium: Math.max(p.medium, v.medium), hard: Math.max(p.hard, v.hard) }));
         setIlerlemeOkundu(true);
+        // Üç zorluğun sıradaki bölümü önceden çekilsin (önbelleğe girer) → karta basınca anında açılır
+        for (const z of ["easy", "medium", "hard"] as const) if (v[z] <= SUDOKU_BOLUM_SAYISI) void sudokuBulmaca(z, v[z]);
       }
       setIlerlemeHazir(true);
     });
@@ -83,10 +87,13 @@ export default function Sudoku() {
   const cik = useCallback(() => router.push("/oyunlar"), [router]);
 
   const yukle = useCallback((z: SudokuZorluk, idx: number) => {
-    setZorluk(z); setBolum(idx); setAsama("yukleniyor");
+    setZorluk(z); setBolum(idx); setAsama("yukleniyor"); setYuklenemedi(false);
     sudokuBulmaca(z, idx)
-      .then((b) => { setBulmaca(b); setAsama(b ? "oyun" : "secim"); })
-      .catch(() => setAsama("secim"));
+      .then((b) => {
+        setBulmaca(b); setAsama(b ? "oyun" : "secim"); setYuklenemedi(!b);
+        if (b && idx < SUDOKU_BOLUM_SAYISI) void sudokuBulmaca(z, idx + 1);   // sonraki bölüm hazır beklesin
+      })
+      .catch(() => { setAsama("secim"); setYuklenemedi(true); });
   }, []);
 
   const sec = useCallback((z: SudokuZorluk) => {
@@ -165,6 +172,11 @@ export default function Sudoku() {
         ) : (
           <>
             <p className="bk-sdk-alt">Zorluk Seçin</p>
+            {yuklenemedi && (
+              <p role="alert" style={{ textAlign: "center", color: "#FF8A80", fontSize: 14, margin: "0 16px 12px" }}>
+                Bölüm yüklenemedi. İnternet bağlantını kontrol et.
+              </p>
+            )}
             <div className="bk-sdk-kartlar">
               {ZORLUKLAR.map((z) => {
                 const seviye = ilerleme[z.key];
