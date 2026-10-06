@@ -222,6 +222,7 @@ export default function TestlerPage() {
             { label: "Defterler", path: "/admin/defterler" },
             { label: "Yazılılar", path: "/admin/yazililar" },
             { label: "Kelime Gezmece", path: "/admin/kelimegezmece" },
+  { label: "Ok Bulmaca", path: "/admin/okbulmaca" },
           ].map(({ label, path }) => (
             <button key={path} style={btn(path === "/admin/testler" ? "#F3A24C" : "#3A4480")} onClick={() => router.push(path)}>
               {label}

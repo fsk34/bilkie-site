@@ -11,7 +11,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useOturum } from "../../../lib/oturum";
 import {
-  WORDLE_BOLUM_SAYISI,
+  wordleBolumSayisi,
+  wordleKelimeleri,
   wordleKelime,
   wordleSeviyeIlerlet,
   wordleSeviyeOku,
@@ -62,12 +63,13 @@ export default function Wordle() {
   const [ekran, setEkran] = useState<"giris" | "oyun">("giris");
   const [seviye, setSeviye] = useState(1);          // 1 tabanlı
   const [seviyeYuklendi, setSeviyeYuklendi] = useState(false);
+  const [toplam, setToplam] = useState(wordleBolumSayisi());   // 0 = kelime listesi okunamadı
 
   useEffect(() => {
     if (!kullanici) return;
     let iptal = false;
-    wordleSeviyeOku(kullanici.uid)
-      .then((v) => { if (!iptal) { setSeviye(v); setSeviyeYuklendi(true); } })
+    Promise.all([wordleSeviyeOku(kullanici.uid), wordleKelimeleri()])
+      .then(([v, l]) => { if (!iptal) { setSeviye(v); setToplam(l?.length ?? 0); setSeviyeYuklendi(true); } })
       .catch(() => { if (!iptal) setSeviyeYuklendi(true); });
     return () => { iptal = true; };
   }, [kullanici]);
@@ -95,6 +97,7 @@ export default function Wordle() {
     return (
       <Giris
         seviye={seviye}
+        toplam={toplam}
         yuklendi={seviyeYuklendi}
         onCik={cik}
         onBasla={() => setEkran("oyun")}
@@ -104,12 +107,15 @@ export default function Wordle() {
 
   return (
     <Oyun
-      bolumIndeksi={seviye - 1}
+      // Hepsi bittiyse baştan (uygulamadaki "Baştan Oyna"); liste dışı indeks boş kelime olmasın
+      bolumIndeksi={seviye > toplam ? 0 : seviye - 1}
+      toplam={Math.max(1, toplam)}
       uid={kullanici.uid}
       onCik={() => setEkran("giris")}
       // Bölüm bitince DOĞRUDAN sonraki bölüm açılır; giriş ekranına dönülmez.
       // (Seviye artınca `Oyun` bileşeni yeni kelimeyi kendisi yükleyip durumu sıfırlar.)
-      onBolumBitti={() => setSeviye((s) => Math.min(WORDLE_BOLUM_SAYISI, s + 1))}
+      // Son bölüm bittiyse giriş ekranına ("Tüm bölümler tamamlandı"); yoksa doğrudan sonraki
+      onBolumBitti={() => { if (seviye >= toplam) { setSeviye(toplam + 1); setEkran("giris"); } else setSeviye((s) => s + 1); }}
     />
   );
 }
@@ -129,9 +135,10 @@ function Gokkusagi() {
 }
 
 function Giris({
-  seviye, yuklendi, onCik, onBasla,
-}: { seviye: number; yuklendi: boolean; onCik: () => void; onBasla: () => void }) {
-  const oran = Math.max(0.5, ((seviye - 1) / WORDLE_BOLUM_SAYISI) * 100);
+  seviye, toplam, yuklendi, onCik, onBasla,
+}: { seviye: number; toplam: number; yuklendi: boolean; onCik: () => void; onBasla: () => void }) {
+  const hepsiBitti = toplam > 0 && seviye > toplam;
+  const oran = hepsiBitti ? 100 : Math.max(0.5, ((seviye - 1) / Math.max(1, toplam)) * 100);
   return (
     <div className="bk">
       <div className="bk-wl-sahne">
@@ -145,10 +152,10 @@ function Giris({
               <i style={{ width: `${oran}%`, transition: "width .9s cubic-bezier(.4,0,.2,1)" }} />   {/* Android tween(900) */}
             </div>
             <p className="bk-wl-not" style={{ marginTop: 10 }}>
-              Bölüm {seviye} / {WORDLE_BOLUM_SAYISI}
+              {hepsiBitti ? "Tüm bölümler tamamlandı!" : toplam === 0 ? "Bölümler yüklenemedi" : `Bölüm ${seviye} / ${toplam}`}
             </p>
-            <button className="bk-wl-dugme" style={{ marginTop: 52 }} onClick={onBasla}>
-              {seviye === 1 ? "Başla" : "Devam Et"}
+            <button className="bk-wl-dugme" style={{ marginTop: 52 }} onClick={onBasla} disabled={toplam === 0}>
+              {hepsiBitti ? "Baştan Oyna" : seviye === 1 ? "Başla" : "Devam Et"}
             </button>
           </>
         )}
@@ -160,8 +167,8 @@ function Giris({
 /* ------------------------------------------------------------------ oyun */
 
 function Oyun({
-  bolumIndeksi, uid, onCik, onBolumBitti,
-}: { bolumIndeksi: number; uid: string; onCik: () => void; onBolumBitti: () => void }) {
+  bolumIndeksi, toplam, uid, onCik, onBolumBitti,
+}: { bolumIndeksi: number; toplam: number; uid: string; onCik: () => void; onBolumBitti: () => void }) {
   const [hedef, setHedef] = useState("");
   const [yukleniyor, setYukleniyor] = useState(true);
   const [tahminler, setTahminler] = useState<Goz[][]>([]);
@@ -195,7 +202,7 @@ function Oyun({
   // sonraki kelime arka planda çekilir (uygulamadaki prefetch)
   useEffect(() => {
     if (!kazandi) return;
-    if (bolumIndeksi < WORDLE_BOLUM_SAYISI - 1) void wordleKelime(bolumIndeksi + 1).catch(() => {});
+    if (bolumIndeksi < toplam - 1) void wordleKelime(bolumIndeksi + 1).catch(() => {});
     const satir = tahminler.length - 1;
     const zz = window.setTimeout(() => setZiplayanSatir(satir), acilisMs(harfSayisi));
     const z = window.setTimeout(() => {
@@ -282,8 +289,8 @@ function Oyun({
   }
 
   const bolumNo = bolumIndeksi + 1;
-  const cubukBaslangic = (bolumNo / WORDLE_BOLUM_SAYISI) * 100;
-  const cubukBitis = Math.min(100, ((bolumNo + 1) / WORDLE_BOLUM_SAYISI) * 100);
+  const cubukBaslangic = (bolumNo / toplam) * 100;
+  const cubukBitis = Math.min(100, ((bolumNo + 1) / toplam) * 100);
 
   return (
     <div className="bk">
@@ -365,9 +372,9 @@ function Oyun({
             <div className="bk-wl-cubuk" style={{ width: "100%", marginTop: 32 }}>
               <i style={{ width: `${ilerlemeHedefi ? cubukBitis : cubukBaslangic}%`, transition: "width 1s cubic-bezier(.4,0,.2,1)" }} />
             </div>
-            <div className="bk-wl-not" style={{ marginTop: 8 }}>{bolumNo + 1} / {WORDLE_BOLUM_SAYISI}</div>
+            <div className="bk-wl-not" style={{ marginTop: 8 }}>{Math.min(bolumNo + 1, toplam)} / {toplam}</div>
             <button className="bk-wl-dugme" style={{ marginTop: 36 }} onClick={onBolumBitti}>
-              {bolumIndeksi >= WORDLE_BOLUM_SAYISI - 1 ? "Tebrikler!" : "Devam Et"}
+              {bolumIndeksi >= toplam - 1 ? "Tebrikler!" : "Devam Et"}
             </button>
           </div>
         </div>

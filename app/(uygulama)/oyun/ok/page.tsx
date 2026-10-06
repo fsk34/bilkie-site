@@ -6,7 +6,7 @@
 // teper, 1 hak gider. 3 hak biter → bölümü baştan oyna (kampta reklamla +1 hak vardı; web'de
 // reklam yok). Tümü çıkınca bölüm biter, sıradaki açılır.
 //
-// Bölümler: oklar.json (120; 1-10 kamptan, 11-120 üretilmiş, hepsi çözülebilir). Üç platform
+// Bölümler: okbulmaca veritabanı `bolumler` (1-10 kamptan, sonrası üretilmiş). Üç platform
 // aynı dosyayı ve aynı ilerleme düğümünü (users/{uid}/okbulmaca) kullanır.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -16,15 +16,14 @@ import UcNokta from "../../UcNokta";
 import { useOturum } from "../../../lib/oturum";
 import { oyunBolumu, oyunBolumuYaz } from "../../../lib/veri";
 import { sesCal, sesleriOnYukle } from "../../ses";
-import veri from "./oklar.json";
 import { get, ref as dbRef } from "firebase/database";
 import { okBulmacaDb } from "../../../lib/firebase";
 
 type Hucre = [number, number];
 type Bolum = { satir: number; sutun: number; oklar: { hucreler: Hucre[] }[] };
-// Kaynak: `okbulmaca` veritabanı (`bolumler`); buradaki oklar.json ilk kare + çevrimdışı
-// yedeği (22 Eyl 2026: içerik DB'ye taşındı, yeni bölüm için yayın gerekmiyor).
-// Sayfa paketteki listeyle ANINDA açılır, DB yanıtı gelince liste tazelenir.
+// TEK kaynak: `okbulmaca` veritabanı (`bolumler`) — Kelime Gezmece gibi (6 Eki 2026; Android/iOS ile aynı).
+// Eskiden oklar.json ilk kare + yedekti ve DB listesi paketten kısaysa paket kullanılıyordu →
+// konsoldan bölüm silmek/kısaltmak görünmüyordu. Artık konsolda ne varsa o.
 /**
  * Bölüm oynanabilir mi (Android okBolumGecerli, 24 Eyl 2026): ızgara > 0, en az bir ok; her ok ≥ 2
  * hücre, hücreler ızgara içinde, ardışık hücreler komşu. Aynı hücre tekrarı → yön (0,0) → sonsuz
@@ -59,7 +58,6 @@ function gecerliOnEk(l: Bolum[]): Bolum[] {
   return i < 0 ? l : l.slice(0, i);
 }
 
-const YEDEK_BOLUMLER = gecerliOnEk((veri as unknown as { bolumler: Bolum[] }).bolumler);
 
 const LACIVERT = "#2B3350", KIRMIZI = "#E0483F", NOKTA = "#BCC3D4";
 const HAK = 3;
@@ -149,7 +147,9 @@ export default function OkBulmaca() {
   const [hakBitti, setHakBitti] = useState(false);
   const [cikisSor, setCikisSor] = useState(false);
   const zamanlayicilar = useRef<ReturnType<typeof setTimeout>[]>([]);
-  const [BOLUMLER, setBolumler] = useState<Bolum[]>(YEDEK_BOLUMLER);
+  const [BOLUMLER, setBolumler] = useState<Bolum[]>([]);
+  const [bolumDurumu, setBolumDurumu] = useState<"yukleniyor" | "tamam" | "hata">("yukleniyor");
+  const [deneme, setDeneme] = useState(0);
   const OK_BOLUM_SAYISI = BOLUMLER.length;
   // Çıkan okların yol boyunca ilerlemesi (hücre birimi); rAF ile güncellenir
   const [cikis, setCikis] = useState<Record<number, number>>({});
@@ -165,20 +165,22 @@ export default function OkBulmaca() {
   }, [kullanici, yukleniyor, router]);
   useEffect(() => {
     let iptal = false;
+    setBolumDurumu("yukleniyor");
     get(dbRef(okBulmacaDb, "bolumler"))
       .then((snap) => {
         const v = snap.val();
         const ham: unknown[] = Array.isArray(v) ? v.filter(Boolean) : v ? Object.values(v) : [];
-        // Bozuk bölümden sonrası atılır; paketten kısa kalırsa paketteki liste kullanılır
-        const liste = gecerliOnEk(ham.map(bolumCoz));
-        if (!iptal && liste.length >= YEDEK_BOLUMLER.length) setBolumler(liste);
+        const liste = gecerliOnEk(ham.map(bolumCoz));   // bozuk bölümden sonrası atılır
+        if (iptal) return;
+        if (liste.length) { setBolumler(liste); setBolumDurumu("tamam"); } else setBolumDurumu("hata");
       })
-      .catch(() => { /* okunamazsa paketteki liste kalır */ });
+      .catch(() => { if (!iptal) setBolumDurumu("hata"); });
     return () => { iptal = true; };
-  }, []);
+  }, [deneme]);
   useEffect(() => () => { zamanlayicilar.current.forEach(clearTimeout); if (rafRef.current != null) cancelAnimationFrame(rafRef.current); }, []);
 
   const bolum = BOLUMLER[Math.min(bolumNo, OK_BOLUM_SAYISI) - 1];
+
 
   const basla = useCallback((no: number) => {
     const n = Math.min(Math.max(1, no), OK_BOLUM_SAYISI);
@@ -186,6 +188,12 @@ export default function OkBulmaca() {
     setKazandi(false); setHakBitti(false); setAsama("oyun");
     // BOLUMLER artık durum: DB listesi sonradan gelirse eski dizi kapanışta kalmasın.
   }, [BOLUMLER, OK_BOLUM_SAYISI]);
+
+  // Seçim ekranı yerine: ilerleme + bölümler hazır olunca kaldığı bölüm (hepsi bittiyse baştan)
+  useEffect(() => {
+    if (asama !== "secim" || bolumDurumu !== "tamam") return;
+    basla(ilerleme > OK_BOLUM_SAYISI ? 1 : ilerleme);
+  }, [asama, bolumDurumu, ilerleme, OK_BOLUM_SAYISI, basla]);
 
   /** Ok başının önündeki hat kenara kadar boş mu? */
   const onuAcik = useCallback((a: Ok, liste: Ok[]) => {
@@ -251,36 +259,26 @@ export default function OkBulmaca() {
   const devam = useCallback(() => {
     const sonraki = bolumNo + 1;
     if (kullanici && sonraki > ilerleme) { setIlerleme(sonraki); oyunBolumuYaz(kullanici.uid, "okbulmaca", sonraki); }
-    if (sonraki > OK_BOLUM_SAYISI) setAsama("secim"); else basla(sonraki);
-  }, [bolumNo, ilerleme, kullanici, basla]);
+    if (sonraki > OK_BOLUM_SAYISI) router.push("/oyunlar"); else basla(sonraki);
+  }, [bolumNo, ilerleme, kullanici, basla, OK_BOLUM_SAYISI, router]);
 
 
-  if (asama === "yukleniyor") return <div className="bk bk-oyun-sahne"><UcNokta style={{ padding: 60 }} /></div>;
-
-  if (asama === "secim") {
-    const hepsi = ilerleme > OK_BOLUM_SAYISI;
+  if (bolumDurumu === "hata") {
     return (
-      <div className="bk bk-oyun-sahne bk-ok-sahne">
-        <OyunUstBar baslik="Ok Bulmaca" tema="acik" onGeri={() => router.push("/oyunlar")} />
-        <p className="bk-oyun-ipucu bk-bolum-ipucu">Ucu açık oka dokun, tahtadan çıksın. Önü kapalıysa hakkın gider!</p>
-        <div className="bk-bolum-kart">
-          <div className="ust"><span>{hepsi ? "Tüm bölümler tamam!" : `Bölüm ${ilerleme}`}</span><small>{Math.min(ilerleme - 1, OK_BOLUM_SAYISI)} / {OK_BOLUM_SAYISI} tamamlandı</small></div>
-          <div className="cubuk"><i style={{ width: `${Math.min(100, ((ilerleme - 1) / OK_BOLUM_SAYISI) * 100)}%` }} /></div>
-          <button className="bk-oyun-dugme sari" onClick={() => basla(hepsi ? 1 : ilerleme)}>{hepsi ? "Baştan oyna" : "Oyna"}</button>
+      <div className="bk bk-oyun-sahne" style={{ textAlign: "center", padding: 40 }}>
+        <p style={{ fontWeight: 700, fontSize: 20, color: LACIVERT }}>Bölümler yüklenemedi</p>
+        <p style={{ fontSize: 14, color: "#5A617A", marginTop: 8 }}>İnternet bağlantını kontrol edip yeniden dene.</p>
+        <div style={{ marginTop: 18, display: "flex", gap: 10, justifyContent: "center" }}>
+          <OnayDugme metin="Yeniden dene" zemin="#86B7DD" renk="#0C1A3F" onClick={() => setDeneme((d) => d + 1)} />
+          <OnayDugme metin="Geri" zemin="#E6E9F2" renk="#2B3350" onClick={() => router.push("/oyunlar")} />
         </div>
-        {ilerleme > 1 && (
-          <>
-            <h2 className="bk-bolum-baslik">Bölümler</h2>
-            <div className="bk-bolum-izgara">
-              {Array.from({ length: OK_BOLUM_SAYISI }, (_, i) => i + 1).map((n) => (
-                <button key={n} className="bk-bolum-goz" data-durum={n < ilerleme ? "bitti" : n === ilerleme ? "sirada" : "kilitli"} disabled={n > ilerleme} onClick={() => basla(n)}>{n}</button>
-              ))}
-            </div>
-          </>
-        )}
       </div>
     );
   }
+  if (asama === "yukleniyor" || bolumDurumu === "yukleniyor") return <div className="bk bk-oyun-sahne"><UcNokta style={{ padding: 60 }} /></div>;
+
+  // Bölüm seçim ekranı yok (6 Eki 2026, uygulamalarla aynı): aşağıdaki etki doğrudan kaldığı bölümü açar
+  if (asama === "secim") return <div className="bk bk-oyun-sahne bk-ok-sahne" />;
 
   const R = bolum.satir, C = bolum.sutun;
   return (
@@ -358,13 +356,13 @@ export default function OkBulmaca() {
             <b>Hakların bitti!</b>
             <span>Bölümü baştan dene; okların sırasını bulacaksın.</span>
             <div className="ikili">
-              <OnayDugme metin="Bölümler" zemin="#E6E9F2" renk="#2B3350" onClick={() => setAsama("secim")} />
+              <OnayDugme metin="Çık" zemin="#E6E9F2" renk="#2B3350" onClick={() => router.push("/oyunlar")} />
               <OnayDugme metin="Tekrar dene" zemin="#EDC22E" renk="#000" onClick={() => basla(bolumNo)} />
             </div>
           </div>
         </div>
       )}
-      {cikisSor && <BolumCikisOnayi onKal={() => setCikisSor(false)} onCik={() => { setCikisSor(false); setAsama("secim"); }} />}
+      {cikisSor && <BolumCikisOnayi onKal={() => setCikisSor(false)} onCik={() => { setCikisSor(false); router.push("/oyunlar"); }} />}
     </div>
   );
 }

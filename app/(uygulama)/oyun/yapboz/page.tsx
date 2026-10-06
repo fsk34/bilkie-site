@@ -51,7 +51,7 @@ export default function Yapboz() {
   const { kullanici, yukleniyor } = useOturum();
   const [havuz, setHavuz] = useState<Gorsel[] | null>(null);
   const [ilerleme, setIlerleme] = useState(1);
-  const [asama, setAsama] = useState<"yukleniyor" | "secim" | "oyun">("yukleniyor");
+  const [asama, setAsama] = useState<"yukleniyor" | "secim" | "oyun" | "hata">("yukleniyor");
   const [bolumNo, setBolumNo] = useState(1);
   const [url, setUrl] = useState<string | null>(null);
   const [oran, setOran] = useState(1);
@@ -103,7 +103,7 @@ export default function Yapboz() {
     if (!g) return;
     setBolumNo(m); setKazandi(false); setUrl(null); setAsama("oyun");
     const u = await gorselAdresi(g.yol);
-    if (!u) { setAsama("secim"); return; }
+    if (!u) { setAsama("hata"); return; }   // "secim"e dönseydi aşağıdaki otomatik başlatma döngüye girerdi
     await new Promise<void>((r) => { const im = new Image(); im.onload = () => { setOran(im.naturalWidth / im.naturalHeight || 1); r(); }; im.onerror = () => r(); im.src = u; });
     setTahta(karistir(boyut)); setUrl(u);
   }, [toplam, bolumBilgi]);
@@ -123,40 +123,34 @@ export default function Yapboz() {
   const devam = useCallback(() => {
     const sonraki = bolumNo + 1;
     if (kullanici && sonraki > ilerleme) { setIlerleme(sonraki); oyunBolumuYaz(kullanici.uid, "yapboz", sonraki); }
-    if (sonraki > toplam) setAsama("secim"); else basla(sonraki);
-  }, [bolumNo, ilerleme, kullanici, toplam, basla]);
+    if (sonraki > toplam) router.push("/oyunlar"); else basla(sonraki);
+  }, [bolumNo, ilerleme, kullanici, toplam, basla, router]);
+
+  // Bölüm seçim ekranı yok (6 Eki 2026, uygulamalarla aynı): veriler gelince doğrudan kaldığı bölüm; hepsi bittiyse baştan
+  useEffect(() => {
+    if (asama !== "secim" || !havuz?.length) return;
+    // Bir sonraki tura bırakılır: etki içinde senkron durum değişimi zincirleme render yapar
+    const z = window.setTimeout(() => { void basla(ilerleme > toplam ? 1 : ilerleme); }, 0);
+    return () => window.clearTimeout(z);
+  }, [asama, havuz, ilerleme, toplam, basla]);
 
   if (asama === "yukleniyor" || !havuz) return <div className="bk bk-oyun-sahne"><UcNokta style={{ padding: 60 }} /></div>;
 
-  if (asama === "secim") {
-    const hepsi = ilerleme > toplam;
+  if (asama === "secim" || asama === "hata") {
+    const gorselYok = havuz.length === 0 || asama === "hata";
     return (
       <div className="bk bk-oyun-sahne bk-yapboz-sahne">
-        {/* Android: Yapboz seçim ekranında ipucu yazısı yok */}
         <OyunUstBar baslik="Resim Yapboz" tema="koyu" onGeri={() => router.push("/oyunlar")} />
-        <div style={{ height: 18 }} />
-        {havuz.length === 0 ? <div className="bk-oyun-ipucu">Görseller yüklenemedi.</div> : (
-          <>
-            <div className="bk-bolum-kart">
-              <div className="ust"><span>{hepsi ? "Tüm bölümler tamam!" : `Bölüm ${ilerleme}`}</span><small>{Math.min(ilerleme - 1, toplam)} / {toplam} tamamlandı</small></div>
-              <div className="cubuk"><i style={{ width: `${Math.min(100, ((ilerleme - 1) / toplam) * 100)}%` }} /></div>
-              <button className="bk-oyun-dugme sari" onClick={() => basla(hepsi ? 1 : ilerleme)}>{hepsi ? "Baştan oyna" : "Oyna"}</button>
-            </div>
-            {ilerleme > 1 && (
-              <>
-                <h2 className="bk-bolum-baslik">Bölümler</h2>
-                <div className="bk-bolum-izgara">
-                  {Array.from({ length: toplam }, (_, i) => i + 1).map((no) => (
-                    <button key={no} className="bk-bolum-goz" data-durum={no < ilerleme ? "bitti" : no === ilerleme ? "sirada" : "kilitli"} disabled={no > ilerleme} onClick={() => basla(no)}>{no}</button>
-                  ))}
-                </div>
-              </>
-            )}
-          </>
+        {gorselYok && (
+          <div className="bk-oyun-ipucu" style={{ marginTop: 18 }}>
+            Görseller yüklenemedi.{" "}
+            {asama === "hata" && <button className="bk-oyun-dugme sari" style={{ marginTop: 12 }} onClick={() => void basla(bolumNo)}>Yeniden dene</button>}
+          </div>
         )}
       </div>
     );
   }
+
 
   return (
     <div className="bk bk-oyun-sahne bk-yapboz-sahne">
@@ -199,7 +193,7 @@ export default function Yapboz() {
           dugme={bolumNo >= toplam ? "Bitir" : "Sonraki bölüm →"} onDevam={devam}
         />
       )}
-      {cikisSor && <BolumCikisOnayi onKal={() => setCikisSor(false)} onCik={() => { setCikisSor(false); setAsama("secim"); }} />}
+      {cikisSor && <BolumCikisOnayi onKal={() => setCikisSor(false)} onCik={() => { setCikisSor(false); router.push("/oyunlar"); }} />}
     </div>
   );
 }

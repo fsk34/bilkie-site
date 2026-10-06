@@ -1626,34 +1626,55 @@ export function enIyiSkorYaz(uid: string, oyun: string, skor: number): void {
 
 /* ----------------------------------------------------------------- wordle */
 
-export const WORDLE_BOLUM_SAYISI = 300;
+/**
+ * Bölümler = `wordle/words` listesi (Kelime Gezmece gibi tek kaynak, 6 Eki 2026; Android/iOS ile aynı):
+ * bölüm sayısı listenin uzunluğu — konsoldan kelime eklenince yeni bölümler açılır (eskiden 300 sabitti).
+ * Kalıcı önbellek YOK: kelime konsolda değişince eski kelime gösterilmesin (eskiden bölüm başına kalıcıydı).
+ */
+let wordleListe: string[] | null = null;
 
-/** Bölümün kelimesi — İÇERİK, önbelleğe alınır (wordle/words/{index}). */
-export async function wordleKelime(indeks: number): Promise<string> {
-  return onbellekli(`wordleKelime:${indeks}`, async () => {
-    try {
-      const snap = await get(dbRef(wordleDb, `wordle/words/${indeks}`));
+/** Listeyi tazele (~3 KB); okunamazsa eldeki liste. Boş kayıtta kesilir (numaralar kaymasın). */
+export async function wordleKelimeleri(): Promise<string[] | null> {
+  try {
+    const snap = await tavanli(get(dbRef(wordleDb, "wordle/words")), 10000);
+    if (snap) {
       const v = snap.val();
-      return typeof v === "string" ? v : "";
-    } catch {
-      return "";
+      const ham: unknown[] = Array.isArray(v) ? v : v && typeof v === "object" ? Object.values(v) : [];
+      const l: string[] = [];
+      for (const w of ham) {
+        const k = typeof w === "string" ? w.trim() : "";
+        if (!k) break;
+        l.push(k);
+      }
+      if (l.length) wordleListe = l;
     }
-  }, { kalici: true });
+  } catch { /* eldeki liste kalır */ }
+  return wordleListe;
+}
+
+/** Toplam bölüm (liste okunmadıysa 0). */
+export const wordleBolumSayisi = () => wordleListe?.length ?? 0;
+
+/** Bölümün kelimesi (0 tabanlı). */
+export async function wordleKelime(indeks: number): Promise<string> {
+  const l = wordleListe ?? (await wordleKelimeleri());
+  return l?.[indeks] ?? "";
 }
 
 export const wordleSeviyeYolu = (uid: string) => `users/${uid}/wordle/currentLevel`;
 
-/** Sıradaki bölüm (1..300; 300'ü aşmış eski kayıt 300'e sınırlanır — "301/300" olmasın). Okunamazsa 1. */
+/** Sıradaki bölüm (1 tabanlı ham değer; toplamı aşmışsa "hepsi bitti" — sayfa sınırlar). Okunamazsa 1. */
 export async function wordleSeviyeOku(uid: string): Promise<number> {
   const snap = await tavanli(get(dbRef(kullaniciDb, wordleSeviyeYolu(uid))), 8000);
   if (snap) bilinenYaz(wordleSeviyeYolu(uid), sayi(snap.val()));
   const v = Math.max(snap ? sayi(snap.val()) : 1, bekleyenDeger(wordleSeviyeYolu(uid)));
-  return Math.min(WORDLE_BOLUM_SAYISI, v >= 1 ? v : 1);
+  return v >= 1 ? v : 1;
 }
 
-/** Bölüm bitince: oynanan bölümden hesaplanır (mevcut + 1), 300 tavanlı, "büyükse yaz" (Android wlAdvanceLevel). */
+/** Bölüm bitince: oynanan bölümden hesaplanır (mevcut + 1), toplam+1 tavanlı, "büyükse yaz" (Android wlAdvanceLevel). */
 export function wordleSeviyeIlerlet(uid: string, mevcut: number): void {
-  buyukseYaz(wordleSeviyeYolu(uid), mevcut + 1, WORDLE_BOLUM_SAYISI);
+  const t = wordleBolumSayisi();
+  buyukseYaz(wordleSeviyeYolu(uid), mevcut + 1, t > 0 ? t + 1 : undefined);
 }
 
 /* ----------------------------------------------------------------- sudoku */

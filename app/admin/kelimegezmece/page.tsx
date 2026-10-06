@@ -19,6 +19,7 @@ const NAV = [
   { label: "Defterler", path: "/admin/defterler" },
   { label: "Yazılılar", path: "/admin/yazililar" },
   { label: "Kelime Gezmece", path: "/admin/kelimegezmece" },
+  { label: "Ok Bulmaca", path: "/admin/okbulmaca" },
 ];
 
 const WORD_COLORS = [
