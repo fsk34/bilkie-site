@@ -3,8 +3,8 @@
 // Kırmızı çizgi (feedback-no-fake-precision): veri yetersizse teşhis UYDURMAZ, "seni tanıyayım" der.
 //
 // Girdi (hepsi zaten yazılıyor, yeni şema yok):
-//   • stats/grade{N}/subjects/{ders}/tests + topics/{konu}/tests: successRate, totalQuestions,
-//     avgDurationSec (test başına), updatedAt
+//   • stats/grade{N}/subjects/{ders}/tests + topics/{konu}/tests: totalCorrect, totalQuestions,
+//     totalDurationSec, solvedCount, updatedAt — başarı % ve ortalama süre bunlardan (kovaHesap)
 //   • progress_test / progress_defter(_done) / quiz_done (DevamVerisi)
 //   • yazılı takvimi (bir sonraki sınava kaç gün), seri (bugün aktif mi), saat
 // Çıktı: KocPlani → ana ekrandaki "Bilkie AI" kartı. Sonra İstatistik'te tam alan (haftalık kova +
@@ -14,6 +14,7 @@ import { konuAyristir, uniteler } from "./katalog";
 import { ADIM_SAYISI } from "./veri";
 import { DERS_SIRASI, dersEkli, dersEtiketi, type DevamKarti, type DevamVerisi } from "./anaEkran";
 import { HATA_ONERI_ESIGI } from "./hatalar";
+import { kovaBasariYuzdesi, kovaOrtalamaSure } from "./kovaHesap";
 
 /* ------------------------------------------------------------------- tipler */
 
@@ -95,14 +96,12 @@ function kovaCoz(v: unknown): KovaIstatistigi | null {
   const t = (v ?? {}) as Record<string, unknown>;
   const soru = sayi(t.totalQuestions);
   if (soru <= 0) return null;
-  const dogru = sayi(t.totalCorrect);
-  const kayitli = sayi(t.successRate);
-  const basari = kayitli !== 0 ? Math.round(kayitli) : Math.round((dogru / soru) * 100);
+  // Başarı % ve ortalama süre toplamlardan (kovaHesap — istatistik ekranıyla aynı kural)
   return {
-    basari: Math.max(0, Math.min(100, basari)),
+    basari: kovaBasariYuzdesi(t),
     soru,
     cozulen: sayi(t.solvedCount),
-    ortSn: Math.max(0, sayi(t.avgDurationSec)),
+    ortSn: kovaOrtalamaSure(t),
     guncelleme: sayi(t.updatedAt),
   };
 }

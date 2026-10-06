@@ -28,6 +28,7 @@ import { onbellekli } from "./onbellek";
 import { sessizHata, tavanli } from "./hata";
 import { ligAnahtari, rozetYiliAnahtari } from "./sezon";
 import { AY_ANAHTAR } from "./ayGorsel";
+import { basariOrani, basariYuzdesi, kovaBasariYuzdesi, kovaOrtalamaSure, ortalamaSure } from "./kovaHesap";
 import {
   defterDersAnahtari,
   dizi,
@@ -1326,20 +1327,16 @@ export function testIstatistigiCoz(ham: unknown, dersKey: string | null): TestIs
   const dogru = alan(v, "tests/totalCorrect", "totalCorrect");
   const puan = alan(v, "tests/totalScore", "totalPoints");
 
-  let oran = alan(v, "tests/successRate");
-  if (oran === 0 && soru > 0) oran = (dogru / soru) * 100;
-
-  let ortSn = alan(v, "tests/avgDurationSec");
-  if (ortSn === 0) {
-    const toplamSn = alan(v, "tests/totalDurationSec", "totalDurationSec");
-    const cozulen = alan(v, "tests/solvedCount", "solvedCount");
-    if (cozulen > 0 && toplamSn > 0) ortSn = toplamSn / cozulen;
-    else {
-      const ms = alan(v, "tests/totalElapsedMs", "totalElapsedMs");
-      const deneme = alan(v, "tests/attempts", "attempts");
-      if (deneme > 0) ortSn = ms / deneme / 1000;
-    }
-  }
+  // Başarı % ve ortalama süre TOPLAMLARDAN (kovaHesap — pasta, konu kutuları ve Koç ile aynı kural).
+  // Kayıtlı successRate/avgDurationSec yalnız toplam hiç yoksa (çok eski veri) kullanılır.
+  const oran = basariOrani(dogru, soru, alan(v, "tests/successRate"));
+  const ortSn = ortalamaSure(
+    alan(v, "tests/totalDurationSec", "totalDurationSec"),
+    alan(v, "tests/solvedCount", "solvedCount"),
+    alan(v, "tests/avgDurationSec"),
+    alan(v, "tests/totalElapsedMs", "totalElapsedMs") / 1000,
+    alan(v, "tests/attempts", "attempts"),
+  );
 
   return {
     cozulenSoru: soru,
@@ -1365,7 +1362,7 @@ export function istatistikDilimleriCoz(agacHam: unknown, dersKey: string | null)
       if (soru <= 0) continue;
       out.push({
         id: k, etiket: DERS_ETIKET[k] ?? k, soru,
-        oran: Math.max(0, Math.min(100, Math.round((dogru / soru) * 100))),
+        oran: basariYuzdesi(dogru, soru, 0),   // tek kural (kovaHesap)
         renk: DERS_RENK[k] ?? "#6BC1FF",
       });
     }
@@ -1382,7 +1379,7 @@ export function istatistikDilimleriCoz(agacHam: unknown, dersKey: string | null)
     if (soru <= 0) continue;
     uniteler.push({
       id: k, etiket: k.toLocaleUpperCase("tr"), soru,
-      oran: Math.max(0, Math.min(100, Math.round((dogru / soru) * 100))),
+      oran: basariYuzdesi(dogru, soru, 0),
       renk: palet[i % palet.length],
     });
     i += 1;
@@ -1399,7 +1396,7 @@ export function istatistikDilimleriCoz(agacHam: unknown, dersKey: string | null)
   if (soru <= 0) return [];
   return [{
     id: dersKey, etiket: DERS_ETIKET[dersKey] ?? dersKey, soru,
-    oran: Math.max(0, Math.min(100, Math.round((dogru / soru) * 100))),
+    oran: basariYuzdesi(dogru, soru, 0),
     renk: DERS_RENK[dersKey] ?? "#6BC1FF",
   }];
 }
@@ -1471,25 +1468,12 @@ export function konuIstatistikleriCoz(hamDugum: unknown): Record<string, KonuIst
   const ham = (hamDugum ?? {}) as Record<string, any>;
   const out: Record<string, KonuIstatistigi> = {};
   for (const [k, v] of Object.entries(ham)) {
-    const soru = sayi(v?.tests?.totalQuestions);
-    const dogru = sayi(v?.tests?.totalCorrect);
-    const kayitli = sayi(v?.tests?.successRate);
-    const basari = kayitli !== 0
-      ? Math.max(0, Math.min(100, Math.round(kayitli)))
-      : soru > 0 ? Math.max(0, Math.min(100, Math.round((dogru / soru) * 100))) : 0;
-
-    let ortSn = sayi(v?.tests?.avgDurationSec);
-    if (ortSn === 0) {
-      const toplamSn = sayi(v?.tests?.totalDurationSec);
-      const cozulen = sayi(v?.tests?.solvedCount);
-      if (cozulen > 0 && toplamSn > 0) ortSn = toplamSn / cozulen;
-      else {
-        const ms = sayi(v?.tests?.totalElapsedMs);
-        const deneme = sayi(v?.tests?.attempts);
-        if (deneme > 0) ortSn = ms / deneme / 1000;
-      }
-    }
-    out[k] = { basari, soru, ortSn: Math.max(0, Math.round(ortSn)) };
+    // Başarı % ve ortalama süre toplamlardan (kovaHesap — tek kural)
+    out[k] = {
+      basari: kovaBasariYuzdesi(v?.tests),
+      soru: sayi(v?.tests?.totalQuestions),
+      ortSn: Math.max(0, Math.round(kovaOrtalamaSure(v?.tests))),
+    };
   }
   return out;
 }
@@ -1500,22 +1484,15 @@ export function yaziliIstatistigiCoz(ham: unknown, dersKey: string | null): Yazi
   const cozulen = alan(v, "yazili/solvedCount");
   if (hazir === 0 && cozulen === 0) return { basariOrani: 0, ortalamaSaniye: 0 };
 
-  let oran = alan(v, "yazili/successRate");
-  if (oran === 0) {
-    const soru = alan(v, "yazili/totalQuestions");
-    const dogru = alan(v, "yazili/totalCorrect");
-    oran = soru > 0 ? (dogru / soru) * 100 : 0;
-  }
-
-  let ortSn = alan(v, "yazili/avgDurationSec");
-  if (ortSn === 0) {
-    const toplamSn = alan(v, "yazili/totalDurationSec");
-    const deneme = alan(v, "yazili/attempts") || hazir;
-    if (deneme > 0 && toplamSn > 0) ortSn = toplamSn / deneme;
-  }
-
+  // Toplamlardan (kovaHesap). Ortalama süre yazanın tanımıyla: totalDurationSec / solvedCount —
+  // eski yedek attempts/preparedExams'a bölüyordu, kayıtlı değerle farklı sayı çıkıyordu.
+  const toplamSn = alan(v, "yazili/totalDurationSec");
+  const ortSn = ortalamaSure(
+    toplamSn, cozulen, alan(v, "yazili/avgDurationSec"),
+    toplamSn, alan(v, "yazili/attempts") || hazir,
+  );
   return {
-    basariOrani: Math.max(0, Math.min(100, Math.round(oran))),
+    basariOrani: kovaBasariYuzdesi(v?.yazili),
     ortalamaSaniye: Math.max(0, Math.round(ortSn)),
   };
 }
@@ -1526,7 +1503,7 @@ export function yaziliDersCubuklariCoz(agacHam: unknown): Dilim[] {
     id: k,
     etiket: DERS_KISA[k] ?? k.slice(0, 3).toLocaleUpperCase("tr"),
     soru: 0,
-    oran: Math.max(0, Math.min(100, Math.round(sayi(ham?.[k]?.yazili?.successRate)))),
+    oran: kovaBasariYuzdesi(ham?.[k]?.yazili),   // toplamlardan — yazılı kartıyla aynı kural
     renk: DERS_RENK[k],
   }));
 }
