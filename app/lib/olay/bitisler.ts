@@ -8,12 +8,12 @@
 import { increment, serverTimestamp } from "firebase/database";
 import { anahtarNormalize } from "../istatistikYaz";
 import { hataDegisimleri, type SoruSonucu } from "../hatalar";
-import { XP_DOGRU_TEST, sinifSinirla } from "../veri";
+import { XP_DOGRU_TEST, sinifSinirla, yaziliAdimCoz } from "../veri";
 import { XP } from "./motor/motor";
 import { istanbulGunu } from "./motor/tarih";
 import { kullaniciDb } from "../firebase";
-import { oku } from "./bindir";
-import { bekleyenler, olayYaz, type Yazilan } from "./kutu";
+import { istemciBindir, oku } from "./bindir";
+import { bekleyenYazmalar, bekleyenler, olayYaz, type Yazilan } from "./kutu";
 
 const ANAHTAR = /^[a-z0-9_]{1,48}$/;
 
@@ -194,7 +194,18 @@ export async function yaziliOlayiniYaz(a: {
     const isaret = await oku(kullaniciDb, `users/${a.uid}/xp_once/yazili/${g}/${a.ders}/${a.sinav}/${a.adim}`);
     const bekliyor = bekleyenler(a.uid).some((b) =>
       b.olay.tur === "yazili" && b.olay.ders === a.ders && b.olay.sinav === a.sinav && b.olay.adim === a.adim && b.xp > 0);
-    if (isaret !== undefined && isaret !== true && !bekliyor) tahminiXp = puan;
+    let ilkKez = isaret !== undefined && isaret !== true;
+    if (isaret === undefined) {
+      // xp_once'u hiçbir ekran hatırlamıyor → web'de internetsizken hep okunamıyordu, puan hiç
+      // bindirilmiyordu (Android disk önbelleğinden okur). Yedek: hatırlanan yazılı ilerlemesi (bu
+      // yazmadan ÖNCE okunur) — adım bitmemiş görünüyorsa ilk kez sayılır. Karar yine sunucuda.
+      const yol = `users/${a.uid}/progress_yazili/${g}/${a.ders}/${a.sinav}`;
+      const ilerleme = await oku(kullaniciDb, yol);
+      if (ilerleme !== undefined) {
+        ilkKez = yaziliAdimCoz(istemciBindir(bekleyenYazmalar(a.uid), yol, ilerleme)) < (ilkAdim ? 1 : 2);
+      }
+    }
+    if (ilkKez && !bekliyor) tahminiXp = puan;
   }
   return olayYaz(a.uid, "yazili", sinif,
     { ders: a.ders, sinav: a.sinav, adim: a.adim, dogru: a.dogru, toplam: a.toplam }, y, tahminiXp);
