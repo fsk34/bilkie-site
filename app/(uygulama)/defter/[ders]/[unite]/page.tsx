@@ -34,8 +34,9 @@ import { tavanli } from "../../../../lib/hata";
 import DefterBlokGorunumu from "../../DefterBlokGorunumu";
 import { DefterOturumu } from "../../../../lib/olay/defterOturumu";
 import { bitisOzeti } from "../../../../lib/olay/tahmin";
+import { bagliMi } from "../../../../lib/olay/kutu";
 
-type Durum = "yukleniyor" | "hata" | "okuma" | "bitti";
+type Durum = "yukleniyor" | "hata" | "baglanti" | "okuma" | "bitti";
 
 export default function DefterOkuyucuSayfasi() {
   const router = useRouter();
@@ -83,12 +84,15 @@ export default function DefterOkuyucuSayfasi() {
     (async () => {
       try {
         // Kaldığı sayfa içerikle birlikte okunur; sayfa sayısı dışına taşan/bitmiş kayıt baştan açar
-        const [gelen, acilis] = await Promise.all([
-          defterSayfalariGetir(sinif, dersKey, uniteKey),
+        const [gelenHam, acilis] = await Promise.all([
+          // İnternetsizken indirilmemiş defter boşuna beklemesin (Android d33defe: 2,5 sn / bağlıyken 8 sn)
+          tavanli(defterSayfalariGetir(sinif, dersKey, uniteKey), bagliMi() || navigator.onLine ? 8000 : 2500),
           // Kaldığı sayfa okunamazsa (çevrimdışı) baştan açılır — perdede takılmasın
           kullanici ? tavanli(defterAcilisDurumu(kullanici.uid, sinif, dersKey, uniteKey), 6000) : Promise.resolve(undefined),
         ]);
         if (iptal) return;
+        if (!gelenHam) { setDurum("baglanti"); return; }
+        const gelen = gelenHam;
         const kaldigi = acilis?.kaldigi ?? 0;
         oncedenBitmis.current = acilis?.bitmis ?? null;
         oturum.current?.kapat();
@@ -206,6 +210,14 @@ export default function DefterOkuyucuSayfasi() {
   /* --------------------------------------------------------------- ekranlar */
 
   if (durum === "yukleniyor") return <Perde metin="Defter yükleniyor…" nokta />;
+
+  if (durum === "baglanti") {
+    return (
+      <Perde metin="Defter yüklenemedi. Bağlantını kontrol edip tekrar dene." cikis={`/ders/${dersKey}`}>
+        <Link className="bk-dugme" href={`/ders/${dersKey}`}>Ünitelere dön</Link>
+      </Perde>
+    );
+  }
 
   if (durum === "hata") {
     return (

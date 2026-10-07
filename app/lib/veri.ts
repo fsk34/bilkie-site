@@ -689,7 +689,10 @@ export async function haftaninAktifGunleri(uid: string): Promise<number[]> {
     const maske = sayi(gunlerDugumu?.[ayAnahtari(t)]?.[String(gunNo(t))]);
     if (maske !== 0) bulunan.push(i);
   }
-  return bulunan.length > 0 ? bulunan : [bugunIndeks];
+  // Bu ekran yalnız bugün etkinlik varken açılır: bugün HER ZAMAN dolu (Android b0595ca). Olay
+  // modunda bugünün seri biti sunucudan gelir — henüz gelmemiş olabilir.
+  if (!bulunan.includes(bugunIndeks)) bulunan.push(bugunIndeks);
+  return bulunan;
 }
 
 /* ---------------------------------------------------------------- defter  */
@@ -731,7 +734,7 @@ export async function defterSayfalariGetir(
       snap = await get(dbRef(defterlerDb, `${kok}/${cozulen}/pages`));
     }
     return sayfalariCevir(snap.val());
-  });
+  }, { kalici: true });   // sekme oturumunda saklı: internetsiz yenilemede de açılır
 }
 
 export type DefterDurumu = { okunanSayfa: number; toplamSayfa: number; bitti: boolean };

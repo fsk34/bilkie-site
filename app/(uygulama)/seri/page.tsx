@@ -5,18 +5,13 @@
 // Aynı görsel dil: halkalı gün hücreleri, ardışık günlerin arkasında turuncu seri şeridi.
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Kabuk from "../Kabuk";
 import { useOturum } from "../../lib/oturum";
-import {
-  ACT_DEFTER,
-  ACT_TEST,
-  ACT_YAZILI,
-  seriAyiOku,
-  type SeriAy,
-} from "../../lib/veri";
-import { gunAnahtari } from "../../lib/tarih";
+import { ACT_DEFTER, ACT_TEST, ACT_YAZILI } from "../../lib/veri";
+import { gunAnahtari, seriyiCoz } from "../../lib/tarih";
+import { useSeriDugumu } from "../../lib/canliVeri";
 
 const AYLAR = ["Ocak","Şubat","Mart","Nisan","Mayıs","Haziran",
                "Temmuz","Ağustos","Eylül","Ekim","Kasım","Aralık"];
@@ -30,9 +25,16 @@ const RENK_BOS_GUN  = "rgba(255,255,255,0.333)";   // Android ColorInactiveRing 
 const RENK_BOS_BANT = "rgba(255,255,255,0.25)";    // Android büyük halka boşken
 const RENK_SERI   = "#CB8000";
 
-// Android StreakCache: ay verisi bellekte; ekrana dönünce bant/takvim hazır açılır, arkada tazelenir.
-// Eskiden her girişte bant griden turuncuya, sayı "—"den değere flaş yapıyordu (1 Eki).
-const onbellek = new Map<string, SeriAy>();
+/** Bir ayın gün → maske tablosu (gün anahtarı sıfırsız "6"). */
+function ayMaskeleri(seri: Record<string, unknown> | null, ay: string): Record<number, number> {
+  const d = ((seri?.days ?? {}) as Record<string, Record<string, unknown>>)[ay] ?? {};
+  const out: Record<number, number> = {};
+  for (const [k, v] of Object.entries(d)) {
+    const g = Number.parseInt(k, 10);
+    if (g >= 1 && g <= 31) out[g] = Math.max(0, Math.trunc(Number(v) || 0));
+  }
+  return out;
+}
 
 export default function SeriSayfasi() {
   return (
@@ -59,33 +61,12 @@ function SeriIcerik() {
   }, [buYil, buAy, kaydirma]);
 
   const ayAnahtari = `${yil}-${String(ay).padStart(2, "0")}`;
-  const uid = kullanici?.uid ?? "";
-  const buAyOnbellek = uid ? onbellek.get(`${uid}|${buAyAnahtari}`) : undefined;
-
-  // Seri sayısı ve bugünün maskesi BUGÜNE bakar, gezilen aya değil (Android: ay değişiminden bağımsız)
-  const [sayi, setSayi] = useState<number | null>(buAyOnbellek ? buAyOnbellek.sayi : null);
-  const [bugunMaskesi, setBugunMaskesi] = useState(buAyOnbellek?.gunler[bugunGun] ?? 0);
-  // Takvim gezilen ayın verisi; ay değişince HEMEN o ayın önbelleğine ya da boşa döner
-  // (eskiden önceki ayın çizgileri yeni ay gelene kadar ekranda kalıyordu).
-  const [gunler, setGunler] = useState<Record<number, number>>(buAyOnbellek?.gunler ?? {});
-
-  useEffect(() => {
-    if (!uid) return;
-    const anahtar = `${uid}|${ayAnahtari}`;
-    setGunler(onbellek.get(anahtar)?.gunler ?? {});
-    let iptal = false;
-    seriAyiOku(uid, ayAnahtari)
-      .then((v) => {
-        onbellek.set(anahtar, v);
-        if (iptal) return;
-        setGunler(v.gunler);
-        setSayi(Math.max(0, v.sayi));
-        if (ayAnahtari === buAyAnahtari) setBugunMaskesi(v.gunler[bugunGun] ?? 0);
-      })
-      // Android: okunamazsa eldeki değer kalır, yükleniyor biter
-      .catch(() => { if (!iptal) setSayi((s) => s ?? 0); });
-    return () => { iptal = true; };
-  }, [uid, ayAnahtari, buAyAnahtari, bugunGun]);
+  // Seri düğümü CANLI (+ kutuda bekleyen olaylar) — ilk karede son bilinen değer (useCanli hatırlar),
+  // bant/takvim flaş yapmaz; gezilen ay aynı düğümden.
+  const seri = useSeriDugumu();
+  const sayi = seri ? Math.max(0, seriyiCoz(Math.trunc(Number(seri.count) || 0), (seri.lastDay as string | undefined) ?? null)) : null;
+  const gunler = useMemo(() => ayMaskeleri(seri, ayAnahtari), [seri, ayAnahtari]);
+  const bugunMaskesi = useMemo(() => ayMaskeleri(seri, buAyAnahtari)[bugunGun] ?? 0, [seri, buAyAnahtari, bugunGun]);
 
   const bugunAktif = bugunMaskesi !== 0;
   const satirlar = useMemo(() => aylikIzgara(yil, ay), [yil, ay]);

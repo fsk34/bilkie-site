@@ -287,9 +287,27 @@ type YaziliDurumu =
   | { durum: "acik"; sinav: YaziliSinav; koc: KocYazili }
   | { durum: "kapali"; metin: string; koc: KocYazili };
 
+/** Son bilinen yazılı durumu tarayıcıda (Android 119c75e): takvim gelene kadar bant/satır yerinde
+    çizilir — eskiden bant sonradan derslerin üstüne eklenip kutuları aşağı itiyordu. */
+const YAZILI_SON = "bk-yazili-durum";
+const yaziliSonOku = (): string | null => { try { return window.localStorage.getItem(YAZILI_SON); } catch { return null; } };
+const aboneYok = () => () => {};
+
 /** Takvim tek okunur: açık sınav varsa band, yoksa bir sonraki açılış tarihi. */
 function useYaziliDurumu(): YaziliDurumu {
-  const [d, setD] = useState<YaziliDurumu>({ durum: "bekliyor", koc: null });
+  const [d, setD0] = useState<YaziliDurumu>({ durum: "bekliyor", koc: null });
+  const setD = (y: YaziliDurumu) => {
+    setD0(y);
+    try { window.localStorage.setItem(YAZILI_SON, JSON.stringify(y)); } catch { /* yok say */ }
+  };
+  // Sunucu çiziminde null (hidrasyon uyuşmazlığı olmasın), tarayıcıda son bilinen değer
+  const sonHam = useSyncExternalStore(aboneYok, yaziliSonOku, () => null);
+  const son = useMemo<YaziliDurumu | null>(() => {
+    try {
+      const v = sonHam ? JSON.parse(sonHam) as YaziliDurumu : null;
+      return v && (v.durum === "acik" || v.durum === "kapali") ? v : null;
+    } catch { return null; }
+  }, [sonHam]);
   useEffect(() => {
     let iptal = false;
     yaziliTakvimi().then((r) => {
@@ -307,8 +325,9 @@ function useYaziliDurumu(): YaziliDurumu {
       });
     });
     return () => { iptal = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-  return d;
+  return d.durum === "bekliyor" && son ? son : d;
 }
 
 /* Ana ekrandaki Yazılıya Hazırlık = ders sayfasındaki SARI düğmeyle aynı kalıp (kullanıcı, 20 Eyl):

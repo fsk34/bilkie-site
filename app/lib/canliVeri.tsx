@@ -90,6 +90,22 @@ export function useUstBilgi(sinif: number): UstBilgi | null {
   }, [hazir, ham, uid, bekleyen, sinif]);
 }
 
+/**
+ * users/{uid}/streak CANLI + kutuda bekleyen olaylar (Android 08bff20 seri sayfası): olay modunda seriyi
+ * sunucu sonradan yazar, tek okuma bayat kalıyordu; internetsiz bitirilen iş bugünü hemen renklendirir.
+ * Üst bilgiyle aynı abonelik. `null` = bilinmiyor.
+ */
+export function useSeriDugumu(): Record<string, unknown> | null {
+  const r = useKullaniciDugumu<{ h: unknown }>(kullaniciDb, (uid) => `users/${uid}/streak`, (h) => ({ h }), { h: null });
+  const { uid } = useKullanici();
+  const bekleyen = useBekleyenOlaylar(uid);
+  return useMemo(() => {
+    if (r === null) return null;
+    const h = uid && bekleyen.length ? dugumBindir(uid, `users/${uid}/streak`, r.h, bekleyen, null) : r.h;
+    return (h ?? {}) as Record<string, unknown>;
+  }, [r, uid, bekleyen]);
+}
+
 export function useProfil(): Profil | null {
   return useKullaniciDugumu<Profil | null>(kullaniciDb, profilYolu, profilCoz, null);
 }
