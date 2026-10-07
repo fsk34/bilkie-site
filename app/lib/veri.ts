@@ -1713,26 +1713,47 @@ export function enIyiSkorYaz(uid: string, oyun: string, skor: number): void {
 /**
  * Bölümler = `wordle/words` listesi (Kelime Gezmece gibi tek kaynak, 6 Eki 2026; Android/iOS ile aynı):
  * bölüm sayısı listenin uzunluğu — konsoldan kelime eklenince yeni bölümler açılır (eskiden 300 sabitti).
- * Kalıcı önbellek YOK: kelime konsolda değişince eski kelime gösterilmesin (eskiden bölüm başına kalıcıydı).
+ * Son okunan liste tarayıcıda saklanır (7 Eki): Android'de Firebase disk önbelleği var, web'de yoktu →
+ * internetsiz açılan sekmede "Bölümler yüklenemedi". Saklı liste ANINDA döner, arkada tazelenir; konsolda
+ * değişen kelime bir sonraki çağrıda görünür (eskiden bölüm başına kalıcı önbellek eskiyi gösteriyordu).
  */
 let wordleListe: string[] | null = null;
+const WORDLE_ANAHTARI = "bk-wordle-kelimeler";
 
-/** Listeyi tazele (~3 KB); okunamazsa eldeki liste. Boş kayıtta kesilir (numaralar kaymasın). */
-export async function wordleKelimeleri(): Promise<string[] | null> {
+function wordleSakli(): string[] | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const l = JSON.parse(window.localStorage.getItem(WORDLE_ANAHTARI) ?? "null") as unknown;
+    return Array.isArray(l) && l.length && l.every((k) => typeof k === "string" && k) ? (l as string[]) : null;
+  } catch {
+    return null;
+  }
+}
+
+async function wordleTazele(): Promise<void> {
   try {
     const snap = await tavanli(get(dbRef(wordleDb, "wordle/words")), 10000);
-    if (snap) {
-      const v = snap.val();
-      const ham: unknown[] = Array.isArray(v) ? v : v && typeof v === "object" ? Object.values(v) : [];
-      const l: string[] = [];
-      for (const w of ham) {
-        const k = typeof w === "string" ? w.trim() : "";
-        if (!k) break;
-        l.push(k);
-      }
-      if (l.length) wordleListe = l;
+    if (!snap) return;
+    const v = snap.val();
+    const ham: unknown[] = Array.isArray(v) ? v : v && typeof v === "object" ? Object.values(v) : [];
+    const l: string[] = [];
+    for (const w of ham) {
+      const k = typeof w === "string" ? w.trim() : "";
+      if (!k) break;   // boş kayıtta kesilir (numaralar kaymasın)
+      l.push(k);
+    }
+    if (l.length) {
+      wordleListe = l;
+      try { window.localStorage.setItem(WORDLE_ANAHTARI, JSON.stringify(l)); } catch { /* yok say */ }
     }
   } catch { /* eldeki liste kalır */ }
+}
+
+/** Kelime listesi (~3 KB): saklı varsa anında (arkada tazelenir), yoksa okunur. Okunamazsa null. */
+export async function wordleKelimeleri(): Promise<string[] | null> {
+  if (!wordleListe) wordleListe = wordleSakli();
+  if (wordleListe) { void wordleTazele(); return wordleListe; }
+  await wordleTazele();
   return wordleListe;
 }
 

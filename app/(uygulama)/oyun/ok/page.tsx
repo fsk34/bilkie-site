@@ -18,6 +18,7 @@ import { oyunBolumu, oyunBolumuYaz } from "../../../lib/veri";
 import { sesCal, sesleriOnYukle } from "../../ses";
 import { get, ref as dbRef } from "firebase/database";
 import { okBulmacaDb } from "../../../lib/firebase";
+import { tavanli } from "../../../lib/hata";
 
 type Hucre = [number, number];
 type Bolum = { satir: number; sutun: number; oklar: { hucreler: Hucre[] }[] };
@@ -165,16 +166,22 @@ export default function OkBulmaca() {
   }, [kullanici, yukleniyor, router]);
   useEffect(() => {
     let iptal = false;
-    setBolumDurumu("yukleniyor");
-    get(dbRef(okBulmacaDb, "bolumler"))
+    // Son okunan liste tarayıcıda: anında açılır (internetsiz de), arkada tazelenir — konsoldaki
+    // değişiklik sonraki girişte görünür. Android'de bunu Firebase disk önbelleği yapıyor; web'de yok,
+    // oklar.json silinince internetsiz açılış sonsuz beklemede kalıyordu (7 Eki).
+    const sakli = okBolumleriOku();
+    if (sakli) { setBolumler(sakli); setBolumDurumu("tamam"); } else setBolumDurumu("yukleniyor");
+    tavanli(get(dbRef(okBulmacaDb, "bolumler")), 10000)
       .then((snap) => {
+        if (iptal) return;
+        if (!snap) { if (!sakli) setBolumDurumu("hata"); return; }   // zaman aşımı (çevrimdışı)
         const v = snap.val();
         const ham: unknown[] = Array.isArray(v) ? v.filter(Boolean) : v ? Object.values(v) : [];
         const liste = gecerliOnEk(ham.map(bolumCoz));   // bozuk bölümden sonrası atılır
-        if (iptal) return;
-        if (liste.length) { setBolumler(liste); setBolumDurumu("tamam"); } else setBolumDurumu("hata");
+        if (liste.length) { setBolumler(liste); setBolumDurumu("tamam"); okBolumleriYaz(ham); }
+        else if (!sakli) setBolumDurumu("hata");
       })
-      .catch(() => { if (!iptal) setBolumDurumu("hata"); });
+      .catch(() => { if (!iptal && !sakli) setBolumDurumu("hata"); });
     return () => { iptal = true; };
   }, [deneme]);
   useEffect(() => () => { zamanlayicilar.current.forEach(clearTimeout); if (rafRef.current != null) cancelAnimationFrame(rafRef.current); }, []);
@@ -365,4 +372,21 @@ export default function OkBulmaca() {
       {cikisSor && <BolumCikisOnayi onKal={() => setCikisSor(false)} onCik={() => { setCikisSor(false); router.push("/oyunlar"); }} />}
     </div>
   );
+}
+
+/* Bölüm listesinin tarayıcıdaki kopyası (~80 KB): ham hâli saklanır, okurken aynı doğrulamadan geçer */
+const OK_BOLUM_ANAHTARI = "bk-ok-bolumler";
+function okBolumleriOku(): Bolum[] | null {
+  try {
+    const s = window.localStorage.getItem(OK_BOLUM_ANAHTARI);
+    if (!s) return null;
+    const ham = JSON.parse(s) as unknown[];
+    const liste = Array.isArray(ham) ? gecerliOnEk(ham.map(bolumCoz)) : [];
+    return liste.length ? liste : null;
+  } catch {
+    return null;
+  }
+}
+function okBolumleriYaz(ham: unknown[]): void {
+  try { window.localStorage.setItem(OK_BOLUM_ANAHTARI, JSON.stringify(ham)); } catch { /* kota: saklamadan da çalışır */ }
 }
