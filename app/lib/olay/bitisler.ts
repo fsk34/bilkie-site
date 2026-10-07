@@ -9,7 +9,10 @@ import { increment, serverTimestamp } from "firebase/database";
 import { anahtarNormalize } from "../istatistikYaz";
 import { hataDegisimleri, type SoruSonucu } from "../hatalar";
 import { XP_DOGRU_TEST, sinifSinirla } from "../veri";
-import { olayYaz, type Yazilan } from "./kutu";
+import { XP } from "./motor/motor";
+import { kullaniciDb } from "../firebase";
+import { oku } from "./bindir";
+import { bekleyenler, olayYaz, type Yazilan } from "./kutu";
 
 const ANAHTAR = /^[a-z0-9_]{1,48}$/;
 
@@ -89,4 +92,52 @@ export function testOlayiniYaz(a: {
 
   return olayYaz(a.uid, "test", sinif,
     { ders: a.dersKey, konu: a.konuKey, adim: a.adim, dogru: a.dogru, toplam: a.toplam }, y, puan);
+}
+
+/* -------------------------------------------------------------- hata turu */
+
+/**
+ * Android HataTuruScreen.bitir olay kolu (şartname §7.5, 6 Eki S3 geri alındı): hata kayıtları (H1)
+ * + olay tek yazmada; sunucu yalnız XP (doğru×2) verir — seri ve görev YOK.
+ * @param dersler ders → o dersin soru sonuçları (hata kayıtları ders başına)
+ */
+export function hataOlayiniYaz(a: {
+  uid: string; sinif: number; dogru: number; dersler: Map<string, SoruSonucu[]>;
+}): Yazilan | null {
+  const sinif = sinifSinirla(a.sinif);
+  const dogru = Math.min(50, Math.max(0, Math.trunc(a.dogru)));
+  const y: Record<string, unknown> = {};
+  const simdi = Date.now();
+  for (const [ders, liste] of a.dersler) {
+    if (!ANAHTAR.test(ders)) return null;
+    Object.assign(y, hataDegisimleri(sinif, ders, liste, simdi));
+  }
+  return olayYaz(a.uid, "hata", sinif, { dogru }, y, dogru * XP_DOGRU_TEST);
+}
+
+/* ------------------------------------------------------------------- quiz */
+
+/**
+ * Android QuizScreens.quizOlayiniYaz (şartname §7.4, Q1 tamamı sunucuda). İstemci yalnız kendi
+ * `quiz_bitti` alanını olayla AYNI yazmada işaretler: ekranlar quiz_done ∪ quiz_bitti okur, internetsiz de
+ * anında bitmiş görünür. quiz_done'a dokunulmaz (yazılsa sunucu "ilk kez değil" sanardı).
+ * İlk kez = sunucu işareti yok, istemci alanı yok, aynı quiz kutuda beklemiyor; okunamazsa "değil"
+ * (puana uydurma 30 bindirilmez — sunucu işleyince gerçeği gelir).
+ */
+export async function quizOlayiniYaz(a: {
+  uid: string; sinif: number; ders: string; unite: string;
+}): Promise<{ yazilan: Yazilan; ilkKez: boolean } | null> {
+  if (!ANAHTAR.test(a.ders) || !ANAHTAR.test(a.unite)) return null;
+  const sinif = sinifSinirla(a.sinif);
+  const g = `grade${sinif}`;
+  const [isaret, istemci] = await Promise.all([
+    oku(kullaniciDb, `users/${a.uid}/quiz_done/${g}/${a.ders}/${a.unite}`),
+    oku(kullaniciDb, `users/${a.uid}/quiz_bitti/${g}/${a.ders}/${a.unite}`),
+  ]);
+  const bekliyor = bekleyenler(a.uid).some((b) =>
+    b.olay.tur === "quiz" && b.olay.ders === a.ders && b.olay.unite === a.unite && b.xp > 0);
+  const ilkKez = isaret !== undefined && istemci !== undefined && isaret !== true && istemci !== true && !bekliyor;
+  const yazilan = olayYaz(a.uid, "quiz", sinif, { ders: a.ders, unite: a.unite },
+    { [`quiz_bitti/${g}/${a.ders}/${a.unite}`]: true }, ilkKez ? XP.QUIZ : 0);
+  return { yazilan, ilkKez };
 }

@@ -2,7 +2,8 @@
 
 // "Evde çözdüm" — kâğıtta çözülen testi elle girme (20 Eyl 2026). Üç adım, 20 saniye:
 //   Ders → Ünite / Konu (ya da "ünite geneli") → Doğru / Yanlış sayısı (+ kaynak, yanlış soru no'ları)
-// XP/lig/görev yok; yalnız seri işlenir. Kayıt İstatistik → Bilgie Koç'ta ve koç hesabında görünür.
+// Puan/lig/seri/görev YOK (6 Eki 2026, Android 25c3544): doğrulanamayan elle giriş "bugün çalıştım"
+// sayılmaz; olay da gönderilmez. Kayıt İstatistik → Bilgie Koç'ta ve koç hesabında görünür.
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -13,8 +14,6 @@ import { useOturum } from "../../lib/oturum";
 import { konuAyristir, uniteler } from "../../lib/katalog";
 import { dersEtiketi } from "../../lib/anaEkran";
 import { EVDE_TEK_GIRIS_TAVANI, evdeKayitYaz, yanlisNolariAyristir } from "../../lib/evde";
-import { ACT_TEST, seriIsaretle } from "../../lib/veri";
-import { tavanli } from "../../lib/hata";
 
 export default function EvdeSayfasi() {
   return (
@@ -39,7 +38,7 @@ function Icerik() {
   const [nolar, setNolar] = useState("");
   const [mesgul, setMesgul] = useState(false);
   const [hata, setHata] = useState<string | null>(null);
-  const [bitti, setBitti] = useState<{ soru: number; seri: number | null } | null>(null);
+  const [bitti, setBitti] = useState<number | null>(null);   // kaydedilen soru sayısı
 
   const liste = useMemo(() => uniteler(sinif, ders), [sinif, ders]);
   const konular = useMemo(
@@ -57,10 +56,7 @@ function Icerik() {
       await evdeKayitYaz(kullanici.uid, sinif, {
         ders, konu, dogru: d, yanlis: y, kaynak: kaynak.trim().slice(0, 40), yanlisNolar: yanlisNolariAyristir(nolar),
       });
-      // Seri arkada işlenir; sayısı en çok 2 sn beklenir (çevrimdışı transaction dönmez), gelmezse yazılmaz
-      const s = await tavanli(seriIsaretle(kullanici.uid, ACT_TEST), 2000);
-      const seri = s?.basarili ? s.sayi : null;
-      setBitti({ soru: toplam, seri });
+      setBitti(toplam);
     } catch {
       setHata("Kaydedilemedi. Bağlantını kontrol edip tekrar dene.");
     } finally {
@@ -77,12 +73,12 @@ function Icerik() {
     );
   }
 
-  if (bitti) {
+  if (bitti != null) {
     return (
       <div className="bk-bevel"><div className="bk-bevel-ic bk-evde-bitti">
         <h2>Kaydettim 📝</h2>
-        <p>{bitti.soru} soru evde çözdüklerine eklendi. {bitti.seri ? `Serin ${bitti.seri} gün oldu.` : ""}</p>
-        <p className="bk-soluk" style={{ fontSize: 13 }}>Bilgie Koç bunu da hesaba katacak. Evde çözülenler puan/lig kazandırmaz, yalnız seni tanımama yarar.</p>
+        <p>{bitti} soru evde çözdüklerine eklendi.</p>
+        <p className="bk-soluk" style={{ fontSize: 13 }}>Bilgie Koç bunu da hesaba katacak. Evde çözülenler puan, seri ve görev kazandırmaz; yalnız seni tanımama yarar.</p>
         <div className="bk-evde-dugmeler">
           <button className="bk-dugme" onClick={() => { setBitti(null); setDogru(""); setYanlis(""); setNolar(""); }}>Bir tane daha</button>
           <button className="bk-dugme acik" onClick={() => router.push("/istatistik")}>İstatistiğe dön</button>

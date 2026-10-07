@@ -6,6 +6,7 @@
 // Bilgie Koç zayıf/güçlü hesabında sayar ve bunu söyler ("evde çözdüklerin dahil").
 // Yanlış soru numaraları Hata Turu'na giremez (soru metni yok), Yanlışlarım'da liste olarak durur.
 
+import { bagliMi } from "./olay/kutu";
 import { get, push, ref as dbRef, remove, set } from "firebase/database";
 import { kullaniciDb } from "./firebase";
 import { sinifSinirla } from "./veri";
@@ -72,6 +73,8 @@ export async function evdeKayitYaz(uid: string, sinif: number, k: Omit<EvdeKayit
     ...(k.yanlisNolar.length > 0 ? { yanlisNolar: k.yanlisNolar } : {}),
     zaman: Date.now(),
   });
+  // İnternetsizken onay hiç gelmez — boşuna bekleme (Android 25c3544)
+  if (!bagliMi()) { yazma.catch(() => {}); return; }
   await Promise.race([yazma, new Promise<void>((coz) => setTimeout(coz, 3000))]);
 }
 

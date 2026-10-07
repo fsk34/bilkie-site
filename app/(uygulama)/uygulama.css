@@ -3669,3 +3669,12 @@ button.bk-cikis { background: none; border: 0; padding: 0; cursor: pointer; line
 .bk-not-panel .ust .kapat { background: none; border: 0; color: #55c7ff; font-weight: 700; font-size: 15px; cursor: pointer; padding: 4px; }
 .bk-not-panel .icerik { flex: 1; min-height: 0; overflow-y: auto; }
 .bk-not-panel .sayfalar { display: grid; gap: 12px; padding-bottom: 16px; }
+
+/* Hata Turu kapanış kartı (Android HataTuruScreen KAPANIS, 6 Eki 2026) */
+.bk-hata-kapanis {
+  width: 100%; max-width: 420px; display: flex; flex-direction: column; gap: 10px; text-align: left;
+  background: #2c335e; border: 1px solid rgba(255, 255, 255, .12); border-radius: 14px; padding: 18px;
+  margin-bottom: 8px;
+}
+.bk-hata-kapanis p { color: #fff; font-size: 16px; margin: 0; }
+.bk-hata-kapanis .puan { color: #ffa726; font-family: "bk-baslik", system-ui, sans-serif; }

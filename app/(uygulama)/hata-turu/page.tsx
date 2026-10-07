@@ -2,8 +2,10 @@
 
 // Hata Turu — daha önce yanlış yapılan sorular (hatalar.ts), 3 gün olgunlaşınca yeniden.
 // Test ekranının sade kopyası: can gitmez (hata öğrenmek için), adım/istatistik/görev yazılmaz;
-// doğru başına XP (test gibi, her hata en fazla bir kez ödül verir — doğru bilince kayıt silinir) + seri.
-// Üstte "Ders · Konu" etiketi soru soru değişir. Bittiğinde Sonuç akışı → ana ekran.
+// doğru başına XP (test gibi, her hata en fazla bir kez ödül verir — doğru bilince kayıt silinir).
+// Seri ve görev YOK (6 Eki 2026, Android 25c3544): 1-2 tekrar sorusu "bugün çalıştım" sayılmaz.
+// Üstte "Ders · Konu" etiketi soru soru değişir. Bitince genel Sonuç ekranı yerine kısa kapanış kartı
+// (listeden çıkan / tekrar bakılacak / puan) → Devam → Bilgie Koç (Android'deki reklam web'de yok).
 // ?ders=..&konu=.. (24 Eyl 2026, Android hataTuruKonu): "Tekrar bakacağın sorular" konu satırından
 // gelinirse YALNIZ o konunun yanlışları; genel düğmeler parametresiz → karışık tur.
 
@@ -18,17 +20,18 @@ import { dersBul } from "../dersler";
 import Lottie from "../Lottie";
 import Perde from "../Perde";
 import { sesCal } from "../ses";
-import SonucAkisi, { type SeriArgs, type SonucArgs } from "../sonuc/SonucAkisi";
-import type { GorevDegisimi } from "../../lib/gorevYaz";
-import { enUzunSeriGuncelle } from "../../lib/ilerleme";
 import { sessizHata } from "../../lib/hata";
 import { useOturum } from "../../lib/oturum";
 import { konuAyristir, uniteler } from "../../lib/katalog";
-import { ACT_TEST, XP_DOGRU_TEST, seriIsaretle, xpEkle } from "../../lib/veri";
+import { XP_DOGRU_TEST, xpEkle } from "../../lib/veri";
+import { olayModuAcikMi } from "../../lib/olay/mod";
+import { hataOlayiniYaz } from "../../lib/olay/bitisler";
 import { hataDegisimleriYaz, hatalariOkuVeyaNull, turSorulariniHazirla, yetimleriSil, type SoruSonucu, type TurSorusu } from "../../lib/hatalar";
 
 // baglanti: hatalar ya da sorular okunamadı (çevrimdışı) — "yanlışın yok" DEME
-type Durum = "yukleniyor" | "bos" | "baglanti" | "cozuluyor" | "sonuc";
+type Durum = "yukleniyor" | "bos" | "baglanti" | "cozuluyor" | "kapanis";
+
+type Kapanis = { dogru: number; yanlis: number; xp: number };
 
 export default function HataTuruSayfasi() {
   // useSearchParams Suspense ister
@@ -52,7 +55,7 @@ function HataTuru() {
   const [notPaneli, setNotPaneli] = useState(false);   // çözerken notlara bakma paneli
   const [dogruSayisi, setDogruSayisi] = useState(0);
   const [kombo, setKombo] = useState(false);
-  const [akis, setAkis] = useState<{ sonuc: SonucArgs; seriSozu: Promise<SeriArgs | null>; gorevSozu: Promise<GorevDegisimi[]> } | null>(null);
+  const [kapanis, setKapanis] = useState<Kapanis | null>(null);
 
   const ustUsteDogru = useRef(0);
   const baslangic = useRef(0);
@@ -79,34 +82,33 @@ function HataTuru() {
     return () => { iptal = true; };
   }, [yukleniyor, kullanici, sinif, konuDers, konuKey, yenidenDene]);
 
+  const bitti = useRef(false);
   const bitir = useCallback((sonDogru: number) => {
-    const toplam = sorular.length;
-    const sureSn = Math.max(1, Math.round((Date.now() - baslangic.current) / 1000));
+    if (bitti.current) return;
+    bitti.current = true;
     const xp = sonDogru * XP_DOGRU_TEST;
-    const gorevSozu = Promise.resolve<GorevDegisimi[]>([]);
-    const seriSozu: Promise<SeriArgs | null> = (async () => {
-      if (!kullanici) return null;
-      const uid = kullanici.uid;
-      // Ders ders grupla: hatalar.ts ders başına tek update yazar
-      const dersler = new Map<string, SoruSonucu[]>();
-      sorular.forEach((s, i) => {
-        const r = sonuclar.current[i];
-        if (!r) return;
-        dersler.set(s.ders, [...(dersler.get(s.ders) ?? []), r]);
-      });
-      // Hata kayıtları + XP bağımsız, beklenmez: çevrimdışı takılırlarsa seri/sonuç akışını bekletmesinler
-      for (const [ders, liste] of dersler) hataDegisimleriYaz(uid, sinif, ders, liste).catch((e) => sessizHata("hatalar", e));
-      if (xp > 0) xpEkle(uid, sinif, xp, "hata_turu").catch((e) => sessizHata("xp", e));
+    setKapanis({ dogru: sonDogru, yanlis: sonuclar.current.filter((r) => r && !r.dogru).length, xp });
+    setDurum("kapanis");
+    if (!kullanici) return;
+    const uid = kullanici.uid;
+    // Ders ders grupla: hatalar.ts ders başına tek update yazar
+    const dersler = new Map<string, SoruSonucu[]>();
+    sorular.forEach((s, i) => {
+      const r = sonuclar.current[i];
+      if (!r) return;
+      dersler.set(s.ders, [...(dersler.get(s.ders) ?? []), r]);
+    });
+    // Olay modu (şartname §7.5): hata kayıtları + olay TEK yazma; XP sunucuda. Karar BİR KEZ burada.
+    if (olayModuAcikMi(uid)) {
       try {
-        const seri = await seriIsaretle(uid, ACT_TEST);
-        // En uzun seri rekoru: tek yazma, sınıfa göre kırpılmış (beklenmez)
-        if (seri.basarili && seri.sayi > 0) void enUzunSeriGuncelle(uid, sinif, seri.sayi);
-        if (!seri.basarili || !seri.ilkAktiviteBugun) return null;
-        return { sayi: seri.sayi, maske: seri.maske, tetik: ACT_TEST };
-      } catch { return null; }
-    })();
-    setDurum("sonuc");
-    setAkis({ sonuc: { dogru: sonDogru, toplam, sureSn, puan: xp }, seriSozu, gorevSozu });
+        if (hataOlayiniYaz({ uid, sinif, dogru: sonDogru, dersler })) return;
+      } catch (e) {
+        sessizHata("olayYaz", e);   // eski yola düşer
+      }
+    }
+    // Eski yol: hata kayıtları + XP bağımsız, beklenmez (çevrimdışı takılırlarsa birbirini bekletmesinler)
+    for (const [ders, liste] of dersler) hataDegisimleriYaz(uid, sinif, ders, liste).catch((e) => sessizHata("hatalar", e));
+    if (xp > 0) xpEkle(uid, sinif, xp, "hata_turu").catch((e) => sessizHata("xp", e));
   }, [kullanici, sinif, sorular]);
 
   function kontrolEt() {
@@ -154,10 +156,21 @@ function HataTuru() {
     );
   }
 
-  if (durum === "sonuc" && akis) {
+  if (durum === "kapanis" && kapanis) {
+    // Tek dersse o dersin renkleri, karışıksa Hata Turu turuncusu (Android 119c75e)
+    const dersKeyleri = [...new Set(sorular.map((s) => s.ders))];
+    const tekDers = dersKeyleri.length === 1 ? dersBul(dersKeyleri[0]) : undefined;
     return (
-      <SonucAkisi sonuc={akis.sonuc} seriSozu={akis.seriSozu} gorevSozu={akis.gorevSozu}
-        uid={kullanici?.uid ?? null} misafir={!kullanici} onBitti={() => router.push("/")} />
+      <Perde metin="Hata Turu bitti 🎯">
+        <div className="bk-hata-kapanis">
+          {kapanis.dogru > 0 && <p>✅ {kapanis.dogru} soru listenden çıktı</p>}
+          {kapanis.yanlis > 0 && <p>🔁 {kapanis.yanlis} soruya birkaç gün sonra yeniden bakacağız</p>}
+          {kapanis.xp > 0 && <p className="puan">+{kapanis.xp} puan</p>}
+        </div>
+        <button type="button" className="bk-dugme"
+          style={{ minWidth: 220, background: tekDers?.ana ?? "#FFA726", borderColor: tekDers?.koyu ?? "#B86E00", color: "#0c1a3f" }}
+          onClick={() => router.push("/istatistik?sekme=koc")}>Devam</button>
+      </Perde>
     );
   }
 

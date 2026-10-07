@@ -14,6 +14,9 @@ import { gorevOlayiUygula, type GorevDegisimi } from "./gorevYaz";
 import { onbellekli } from "./onbellek";
 import { sessizHata, tavanli } from "./hata";
 import { sinifSinirla, xpEkle } from "./veri";
+import { olayModuAcikMi } from "./olay/mod";
+import { quizOlayiniYaz } from "./olay/bitisler";
+import { bitisOzeti } from "./olay/tahmin";
 
 export const XP_QUIZ_TAMAM = 30;   // Android/iOS: XpRules.QUIZ_COMPLETE_XP
 
@@ -130,6 +133,21 @@ export const quizBittiYolu = (uid: string, sinif: number, dersKey: string, unite
 export const quizBitenlerYolu = (uid: string, sinif: number) =>
   `users/${uid}/quiz_done/grade${sinifSinirla(sinif)}`;
 
+/** Olay modunda istemcinin "quiz bitti" alanı (Android a8d624f) — sunucunun quiz_done'una dokunulmaz. */
+export const quizIstemciYolu = (uid: string, sinif: number) =>
+  `users/${uid}/quiz_bitti/grade${sinifSinirla(sinif)}`;
+
+/** quiz_done ∪ quiz_bitti ham düğümleri (ders → ünite → true) tek ham düğümde. */
+export function quizHamBirlestir(a: unknown, b: unknown): Record<string, Record<string, unknown>> {
+  const out: Record<string, Record<string, unknown>> = {};
+  for (const ham of [a, b]) {
+    for (const [ders, u] of Object.entries((ham ?? {}) as Record<string, Record<string, unknown>>)) {
+      for (const [k, v] of Object.entries(u ?? {})) if (v === true) (out[ders] ??= {})[k] = true;
+    }
+  }
+  return out;
+}
+
 /** Ham quiz_done düğümü → ders → ünite → true (saf; `true` olmayan değerler atılır). */
 export function quizBitenleriCoz(ham: unknown): Record<string, Record<string, boolean>> {
   const out: Record<string, Record<string, boolean>> = {};
@@ -180,6 +198,20 @@ export async function quizTamamla(
   uid: string, sinif: number, dersKey: string, uniteKey: string
 ): Promise<QuizBitisSonucu> {
   const g = sinifSinirla(sinif);
+  // Olay modu (şartname §7.4): karar BİR KEZ burada; ilk-kez XP/görev sunucuda. Eski yol internetsizken
+  // quiz_done okuyamayıp bitişi TAMAMEN atıyordu (Android a8d624f).
+  if (olayModuAcikMi(uid)) {
+    try {
+      const o = await quizOlayiniYaz({ uid, sinif: g, ders: dersKey, unite: uniteKey });
+      if (o) {
+        const oz = await bitisOzeti(uid, o.yazilan);
+        const ilkKez = oz.sunucudan && typeof oz.ilkKez === "boolean" ? oz.ilkKez : o.ilkKez;
+        return { ilkKez, xp: ilkKez ? XP_QUIZ_TAMAM : 0, gorevler: oz.gorevler };
+      }
+    } catch (e) {
+      sessizHata("olayYaz", e);   // eski yola düşer
+    }
+  }
   const snap = await tavanli(get(dbRef(kullaniciDb, quizBittiYolu(uid, g, dersKey, uniteKey))), 5000);
   if (!snap || snap.val() === true) return { ilkKez: false, xp: 0, gorevler: [] };
 

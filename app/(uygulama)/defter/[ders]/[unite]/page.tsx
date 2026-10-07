@@ -3,6 +3,8 @@
 // Konu defteri okuyucu — uygulamadaki DefterViewerScreen'in web karşılığı.
 // Kâğıt zemin + çizgiler, blok tipleri ve renkleri uygulamayla aynı.
 // Son sayfada "Devam Et": ilerleme + (ilk kez ise) 50 XP + seri işareti yazılır.
+// Olay modu (şartname §7.2, Android 44f6520): sayfa/seri/bitiş oturum boyunca taslakta birikir, çıkışta ya da
+// "Devam Et"te TEK olay (DefterOturumu); görev, seri, XP ve ilk-kez işleri sunucuda.
 
 import CikisOnayi from "../../../CikisOnayi";
 import Link from "next/link";
@@ -19,7 +21,8 @@ import {
   defterSayfaYaz,
   defterSayfalariGetir,
   ACT_DEFTER,
-  defterKaldigiSayfa,
+  XP_DEFTER_TAMAM,
+  defterAcilisDurumu,
   defterTamamla,
   defterToplamSayfaYaz,
   seriIsaretle,
@@ -29,6 +32,8 @@ import {
 import { defterBittiIsle, enUzunSeriGuncelle } from "../../../../lib/ilerleme";
 import { tavanli } from "../../../../lib/hata";
 import DefterBlokGorunumu from "../../DefterBlokGorunumu";
+import { DefterOturumu } from "../../../../lib/olay/defterOturumu";
+import { bitisOzeti } from "../../../../lib/olay/tahmin";
 
 type Durum = "yukleniyor" | "hata" | "okuma" | "bitti";
 
@@ -58,6 +63,17 @@ export default function DefterOkuyucuSayfasi() {
   const ders = dersBul(dersKey);
   const renk = ders?.ana ?? "#72CEFD";
   const kareli = dersKey === "matematik" || dersKey === "fen";
+  // Olay modu oturumu: karar yükleme bitince BİR KEZ (null → eski yol). Açılışta okunan "bitmiş"
+  // işareti yalnız tahmin için (null = bilinmiyor → ilk kez varsayılır).
+  const oturum = useRef<DefterOturumu | null>(null);
+  const oncedenBitmis = useRef<boolean | null>(null);
+  // Çıkış: birikenler (sayfa, seri) tek olay; "Devam Et"le bitmişse zaten kapalı. Sekme kapanırken de.
+  useEffect(() => {
+    const kapat = () => { try { oturum.current?.kapat(); } catch { /* yok say */ } };
+    window.addEventListener("pagehide", kapat);
+    return () => { window.removeEventListener("pagehide", kapat); kapat(); };
+  }, []);
+
   const uniteAdi =
     uniteler(sinif, dersKey).find((u) => (u.defterKey || u.key) === uniteKey)?.title ?? "";
 
@@ -67,12 +83,16 @@ export default function DefterOkuyucuSayfasi() {
     (async () => {
       try {
         // Kaldığı sayfa içerikle birlikte okunur; sayfa sayısı dışına taşan/bitmiş kayıt baştan açar
-        const [gelen, kaldigi] = await Promise.all([
+        const [gelen, acilis] = await Promise.all([
           defterSayfalariGetir(sinif, dersKey, uniteKey),
           // Kaldığı sayfa okunamazsa (çevrimdışı) baştan açılır — perdede takılmasın
-          kullanici ? tavanli(defterKaldigiSayfa(kullanici.uid, sinif, dersKey, uniteKey), 6000).then((k) => k ?? 0) : Promise.resolve(0),
+          kullanici ? tavanli(defterAcilisDurumu(kullanici.uid, sinif, dersKey, uniteKey), 6000) : Promise.resolve(undefined),
         ]);
         if (iptal) return;
+        const kaldigi = acilis?.kaldigi ?? 0;
+        oncedenBitmis.current = acilis?.bitmis ?? null;
+        oturum.current?.kapat();
+        oturum.current = DefterOturumu.baslat(kullanici?.uid, sinif, dersKey, uniteKey);
         setSayfalar(gelen);
         if (kaldigi >= 2 && kaldigi <= gelen.length) { baslangicIndeksi.current = kaldigi - 1; setIndeks(kaldigi - 1); }
         setDurum(gelen.length > 0 ? "okuma" : "hata");
@@ -90,6 +110,8 @@ export default function DefterOkuyucuSayfasi() {
   useEffect(() => {
     if (durum !== "okuma" || !kullanici || sayfalar.length === 0) return;
     defterSayfaYaz(kullanici.uid, sinif, dersKey, uniteKey, indeks + 1).catch(() => {});
+    // Olay modunda ayrıca taslağa (olayla aynı yazmada gider — sekme kapansa da kutuda)
+    oturum.current?.sayfaDurumu(indeks + 1, sayfalar.length);
   }, [indeks, durum, kullanici, sinif, dersKey, uniteKey, sayfalar.length]);
 
   // "N konu defteri sayfası tamamla" görevi (notebook_pages): bir sayfa, ileri geçilince
@@ -100,6 +122,7 @@ export default function DefterOkuyucuSayfasi() {
   const sayfaTamamla = useCallback(async (i: number) => {
     if (!kullanici || i < 0 || tamamlananSayfalar.current.has(i)) return;
     tamamlananSayfalar.current.add(i);
+    if (oturum.current) { oturum.current.sayfaGecti(); return; }
     try {
       const d = await gorevOlayiUygula(kullanici.uid, { tip: "defter_sayfa", sinif, sayfaFarki: 1 });
       sayfaGorevleri.current = gorevBirlestir(sayfaGorevleri.current, d);
@@ -116,6 +139,8 @@ export default function DefterOkuyucuSayfasi() {
   useEffect(() => {
     if (durum !== "okuma" || !kullanici || sayfalar.length === 0 || seriIsi.current) return;
     if (indeks + 1 >= 10 || indeks === sayfalar.length - 1) {
+      // Olay modu: seri olayla gider (çıkışta ya da "Devam Et"te); özet bitişte yerel tahminden
+      if (oturum.current) { oturum.current.seriyeUlasti(); return; }
       seriIsi.current = seriIsaretle(kullanici.uid, ACT_DEFTER);
       seriIsi.current.catch(() => {});
     }
@@ -128,6 +153,27 @@ export default function DefterOkuyucuSayfasi() {
     // ⚠️ Çevrimdışıyken yazma sözleri HİÇ dönmez → perde takılıyordu (Android 24 Eyl): her bekleme
     // tavanlı; iş arkada sürer, bağlantı gelince gider.
     const uid = kullanici.uid;
+    // Olay modu: son sayfa + bitiş TEK yazma (okuma/transaction yok → internetsiz de kutuda)
+    const o = oturum.current;
+    if (o) {
+      o.sayfaDurumu(sayfalar.length, sayfalar.length);
+      const son = sayfalar.length - 1;
+      if (!tamamlananSayfalar.current.has(son)) { tamamlananSayfalar.current.add(son); o.sayfaGecti(); }
+      const ilkKezSanilan = oncedenBitmis.current !== true;
+      let yazilan = null;
+      try { yazilan = o.bitir(ilkKezSanilan); } catch { /* aşağıda boş özet */ }
+      const oz = yazilan ? await bitisOzeti(uid, yazilan) : null;
+      // Yerel motor yalnız sunucu işaretine bakar; açılış durumu istemcinin bitti alanını ve kutuyu da
+      // sayar → sunucu sonucu gelmediyse o (Android d33defe)
+      const ilkKez = oz?.sunucudan && typeof oz.ilkKez === "boolean" ? oz.ilkKez : ilkKezSanilan;
+      setKazanilanXp(ilkKez ? XP_DEFTER_TAMAM : 0);
+      if (oz?.seri) setSeriSayisi(oz.seri.sayi);
+      setSeriAkisi(oz?.seri?.ilkBugun ? { sayi: oz.seri.sayi, maske: oz.seri.maske, tetik: ACT_DEFTER } : null);
+      setGorevDegisimleri(oz?.gorevler ?? []);
+      setDurum("bitti");
+      setKaydediliyor(false);
+      return;
+    }
     const tamamIs = defterTamamla(uid, sinif, dersKey, uniteKey, sayfalar.length, seriIsi.current ?? undefined);
     // Başarımlar + defter-bitti görevi YALNIZCA ilk tamamlamada (Android: firstTimeDone bloğu);
     // zincir ekrandan bağımsız sürer — tavan dolsa da bağlantı gelince işlenir

@@ -25,6 +25,8 @@ import type { CanliSorgu } from "./canli";
 import { defterlerDb, gorevKatalogDb, kelimeGezmeceDb, kullaniciDb, sudokuDb, testlerDb, wordleDb, yazililarDb } from "./firebase";
 import { ayAnahtari, gunAnahtari, gunNo, dunMu, haftaGunIndeksi, seriyiCoz } from "./tarih";
 import { onbellekli } from "./onbellek";
+import { istemciBindir, oku, seriOku } from "./olay/bindir";
+import { bekleyenYazmalar } from "./olay/kutu";
 import { sessizHata, tavanli } from "./hata";
 import { ligAnahtari, rozetYiliAnahtari } from "./sezon";
 import { AY_ANAHTAR } from "./ayGorsel";
@@ -185,6 +187,11 @@ export async function dersIlerlemesi(
   return out;
 }
 
+/**
+ * Konunun tamamlanan adımı (test sayfası hangi adımı açacak). Önbellek → ekranların hatırladığı son
+ * değer; üstüne kutuda bekleyen istemci yazmaları (internetsiz biten adım sekme yeniden açılınca da
+ * sayılsın). Okunamazsa fırlatır — çağıran "bağlantı" der, tamamlanmış adım yeniden çözdürülmez.
+ */
 export async function konuAdimiOku(
   uid: string,
   sinif: number,
@@ -192,13 +199,10 @@ export async function konuAdimiOku(
   konuKey: string
 ): Promise<number> {
   const g = sinifSinirla(sinif);
-  const snap = await get(
-    dbRef(
-      kullaniciDb,
-      `users/${uid}/progress_test/grade${g}/${dersKey}/${konuKey}/completedSteps`
-    )
-  );
-  return Math.max(0, Math.min(ADIM_SAYISI, sayi(snap.val())));
+  const yol = `users/${uid}/progress_test/grade${g}/${dersKey}/${konuKey}`;
+  const ham = await oku(kullaniciDb, yol);
+  if (ham === undefined) throw new Error("adım okunamadı");
+  return tamamlananAdim(istemciBindir(bekleyenYazmalar(uid), yol, ham));
 }
 
 /** Adım sonucunu yazar (iOS TestScreen.saveProgress ile birebir). */
@@ -248,13 +252,27 @@ export async function adimSonucuYaz(params: {
 export const testIlerlemeYolu = (uid: string, sinif: number) =>
   `users/${uid}/progress_test/grade${sinifSinirla(sinif)}`;
 
+/**
+ * Konunun tamamlanan adımı: max(completedSteps, yazılmış en büyük stepN) — Android 44f6520.
+ * Olay modunda completedSteps'i sunucu yazar; adım sonucu (stepN) istemcinin aynı yazmasında
+ * gelir → internetsiz de (ve sunucu işlemeden) adım bitmiş görünür.
+ */
+export function tamamlananAdim(konu: unknown): number {
+  const v = (konu ?? {}) as Record<string, unknown>;
+  let n = sayi(v.completedSteps);
+  for (let a = ADIM_SAYISI; a > n; a--) {
+    if (typeof v[`step${a}`] === "object" && v[`step${a}`] !== null) { n = a; break; }
+  }
+  return Math.max(0, Math.min(ADIM_SAYISI, n));
+}
+
 /** ders → konu → tamamlanan adım (saf). */
 export function testIlerlemesiCoz(ham: unknown): Record<string, Record<string, number>> {
   const out: Record<string, Record<string, number>> = {};
   for (const [ders, konular] of Object.entries((ham ?? {}) as Record<string, any>)) {
     const d: Record<string, number> = {};
     for (const [konu, v] of Object.entries((konular ?? {}) as Record<string, any>)) {
-      d[konu] = Math.max(0, Math.min(ADIM_SAYISI, sayi(v?.completedSteps)));
+      d[konu] = tamamlananAdim(v);
     }
     out[ders] = d;
   }
@@ -267,11 +285,26 @@ export const defterIlerlemeYollari = (uid: string, sinif: number) => {
 };
 
 /** ders → ünite → defter durumu (saf). */
+/**
+ * progress_defter_done (sunucunun ilk-kez işareti) ∪ progress_defter/…/bitti (olay modunda istemcinin
+ * alanı, Android 44f6520) → ders → ünite → true. Bütün "defter bitti" okuyucuları bunu kullanır.
+ */
+export function defterBitenBirlestir(ilerlemeHam: unknown, bitenHam: unknown): Record<string, Record<string, unknown>> {
+  const out: Record<string, Record<string, unknown>> = {};
+  for (const [ders, u] of Object.entries((bitenHam ?? {}) as Record<string, Record<string, unknown>>)) {
+    for (const [k, v] of Object.entries(u ?? {})) if (v === true) (out[ders] ??= {})[k] = true;
+  }
+  for (const [ders, u] of Object.entries((ilerlemeHam ?? {}) as Record<string, Record<string, { bitti?: unknown }>>)) {
+    for (const [k, v] of Object.entries(u ?? {})) if (v?.bitti === true) (out[ders] ??= {})[k] = true;
+  }
+  return out;
+}
+
 export function defterIlerlemesiCoz(
   ilerlemeHam: unknown, bitenHam: unknown
 ): Record<string, Record<string, DefterDurumu>> {
   const ilerleme = (ilerlemeHam ?? {}) as Record<string, any>;
-  const biten = (bitenHam ?? {}) as Record<string, any>;
+  const biten = defterBitenBirlestir(ilerlemeHam, bitenHam) as Record<string, any>;
   const out: Record<string, Record<string, DefterDurumu>> = {};
   for (const ders of new Set([...Object.keys(ilerleme), ...Object.keys(biten)])) {
     const i = (ilerleme[ders] ?? {}) as Record<string, any>;
@@ -601,8 +634,12 @@ export type SeriAy = {
 
 /** Bir ayın seri verisi: users/{uid}/streak (count/lastDay) + days/{yyyy-MM}. */
 export async function seriAyiOku(uid: string, ayAnahtari: string): Promise<SeriAy> {
-  const snap = await get(dbRef(kullaniciDb, `users/${uid}/streak`));
-  const v = snap.val() ?? {};
+  // Önbellek → hatırlanan son değer, üstüne kutuda bekleyen olaylar (internetsiz de açılır)
+  const yerel = await seriOku(uid);
+  const ham = yerel !== undefined ? yerel : (await get(dbRef(kullaniciDb, `users/${uid}/streak`))).val();
+  const v = (ham ?? {}) as {
+    count?: unknown; lastDay?: string; days?: Record<string, Record<string, unknown>>;
+  };
   const sonGun: string | null = v.lastDay ?? null;
 
   const gunler: Record<number, number> = {};
@@ -627,8 +664,10 @@ export async function haftaninAktifGunleri(uid: string): Promise<number[]> {
 
   let gunlerDugumu: Record<string, Record<string, unknown>> = {};
   try {
-    const snap = await get(dbRef(kullaniciDb, `users/${uid}/streak/days`));
-    gunlerDugumu = (snap.val() ?? {}) as Record<string, Record<string, unknown>>;
+    // Önbellek → hatırlanan son değer + bekleyen olaylar; hiçbiri yoksa ağ
+    const seri = (await seriOku(uid)) as { days?: unknown } | null | undefined;
+    const days = seri !== undefined ? seri?.days : (await get(dbRef(kullaniciDb, `users/${uid}/streak/days`))).val();
+    gunlerDugumu = (days ?? {}) as Record<string, Record<string, unknown>>;
   } catch {
     return [bugunIndeks];
   }
@@ -724,23 +763,27 @@ export async function defterSayfaYaz(
 }
 
 /**
- * Defter açılırken kaldığı sayfa (1 tabanlı; 0 = baştan). Bitmiş defter baştan açılır — 20 Eyl 2026
- * (kullanıcı kararı): ana ekrandaki "3/12 sayfa · Devam Et" vaadiyle tutarlı. Android/iOS'a da işlenecek.
+ * Defter açılış durumu — Android DefterScreens.defterAcilisDurumu (6 Eki).
+ * [kaldigi]: 1 tabanlı, 0 = baştan; bitmiş defter baştan açılır (20 Eyl 2026 kullanıcı kararı).
+ * [bitmis]: sunucu işareti (progress_defter_done) YA DA istemcinin bitti alanı (olay modu, sunucu henüz
+ * işlemedi); okunamadıysa null. Yalnız tahmin içindir (ilk kez XP); karar sunucuda. İstemci alanı da
+ * sayılır: internetsiz bitirilip gönderilmemiş defter yeniden bitirilirse puana 50 iki kez bindirilmesin.
+ * Okuma: önbellek → hatırlanan son değer, üstüne kutudaki istemci yazmaları; internetsiz de açılır.
  */
-export async function defterKaldigiSayfa(
+export async function defterAcilisDurumu(
   uid: string, sinif: number, dersKey: string, uniteKey: string
-): Promise<number> {
-  try {
-    const g = sinifSinirla(sinif);
-    const [ilerleme, bitti] = await Promise.all([
-      get(dbRef(kullaniciDb, defterYolu(uid, g, dersKey, uniteKey))),
-      get(dbRef(kullaniciDb, `users/${uid}/progress_defter_done/grade${g}/${dersKey}/${uniteKey}`)),
-    ]);
-    if (bitti.val() === true) return 0;
-    return Math.max(0, sayi((ilerleme.val() ?? {}).currentPage));
-  } catch {
-    return 0;
-  }
+): Promise<{ kaldigi: number; bitmis: boolean | null }> {
+  const g = sinifSinirla(sinif);
+  const ilerlemeYolu = defterYolu(uid, g, dersKey, uniteKey);
+  const isaretYolu = `users/${uid}/progress_defter_done/grade${g}/${dersKey}/${uniteKey}`;
+  const [isaretHam, ilerlemeHam] = await Promise.all([oku(kullaniciDb, isaretYolu), oku(kullaniciDb, ilerlemeYolu)]);
+  const yazmalar = bekleyenYazmalar(uid);
+  const ilerleme = ilerlemeHam === undefined ? undefined
+    : (istemciBindir(yazmalar, ilerlemeYolu, ilerlemeHam) ?? {}) as Record<string, unknown>;
+  const bitmis = isaretHam === true || ilerleme?.bitti === true ? true
+    : isaretHam === undefined || ilerleme === undefined ? null : false;
+  if (bitmis) return { kaldigi: 0, bitmis };
+  return { kaldigi: Math.max(0, sayi(ilerleme?.currentPage)), bitmis };
 }
 
 export async function defterToplamSayfaYaz(
@@ -1404,8 +1447,9 @@ export function istatistikDilimleriCoz(agacHam: unknown, dersKey: string | null)
 /** Defter kartı — uygulamadaki fetchDefterCardInfo (ünite anahtarı u+sayı olanlar sayılır). */
 /** progress_defter · progress_defter_done · quiz_done ham düğümlerinden (üçü de canlı hook'larla zaten dinleniyor). */
 export function defterKartBilgisiCoz(
-  progHam: unknown, doneHam: unknown, quizHam: unknown, dersKey: string | null, uniteSayisi: (ders: string) => number
+  progHam: unknown, doneHam0: unknown, quizHam: unknown, dersKey: string | null, uniteSayisi: (ders: string) => number
 ): DefterKarti {
+  const doneHam = defterBitenBirlestir(progHam, doneHam0);
 
   const uniteMi = (k: string) => /^u\d+$/.test(k) || /^u\d+_/.test(k);
   const dersleri = (ham: Record<string, any>) =>

@@ -8,22 +8,15 @@
 // Okunamayan bölüm (çevrimdışı + önbellekte yok) gösterilmez — boş durumdan hesaplanmış yanlış
 // sayı ("1 günlük seri") göstermektense özet atlanır.
 
-import { onValue, ref as dbRef } from "firebase/database";
-import { gorevKatalogDb, kullaniciDb } from "../firebase";
-import { onbellekli } from "../onbellek";
-import { hatirlananDeger } from "../canli";
-import { tavanli } from "../hata";
+import { kullaniciDb } from "../firebase";
 import type { GorevDegisimi, GorevDonemi } from "../gorevYaz";
 import { bekleyenler, sonucBekle, type Yazilan } from "./kutu";
-import { dogrula } from "./motor/dogrula";
+import { gecerliOlaylar, hamKatalog, motorZinciri, OKUNMAYAN, oku, yolaKoy, type HamKatalog } from "./bindir";
 import { katalogSec } from "./motor/gorev";
-import { isle, okumaPlani } from "./motor/motor";
+import { okumaPlani } from "./motor/motor";
 import { dugum, tamSayi, type Dugum } from "./motor/sayi";
-import { istanbulGunu } from "./motor/tarih";
-import { artirMi, type Katalog, type Olay } from "./motor/tipler";
+import type { Katalog } from "./motor/tipler";
 
-/** Önbellekten anında döner; dönmezse (çevrimdışı, önbellekte yok) bu kadar sonra vazgeçilir. */
-const OKUMA_MS = 1500;
 /** Sunucu sonucu beklemesi — okumalarla AYNI ANDA başlar; sonuç akışının 3 sn tavanına sığar. */
 const SUNUCU_MS = 2500;
 
@@ -36,77 +29,7 @@ export type BitisOzeti = {
   sunucudan: boolean;
 };
 
-/* ------------------------------------------------------------------ okuma */
-
-/** RTDB tam sayı anahtarlı düğümleri dizi döndürebilir → nesneye (yerel ağaca yazılabilsin). */
-function nesnele(v: unknown): unknown {
-  if (Array.isArray(v) || (typeof v === "object" && v !== null)) {
-    const o: Dugum = {};
-    for (const [k, x] of Object.entries(dugum(v))) o[k] = nesnele(x);
-    return o;
-  }
-  return v;
-}
-
-/**
- * Tek seferlik okuma; önbellekten anında döner. undefined = okunamadı.
- * Ağ/bellek dönmezse ekranların hatırladığı son değer (localStorage) kullanılır: sekme internetsiz
- * açılınca Firebase'in bellek önbelleği boştur, ama Görevler/ana ekran bu düğümleri daha önce
- * çizdiyse son değerleri cihazdadır. Bekleyen olaylar zaten üstüne uygulanır.
- */
-async function oku(db: typeof kullaniciDb, yol: string): Promise<unknown> {
-  const v = await tavanli(
-    new Promise<unknown>((coz, red) => {
-      onValue(dbRef(db, yol), (s) => coz(nesnele(s.val())), red, { onlyOnce: true });
-    }),
-    OKUMA_MS
-  ).catch(() => undefined);
-  if (v !== undefined) return v;
-  const h = hatirlananDeger(db, yol);
-  return h.bulundu ? nesnele(h.veri) : undefined;
-}
-
-type HamKatalog = { daily?: unknown; weekly?: unknown; monthly?: unknown };
-
-/** Görev kataloğu ham düğümleri (içerik, değişmez) — sekme boyunca önbellekte. Okunamazsa null. */
-async function hamKatalog(): Promise<HamKatalog | null> {
-  try {
-    return await onbellekli("olay:katalog", async () => {
-      const [daily, weekly, monthly] = await Promise.all(
-        ["daily", "weekly", "monthly"].map((b) => oku(gorevKatalogDb, `taskCatalog/${b}`))
-      );
-      if (daily === undefined || weekly === undefined || monthly === undefined) throw new Error("katalog okunamadı");
-      return { daily, weekly, monthly };
-    }, { kalici: true });
-  } catch {
-    return null;
-  }
-}
-
-/* ------------------------------------------------------------- yerel ağaç */
-
-function yoldanAl(kok: Dugum, yol: string): unknown {
-  let v: unknown = kok;
-  for (const p of yol.split("/")) {
-    if (typeof v !== "object" || v === null) return undefined;
-    v = (v as Dugum)[p];
-  }
-  return v;
-}
-
-function yolaKoy(kok: Dugum, yol: string, deger: unknown): void {
-  const parca = yol.split("/");
-  let d = kok;
-  for (const p of parca.slice(0, -1)) {
-    if (typeof d[p] !== "object" || d[p] === null) d[p] = {};
-    d = d[p] as Dugum;
-  }
-  d[parca[parca.length - 1]] = deger;
-}
-
 /* ----------------------------------------------------------------- motor */
-
-const OKUNMAYAN = (anahtar: string) => anahtar === "xp" || anahtar === "adim" || anahtar.startsWith("kova:");
 
 function donemleri(k: Katalog): Map<string, { donem: GorevDonemi; baslik: string; xp: number }> {
   const m = new Map<string, { donem: GorevDonemi; baslik: string; xp: number }>();
@@ -144,16 +67,10 @@ function gorevSatirlari(ham: unknown, k: Katalog | null, okunamayan: Set<GorevDo
  * Okumalar sunucu bu olayı işlemeden önceki durumu görmeli — bitişte HEMEN çağrılır.
  */
 async function yerelTahmin(uid: string, yazilan: Yazilan, katalogSoz: Promise<HamKatalog | null>): Promise<BitisOzeti | null> {
-  const bugun = istanbulGunu(Date.now());
-  const sira = [
-    ...bekleyenler(uid).filter((b) => b.id !== yazilan.id).map((b) => ({ id: b.id, ham: b.olay as unknown })),
-    { id: yazilan.id, ham: yazilan.olay as unknown },
-  ];
-  const olaylar: Array<{ o: Olay; eski: boolean }> = [];
-  for (const { id, ham } of sira) {
-    const d = dogrula(id, ham, bugun);
-    if (d.tamam) olaylar.push({ o: d.olay, eski: d.eski });
-  }
+  const olaylar = gecerliOlaylar([
+    ...bekleyenler(uid).filter((b) => b.id !== yazilan.id),
+    { id: yazilan.id, olay: yazilan.olay },
+  ]);
   const son = olaylar[olaylar.length - 1];
   if (!son || son.o.id !== yazilan.id) return null;   // bu olay geçersiz: sunucu da reddeder
 
@@ -173,18 +90,8 @@ async function yerelTahmin(uid: string, yazilan: Yazilan, katalogSoz: Promise<Ha
     }),
   ]);
 
-  let cikti: ReturnType<typeof isle> | null = null;
-  let katalog: Katalog | null = null;
-  for (const { o, eski } of olaylar) {
-    katalog = hamK ? katalogSec(hamK, o.gun) : null;
-    const okunan: Record<string, unknown> = {};
-    for (const [a, y] of Object.entries(okumaPlani(uid, o, eski))) okunan[a] = OKUNMAYAN(a) ? undefined : yoldanAl(kok, y);
-    cikti = isle(uid, o, eski, okunan, katalog, Date.now());
-    // Sonraki olay bu olayın etkilerini görsün
-    for (const [y, v] of Object.entries(cikti.yazilacak)) {
-      yolaKoy(kok, y, artirMi(v) ? tamSayi(yoldanAl(kok, y)) + v.artir : v);
-    }
-  }
+  const cikti = motorZinciri(uid, kok, olaylar, hamK);
+  const katalog = hamK ? katalogSec(hamK, son.o.gun) : null;
   if (!cikti) return null;
 
   const plan = okumaPlani(uid, son.o, son.eski);

@@ -17,8 +17,10 @@ import { kullaniciDb } from "./firebase";
 import { useCanli, useCanliSorgu } from "./canli";
 import { tavanli } from "./hata";
 import { sonDokunulanCoz, type SonDokunulan } from "./anaEkran";
-import { quizBitenlerYolu, quizBitenleriCoz } from "./quiz";
+import { quizBitenlerYolu, quizBitenleriCoz, quizHamBirlestir, quizIstemciYolu } from "./quiz";
 import { useKullanici, useKullaniciDugumleri, useKullaniciDugumu } from "./kullaniciVerisi";
+import { dugumBindir, useBekleyenOlaylar, useHamKatalog, useIstemciBindir } from "./olay/bindir";
+import { bekleyenXp } from "./olay/kutu";
 import {
   aylikGorevDurumYolu,
   aylikGorevTanimlari,
@@ -40,6 +42,7 @@ import {
   profilYolu,
   rozetYolu,
   rozetleriCoz,
+  sinifSinirla,
   testIlerlemeYolu,
   testIlerlemesiCoz,
   ustBilgiCoz,
@@ -60,15 +63,31 @@ const BOS_UST: UstBilgi = { xp: 0, seri: 0, bugunAktif: false, can: 3 };
 
 /* ------------------------------------------------------------- üst bilgi  */
 
-/** XP / seri / can — sağ raydaki sayaçlar. */
+/**
+ * XP / seri / can — sağ raydaki sayaçlar.
+ * Olay modu (§8.2): kutuda bekleyen (sunucunun henüz işlemediği) olaylar bindirilir — puana ekranın
+ * kesin bildiği XP (görev XP'si hariç, Android tahminiXp), seriye motorun kararı. İnternetsiz biten
+ * test ana ekranda hemen görünür; sunucu işleyince olay kutudan düşer, canlı değer zaten yenidir.
+ */
 export function useUstBilgi(sinif: number): UstBilgi | null {
-  return useKullaniciDugumleri<UstBilgi>(
+  const ham = useKullaniciDugumleri<unknown[] | null>(
     kullaniciDb,
     (uid) => ustBilgiYollari(uid, sinif),
-    (v) => ustBilgiCoz(v[0], v[1], v[2], v[3]),
-    BOS_UST,
+    (v) => v,
+    null,
     4
   );
+  const { hazir, uid } = useKullanici();
+  const bekleyen = useBekleyenOlaylar(uid);
+  return useMemo(() => {
+    if (!hazir) return null;          // kimlik çözülmedi → bilinmiyor
+    if (!uid) return BOS_UST;         // misafir
+    if (ham === null) return null;    // bu cihazda ilk açılış, ilk cevap gelmedi
+    if (bekleyen.length === 0) return ustBilgiCoz(ham[0], ham[1], ham[2], ham[3]);
+    const seri = dugumBindir(uid, `users/${uid}/streak`, ham[2], bekleyen, null);
+    const u = ustBilgiCoz(ham[0], ham[1], seri, ham[3]);
+    return { ...u, xp: u.xp + bekleyenXp(uid, sinifSinirla(sinif)) };
+  }, [hazir, ham, uid, bekleyen, sinif]);
 }
 
 export function useProfil(): Profil | null {
@@ -79,41 +98,49 @@ export function useProfil(): Profil | null {
 /* Sınıfın TAMAMI tek düğümden: liste ekranı ile ders içi ekran aynı aboneliği
    paylaşır. Test/defter/yazılı bitip düğüm yazılınca listeler kendiliğinden güncellenir. */
 
+/**
+ * Kullanıcı düğümünün HAM değeri + kutudaki istemci düz alanları (olay/bindir.ts istemciBindir).
+ * `null` = bilinmiyor; `{ h }` = biliniyor (h düğüm değeri, boş olabilir).
+ */
+function useHamBindirilmis(yolUret: (uid: string) => string): { h: unknown } | null {
+  const r = useKullaniciDugumu<{ h: unknown }>(kullaniciDb, yolUret, (h) => ({ h }), { h: null });
+  const { uid } = useKullanici();
+  const h = useIstemciBindir(uid, uid ? yolUret(uid) : null, r ? r.h : null);
+  return useMemo(() => (r === null ? null : { h }), [r, h]);
+}
+
 export function useTestIlerlemesi(sinif: number): Record<string, Record<string, number>> | null {
-  return useKullaniciDugumu(
-    kullaniciDb, (uid) => testIlerlemeYolu(uid, sinif), testIlerlemesiCoz, {}
-  );
+  const r = useHamBindirilmis((uid) => testIlerlemeYolu(uid, sinif));
+  return useMemo(() => (r === null ? null : testIlerlemesiCoz(r.h)), [r]);
 }
 
 /** Ana ekranın "Kaldığın yer" kartı: progress_test + progress_defter (abonelikler paylaşılır), farklı çözüm. */
 export function useSonDokunulan(sinif: number): SonDokunulan | null | undefined {
   // `undefined` = bilinmiyor (kimlik/ilk açılış); `null` = biliniyor, hiç dokunulmamış.
-  const v = useKullaniciDugumleri<{ son: SonDokunulan | null }>(
-    kullaniciDb,
-    (uid) => [testIlerlemeYolu(uid, sinif), defterIlerlemeYollari(uid, sinif)[0]],
-    (h) => ({ son: sonDokunulanCoz(h[0], h[1]) }),
-    { son: null },
-    2
-  );
-  return v === null ? undefined : v.son;
+  const t = useHamBindirilmis((uid) => testIlerlemeYolu(uid, sinif));
+  const d = useHamBindirilmis((uid) => defterIlerlemeYollari(uid, sinif)[0]);
+  return useMemo(() => (t === null || d === null ? undefined : sonDokunulanCoz(t.h, d.h)), [t, d]);
 }
 
 export function useDefterIlerlemesi(
   sinif: number
 ): Record<string, Record<string, DefterDurumu>> | null {
-  return useKullaniciDugumleri(
-    kullaniciDb,
-    (uid) => defterIlerlemeYollari(uid, sinif),
-    (v) => defterIlerlemesiCoz(v[0], v[1]),
-    {},
-    2
-  );
+  // Kutudaki istemci alanları (currentPage, bitti) bindirilir — internetsiz biten defter yenilenince de bitmiş
+  const pd = useHamBindirilmis((uid) => defterIlerlemeYollari(uid, sinif)[0]);
+  const pdd = useHamBindirilmis((uid) => defterIlerlemeYollari(uid, sinif)[1]);
+  return useMemo(() => (pd === null || pdd === null ? null : defterIlerlemesiCoz(pd.h, pdd.h)), [pd, pdd]);
 }
 
-/** ders → ünite → true. Ana ekranın Devam Et zinciri (Defter → testler → Quiz) ve öneri kutusu. */
+/**
+ * ders → ünite → true. Ana ekranın Devam Et zinciri (Defter → testler → Quiz) ve öneri kutusu.
+ * quiz_done (sunucunun ilk-kez işareti) ∪ quiz_bitti (olay modunda istemcinin alanı, internetsiz de anında).
+ */
 export function useQuizBitenler(sinif: number): Record<string, Record<string, boolean>> | null {
-  return useKullaniciDugumu(
-    kullaniciDb, (uid) => quizBitenlerYolu(uid, sinif), quizBitenleriCoz, {}
+  const sunucu = useHamBindirilmis((uid) => quizBitenlerYolu(uid, sinif));
+  const istemci = useHamBindirilmis((uid) => quizIstemciYolu(uid, sinif));
+  return useMemo(
+    () => (sunucu === null || istemci === null ? null : quizBitenleriCoz(quizHamBirlestir(sunucu.h, istemci.h))),
+    [sunucu, istemci]
   );
 }
 
@@ -136,14 +163,19 @@ export function useIstatistikAgaci(sinif: number): Record<string, unknown> | nul
   );
 }
 
-/** Defter kartı için üç ham düğüm (progress_defter · progress_defter_done · quiz_done) — abonelikler diğer hook'larla paylaşılır. */
+/**
+ * Defter kartı için üç ham düğüm (progress_defter · progress_defter_done · quiz_done ∪ quiz_bitti) —
+ * abonelikler diğer hook'larla paylaşılır; kutudaki istemci alanları bindirilir.
+ */
 export function useDefterKartiHam(sinif: number): [unknown, unknown, unknown] | null {
-  return useKullaniciDugumleri(
-    kullaniciDb,
-    (uid) => [...defterIlerlemeYollari(uid, sinif), quizBitenlerYolu(uid, sinif)],
-    (v) => [v[0], v[1], v[2]] as [unknown, unknown, unknown],
-    [null, null, null],
-    3
+  const pd = useHamBindirilmis((uid) => defterIlerlemeYollari(uid, sinif)[0]);
+  const pdd = useHamBindirilmis((uid) => defterIlerlemeYollari(uid, sinif)[1]);
+  const qd = useHamBindirilmis((uid) => quizBitenlerYolu(uid, sinif));
+  const qb = useHamBindirilmis((uid) => quizIstemciYolu(uid, sinif));
+  return useMemo(
+    () => (pd === null || pdd === null || qd === null || qb === null ? null
+      : [pd.h, pdd.h, quizHamBirlestir(qd.h, qb.h)] as [unknown, unknown, unknown]),
+    [pd, pdd, qd, qb]
   );
 }
 
@@ -198,9 +230,17 @@ export function useGorevDurumu(tur: GorevTuru): GorevDurumu {
     return () => { iptal = true; };
   }, [kaynak, deneme]);
 
-  const ilerleme = useKullaniciDugumu<Record<string, unknown>>(
+  const canli = useKullaniciDugumu<Record<string, unknown>>(
     kullaniciDb, kaynak.yol, (ham) => (ham ?? {}) as Record<string, unknown>, {}
   );
+  // Olay modu (§8.2): bekleyen olayların görev ilerlemesi sunucu motoruyla bindirilir
+  const { uid } = useKullanici();
+  const bekleyen = useBekleyenOlaylar(uid);
+  const hamK = useHamKatalog(bekleyen.length > 0);
+  const ilerleme = useMemo(() => {
+    if (canli === null || !uid || bekleyen.length === 0 || !hamK) return canli;
+    return (dugumBindir(uid, kaynak.yol(uid), canli, bekleyen, hamK) ?? {}) as Record<string, unknown>;
+  }, [canli, uid, bekleyen, hamK, kaynak]);
 
   return useMemo(() => {
     const tekrarDene = () => { setTanimlar(null); setDeneme((d) => d + 1); };

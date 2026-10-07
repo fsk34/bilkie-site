@@ -115,11 +115,15 @@ export function cokYollu(
  */
 export function olayYaz(
   uid: string, tur: string, sinif: number,
-  alanlar: Record<string, unknown>, istemci: Record<string, unknown>, tahminiXp = 0
+  alanlar: Record<string, unknown>, istemci: Record<string, unknown>, tahminiXp = 0,
+  /** yetim taslak: olayın günü taslağın son güncellendiği an */
+  ts = Date.now(),
+  /** olay girdisi yazıldıktan HEMEN sonra silinecek taslak (arada sekme kapanırsa ikinci olay olmasın diye
+   *  önce olay yazılır; taslak kalsa da bir sonraki açılışta aynı alanlarla tekrar olay olur — kabul) */
+  silinecekTaslak?: string
 ): Yazilan {
   const id = push(dbRef(kullaniciDb, `users/${uid}/olaylar`)).key;
   if (!id) throw new Error("olay kimliği üretilemedi");
-  const ts = Date.now();
   // Ortak alanlar türe özgü olanları ezer (tek kaynak burası)
   const olay: Olay = { ...alanlar, tur, sinif, gun: istanbulGunu(ts), ts, surum: OLAY_SURUM };
   const h = cokYollu(uid, id, olay, istemci);
@@ -129,9 +133,70 @@ export function olayYaz(
     // Kota/özel kip: kutusuz da gönderilir (sekme açık kaldıkça SDK dener)
     sessizHata("olayKutusu", e);
   }
+  if (silinecekTaslak) depoSil(silinecekTaslak);
   degisti();
   gonderBir(uid, id, h);
   return { id, olay };
+}
+
+/* ---------------------------------------------------------------- taslaklar */
+// Defter oturumu (şartname §4, Android OlayKutusu.taslak*): sayfa/seri oturum boyunca taslakta birikir,
+// çıkışta TEK olay olur. Sekme kapanırsa taslak sonraki açılışta (kutuyuIzle) olaya çevrilir.
+
+const TASLAK = "bk-olay-taslak:";
+const taslakAnahtari = (uid: string, ad: string) => `${TASLAK}${uid}/${ad}`;
+/** Bu sekmede açık oturumların taslakları — yetim sayılmaz. */
+const acikTaslaklar = new Set<string>();
+
+type Taslak = { ts: number; tur: string; sinif: number; a: Record<string, unknown>; i: Record<string, unknown> };
+
+export function taslakYaz(
+  uid: string, ad: string, tur: string, sinif: number, alanlar: Record<string, unknown>, istemci: Record<string, unknown>
+): void {
+  const k = taslakAnahtari(uid, ad);
+  acikTaslaklar.add(k);
+  try {
+    window.localStorage.setItem(k, JSON.stringify({ ts: Date.now(), tur, sinif, a: alanlar, i: istemci } satisfies Taslak));
+  } catch (e) {
+    sessizHata("olayTaslak", e);
+  }
+}
+
+/** Taslağı kapatıp son alanlarla olay yazar. */
+export function taslakKapat(
+  uid: string, ad: string, tur: string, sinif: number,
+  alanlar: Record<string, unknown>, istemci: Record<string, unknown>, tahminiXp = 0
+): Yazilan {
+  const k = taslakAnahtari(uid, ad);
+  acikTaslaklar.delete(k);
+  return olayYaz(uid, tur, sinif, alanlar, istemci, tahminiXp, Date.now(), k);
+}
+
+/** Gönderilecek bir şey birikmeden biten oturum: taslak atılır. */
+export function taslakSil(uid: string, ad: string): void {
+  const k = taslakAnahtari(uid, ad);
+  acikTaslaklar.delete(k);
+  depoSil(k);
+}
+
+/** Önceki sekmeden/açılıştan kalan (bu sekmede açık olmayan) taslakları olaya çevirir. */
+function yetimTaslaklar(uid: string): void {
+  if (typeof window === "undefined") return;
+  const on = `${TASLAK}${uid}/`;
+  let anahtarlar: string[] = [];
+  try { anahtarlar = Object.keys(window.localStorage).filter((a) => a.startsWith(on)); } catch { return; }
+  const simdi = Date.now();
+  for (const k of anahtarlar) {
+    if (acikTaslaklar.has(k)) continue;
+    let t: Taslak | null = null;
+    try { t = JSON.parse(window.localStorage.getItem(k) ?? "null") as Taslak | null; } catch { /* bozuk */ }
+    if (!t || typeof t.tur !== "string" || typeof t.sinif !== "number" || !t.a || simdi - (t.ts ?? 0) > KUTU_OMUR_MS) {
+      depoSil(k);
+      continue;
+    }
+    try { olayYaz(uid, t.tur, t.sinif, t.a, t.i ?? {}, 0, t.ts, k); }
+    catch (e) { sessizHata("olayTaslak", e); }
+  }
 }
 
 /* ------------------------------------------------------------------- gönderme */
@@ -212,6 +277,7 @@ export function kutuyuGonder(uid: string): void {
 
 /** Girişte (OturumSaglayici): gönder + bağlantı her gelişinde yeniden gönder. Dönüş = bırak. */
 export function kutuyuIzle(uid: string): () => void {
+  yetimTaslaklar(uid);
   return onValue(dbRef(kullaniciDb, ".info/connected"), (s) => {
     bagli = s.val() === true;
     if (bagli) kutuyuGonder(uid);
@@ -230,6 +296,18 @@ export function bekleyenler(uid: string): Bekleyen[] {
     if (olay && typeof olay === "object") out.push({ id, olay, xp: typeof g!.x === "number" ? g!.x : 0 });
   }
   return out.sort((p, q) => (p.olay.ts ?? 0) - (q.olay.ts ?? 0));
+}
+
+export type BekleyenYazma = { ts: number; h: Record<string, unknown> };
+
+/** Kutudaki çok-yollu yazma haritaları (kökten yollar), ts sırasıyla — istemci alanlarının bindirilmesi için. */
+export function bekleyenYazmalar(uid: string): BekleyenYazma[] {
+  const out: BekleyenYazma[] = [];
+  for (const a of depoAnahtarlari(uid)) {
+    const g = depoOku(a);
+    if (g) out.push({ ts: g.ts ?? 0, h: g.h });
+  }
+  return out.sort((p, q) => p.ts - q.ts);
 }
 
 /** Bekleyen olayların [sinif] için kesin tahmini XP toplamı (ana ekran puanı, §8.2). */
@@ -257,5 +335,8 @@ export function sonucBekle(uid: string, id: string, ms: number): Promise<Record<
 /** Hesap silme: o kullanıcının bekleyenleri silinen veriyi yeniden oluşturmasın. */
 export function kutuKullaniciyiSil(uid: string): void {
   for (const a of depoAnahtarlari(uid)) { onaylanan.delete(a); depoSil(a); }
+  try {
+    for (const a of Object.keys(window.localStorage)) if (a.startsWith(`${TASLAK}${uid}/`)) { acikTaslaklar.delete(a); depoSil(a); }
+  } catch { /* yok say */ }
   degisti();
 }

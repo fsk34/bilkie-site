@@ -5,7 +5,7 @@
 //   • Bilkie AI (öneri/koç kuralları): lib/koc.ts
 
 import { konuAyristir, uniteler, type Unite } from "./katalog";
-import { ADIM_SAYISI, type DefterDurumu } from "./veri";
+import { ADIM_SAYISI, tamamlananAdim, type DefterDurumu } from "./veri";
 
 export const DERS_SIRASI = ["turkce", "matematik", "fen", "sosyal", "ingilizce"] as const;
 
@@ -33,7 +33,7 @@ export function sonDokunulanCoz(testHam: unknown, defterHam?: unknown): SonDokun
       for (let a = 1; a <= ADIM_SAYISI; a++) zaman = Math.max(zaman, sayi((v?.[`step${a}`] as Adim | undefined)?.completedAt));
       if (zaman <= 0) continue;
       if (!en || zaman > en.zaman) {
-        en = { tur: "test", ders, konu, adim: Math.max(0, Math.min(ADIM_SAYISI, sayi(v?.completedSteps))), zaman };
+        en = { tur: "test", ders, konu, adim: tamamlananAdim(v), zaman };
       }
     }
   }

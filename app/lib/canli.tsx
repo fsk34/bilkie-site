@@ -74,7 +74,18 @@ export function hatirlananlariUnut(): void {
  * bellek önbelleği boştur; bitiş tahmini (olay/tahmin.ts) görev/seri düğümlerini buradan alır.
  */
 export function hatirlananDeger(db: Database, yol: string): { bulundu: boolean; veri: unknown } {
-  return hatirlananOku(`${dbAdi(db)}|${yol}`);
+  // Tam yol hatırlanmıyorsa üst düğümlerde ara (ekranlar çoğu zaman sınıfın tamamını dinler)
+  const parca = yol.split("/");
+  for (let n = parca.length; n > 0; n--) {
+    const h = hatirlananOku(`${dbAdi(db)}|${parca.slice(0, n).join("/")}`);
+    if (!h.bulundu) continue;
+    let v: unknown = h.veri;
+    for (const p of parca.slice(n)) {
+      v = typeof v === "object" && v !== null ? (v as Record<string, unknown>)[p] : undefined;
+    }
+    return { bulundu: true, veri: v ?? null };
+  }
+  return { bulundu: false, veri: null };
 }
 
 // Database örneğine sabit bir ad ver (iç alanlarına dokunmadan).
