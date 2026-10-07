@@ -11,6 +11,7 @@
 // İlk açılışta en son dokunulan konunun ünitesi açık gelir; hiç yoksa ilk ünite.
 // Taslak: ~/Desktop/bilkie-taslak/ders-*.png
 
+import { GosterilenOran } from "../../../lib/gosterilenOran";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
@@ -143,6 +144,9 @@ function Icerik() {
   // Genel ilerleme = ünite iş zinciri (defter + adımlar + quiz), ana ekrandaki ders kartıyla aynı hesap
   const isVerisi = { ilerleme: tumIlerleme, defter: tumDefter, quiz: tumQuiz ?? {} };
   const genelOran = dersOranlari(sinif, isVerisi)[dersKey] ?? 0;
+  // Çubukların gösterilen değeri (lib/gosterilenOran): anahtar uid + sınıf; üç düğüm okununca karar
+  const barOnek = kullanici ? `${kullanici.uid}/${sinif}` : null;
+  const barHazir = tumIlerleme !== null && tumDefter !== null && tumQuiz !== null;
   const bitenDefter = liste.filter((u) => defter[u.defterKey && u.defterKey.length > 0 ? u.defterKey : u.key]?.bitti).length;
   const dersAdi = dersEtiketi(dersKey, sinif);
 
@@ -160,7 +164,11 @@ function Icerik() {
         <div style={{ flex: 1, minWidth: 0 }}>
           <h2 style={{ marginBottom: 10 }}>{dersAdi}</h2>
           <div className="etiket">GENEL İLERLEME</div>
-          <span className="iz" style={{ background: stil.alt }}><i style={{ width: `${genelOran * 100}%`, background: "#fff" }} /></span>
+          <span className="iz" style={{ background: stil.alt }}>
+            <GosterilenOran anahtar={barOnek ? `ders/${barOnek}/${dersKey}` : null} hedef={genelOran} hazir={barHazir}>
+              {(o) => <i style={{ width: `${o * 100}%`, background: "#fff" }} />}
+            </GosterilenOran>
+          </span>
           {/* Sayıların yanındaki 3B ikonlar (19 Eyl, kullanıcı gönderdi): public/uygulama/ozet/ */}
           <div className="ozet-satir">
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -200,7 +208,9 @@ function Icerik() {
                   </div>
                   <div className="bk-akordiyon-cubuk-satir">
                     <div className="bk-akordiyon-cubuk" style={{ background: stil.alt, flex: 1 }}>
-                      <i style={{ width: `${uniteOrani * 100}%`, background: stil.dolgu }} />
+                      <GosterilenOran anahtar={barOnek ? `unite/${barOnek}/${dersKey}/${u.key}` : null} hedef={uniteOrani} hazir={barHazir}>
+                        {(o) => <i style={{ width: `${o * 100}%`, background: stil.dolgu }} />}
+                      </GosterilenOran>
                     </div>
                     <span className="bk-akordiyon-yuzde">{Math.round(uniteOrani * 100)}%</span>
                   </div>
@@ -251,7 +261,9 @@ function Icerik() {
                       <span className="no" style={{ background: stil.alt }}>{ti + 1}</span>
                       <span className="ad">{k.baslik}</span>
                       <span className="iz" style={{ background: stil.alt }}>
-                        <i style={{ width: `${yuzde}%`, background: stil.dolgu }} />
+                        <GosterilenOran anahtar={barOnek ? `konu/${barOnek}/${dersKey}/${k.testKey}` : null} hedef={yuzde / 100} hazir={barHazir}>
+                          {(o) => <i style={{ width: `${o * 100}%`, background: stil.dolgu }} />}
+                        </GosterilenOran>
                       </span>
                       <span className="yuzde" style={{ color: bitti ? "var(--yesil)" : "#fff" }}>% {yuzde}</span>
 

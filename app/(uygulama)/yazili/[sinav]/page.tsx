@@ -3,6 +3,7 @@
 // Yazılı — ders seçimi. Uygulamadaki YaziliSubjectsScreen: kabartmalı ders kartları,
 // ilerleme çubuğu (2 adım üzerinden yüzde) ve ders ikonu.
 
+import { GosterilenOran } from "../../../lib/gosterilenOran";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useMemo } from "react";
@@ -32,7 +33,7 @@ function Icerik() {
   const params = useParams<{ sinav: string }>();
   const sinavKey = params?.sinav ?? "";
   const router = useRouter();
-  const { sinif } = useOturum();
+  const { sinif, kullanici } = useOturum();
   // Tüm yazılı ilerlemesi TEK canlı düğümden (ders → sınav → tamamlanan adım).
   const tumIlerleme = useYaziliIlerlemesi(sinif);
   const ilerleme = useMemo(() => {
@@ -83,7 +84,9 @@ function Icerik() {
               </div>
               <div className="bk-yazili-cubuk-satir">
                 <div className="bk-akordiyon-cubuk" style={{ background: d.alt, flex: 1 }}>
-                  <i style={{ width: `${oran * 100}%`, background: d.dolgu }} />
+                  <GosterilenOran anahtar={kullanici ? `yazili/${kullanici.uid}/${sinif}/${sinavKey}/${d.key}` : null} hedef={oran} hazir>
+                    {(o) => <i style={{ width: `${o * 100}%`, background: d.dolgu }} />}
+                  </GosterilenOran>
                 </div>
                 <span className="bk-yazili-yuzde">{Math.round(oran * 100)}%</span>
               </div>

@@ -1,3 +1,7 @@
+/* İlerleme çubuklarının dolum hızı — Android ILERLEME_DOLUM_SURESI_MS (1 sn, FastOutSlowIn); ders/ünite/
+   konu/yazılı çubukları aynı hızda dolar. Hangi değerden dolacağı lib/gosterilenOran.tsx'te. */
+:root { --bk-dolum: 1s cubic-bezier(.4, 0, .2, 1); }
+
 /* Bilkie web uygulaması — tasarım dili MOBİL UYGULAMANIN AYNISI.
    Renkler doğrudan uygulamadan alındı:
      APP_BG            #0C1A3F   (AppColors.appBackground)
@@ -342,7 +346,7 @@
 .bk-devam .alt { font-size: 13px; opacity: .8; margin-top: 4px; }
 .bk-devam .iz { display: block; height: 10px; border-radius: 999px; overflow: hidden; margin: 12px 0 14px; max-width: 340px; }
 .bk-devam .iz.bos { height: 12px; }
-.bk-devam .iz i { display: block; height: 100%; border-radius: 999px; }
+.bk-devam .iz i { display: block; height: 100%; border-radius: 999px; transition: width var(--bk-dolum); }
 .bk-devam .bk-konu-dugme { display: grid; }
 /* Sarı = yazılı sinyali (yazılı bandı ve ders sayfasındaki Yazılıya Hazırlık düğmesi) */
 .bk-sari-dugme {
@@ -1443,11 +1447,11 @@
    HomeScreen.DersKarti ile aynı düzeltme). En az 14px görünür — yuvarlak bir başlangıç. */
 .bk-ders-kutu .dolgu {
   position: absolute; left: 0; top: 0; height: 14px; border-radius: 10px;
-  min-width: 14px; transition: width .5s ease-out;
+  min-width: 14px; transition: width var(--bk-dolum);
 }
 .bk-ders-kutu .parlak {
   position: absolute; left: 6px; top: 4px; height: 3px; border-radius: 6px;
-  transition: width .5s ease-out;
+  transition: width var(--bk-dolum);
 }
 
 /* Ünite akordiyonu: dışta koyu ton, içte açık ton, altta 5px kabartma */
@@ -1470,7 +1474,7 @@
 .bk-akordiyon-ok { color: inherit; font-size: 18px; line-height: 1; transition: transform .3s ease-in-out; }
 .bk-akordiyon-ok[data-acik="true"] { transform: rotate(180deg); }
 .bk-akordiyon-cubuk { height: 12px; border-radius: 999px; overflow: hidden; }
-.bk-akordiyon-cubuk > i { display: block; height: 100%; border-radius: 999px; transition: width .4s; }
+.bk-akordiyon-cubuk > i { display: block; height: 100%; border-radius: 999px; transition: width var(--bk-dolum); }
 .bk-akordiyon-ayrac { height: 1px; background: rgba(255,255,255,.25); }
 .bk-akordiyon-alt { display: flex; }
 .bk-akordiyon-alt button, .bk-akordiyon-alt a, .bk .bk-akordiyon-alt a {
@@ -1569,7 +1573,7 @@
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .bk-konu-satir .iz { display: block; height: 8px; border-radius: 999px; overflow: hidden; }
-.bk-konu-satir .iz > i { display: block; height: 100%; border-radius: 999px; transition: width .4s ease-out; }
+.bk-konu-satir .iz > i { display: block; height: 100%; border-radius: 999px; transition: width var(--bk-dolum); }
 .bk-konu-satir .yuzde { font-size: 13px; font-weight: 700; text-align: right; white-space: nowrap; }
 /* Düğme = profildeki sınıf hapı kalıbı (.bk-sinif-hap): 3px kenar, 7px taban, köşe 12 */
 .bk-konu-dugme, .bk .bk-konu-dugme {

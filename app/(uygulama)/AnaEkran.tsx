@@ -14,6 +14,7 @@
 //      Bu ayın rozeti 20 Eyl'de sağ raya taşındı (Kabuk), ray gizliyken Hedef'in altında.
 // Taslak: ~/Desktop/bilkie-taslak/ana-*.png
 
+import { GosterilenOran } from "../lib/gosterilenOran";
 import Link from "next/link";
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import Kabuk from "./Kabuk";
@@ -118,16 +119,21 @@ function Icerik() {
       <div className="bk-dersler">
         {dersler.map((d) => {
           const s = DERS_STIL[d];
-          const p = oranlar[d] ?? 0;
           return (
             <Link key={d} href={`/ders/${d}`} className="bk-ders-kutu" style={{ background: s.ust, borderBottom: `7px solid ${s.alt}` }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img className="ikon" src={`/uygulama/${s.ikon}.png`} alt="" />
               <span className="ad">{dersEtiketi(d, sinif)}</span>
               <span className="iz">
-                {/* Android/iOS: dolgu yalnız oran > 0 iken (CSS'teki 14px alt sınır %0'da da yuvarlak çiziyordu) */}
-                {p > 0 && <i className="dolgu" style={{ width: `${p * 100}%`, background: s.dolgu }} />}
-                {p > 0.15 && <i className="parlak" style={{ width: `calc(${p * 100}% - 14px)`, background: s.parlak }} />}
+                {/* Gösterilen oran: artış ana ekrana dönünce dolarak görünür (lib/gosterilenOran) */}
+                <GosterilenOran anahtar={kullanici ? `ders/${kullanici.uid}/${sinif}/${d}` : null}
+                  hedef={oranlar[d] ?? 0} hazir={veri !== null}>
+                  {(p) => (<>
+                    {/* Android/iOS: dolgu yalnız oran > 0 iken (CSS'teki 14px alt sınır %0'da da yuvarlak çiziyordu) */}
+                    {p > 0 && <i className="dolgu" style={{ width: `${p * 100}%`, background: s.dolgu }} />}
+                    {p > 0.15 && <i className="parlak" style={{ width: `calc(${p * 100}% - 14px)`, background: s.parlak }} />}
+                  </>)}
+                </GosterilenOran>
               </span>
             </Link>
           );
