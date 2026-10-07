@@ -63,6 +63,27 @@ function tamsayi(v: unknown): number | null {
   return null;
 }
 
+/**
+ * GELİŞTİRME ANAHTARI — yalnız localhost + `next dev`. Takvim kapalıyken yazılı akışını denemek için
+ * bir sınavı açık sayar; canlı takvime ve diğer kullanıcılara dokunmaz (7 Eki 2026).
+ *   açmak:   http://localhost:3000/yazili?yaziliac=term1_exam1
+ *   kapatmak: http://localhost:3000/yazili?yaziliac=kapat
+ * Seçim tarayıcıda (localStorage) kalır; ana ekran, ders sayfası ve liste aynı sınavı açık görür.
+ */
+const GELISTIRME_ANAHTARI = "bk-gelistirme-yazili-acik";
+function gelistirmeAcikSinav(): string | null {
+  if (process.env.NODE_ENV !== "development" || typeof window === "undefined") return null;
+  if (window.location.hostname !== "localhost") return null;
+  try {
+    const istek = new URLSearchParams(window.location.search).get("yaziliac");
+    if (istek === "kapat") window.localStorage.removeItem(GELISTIRME_ANAHTARI);
+    else if (istek && /^[a-z0-9_]{1,48}$/.test(istek)) window.localStorage.setItem(GELISTIRME_ANAHTARI, istek);
+    return window.localStorage.getItem(GELISTIRME_ANAHTARI);
+  } catch {
+    return null;
+  }
+}
+
 /** Takvimdeki tüm `aktif` sınavlar, `sira`ya göre sıralı. Kilitliler de dahil. */
 export async function yaziliTakvimi(bugun: string = bugunAnahtari()): Promise<TakvimSonuc> {
   let ham: Record<string, unknown> | null;
@@ -75,6 +96,7 @@ export async function yaziliTakvimi(bugun: string = bugunAnahtari()): Promise<Ta
   if (!ham || typeof ham !== "object") return { durum: "basarili", sinavlar: [] };
 
   const out: YaziliSinav[] = [];
+  const zorlaAcik = gelistirmeAcikSinav();
   for (const [anahtar, v] of Object.entries(ham)) {
     if (!v || typeof v !== "object") continue;
     const o = v as Record<string, unknown>;
@@ -92,7 +114,7 @@ export async function yaziliTakvimi(bugun: string = bugunAnahtari()): Promise<Ta
       anahtar,
       ad,
       sira: tamsayi(o.sira) ?? Number.MAX_SAFE_INTEGER,
-      acik: basladi && bitmedi,
+      acik: (basladi && bitmedi) || anahtar === zorlaAcik,
       baslar: baslar || undefined,
     });
   }
