@@ -10,6 +10,7 @@ import { anahtarNormalize } from "../istatistikYaz";
 import { hataDegisimleri, type SoruSonucu } from "../hatalar";
 import { XP_DOGRU_TEST, sinifSinirla } from "../veri";
 import { XP } from "./motor/motor";
+import { istanbulGunu } from "./motor/tarih";
 import { kullaniciDb } from "../firebase";
 import { oku } from "./bindir";
 import { bekleyenler, olayYaz, type Yazilan } from "./kutu";
@@ -140,4 +141,77 @@ export async function quizOlayiniYaz(a: {
   const yazilan = olayYaz(a.uid, "quiz", sinif, { ders: a.ders, unite: a.unite },
     { [`quiz_bitti/${g}/${a.ders}/${a.unite}`]: true }, ilkKez ? XP.QUIZ : 0);
   return { yazilan, ilkKez };
+}
+
+/* ----------------------------------------------------------------- yazılı */
+
+/**
+ * Android YaziliScreens.yaziliOlayiniYaz (şartname §7.3). c/t = adımın TÜM bölümlerinin toplamı (S1).
+ * İstemci: Y2 adım sonucu + adım işareti adimlar/stepN, Y4 hazırlanan sınav (step1), Y5 kovalar,
+ * Y6 son sonuç, Y7 başarımlar. completedSteps, XP (xp_once), seri, görev, hatasız bayrağı sunucuda.
+ * Puan tahmini yalnız adım İLK kezse (işaret yok VE aynı adım kutuda beklemiyor); okunamazsa 0.
+ */
+export async function yaziliOlayiniYaz(a: {
+  uid: string; sinif: number; ders: string; sinav: string; adim: "step1" | "step2";
+  dogru: number; toplam: number; sureSn: number;
+}): Promise<Yazilan | null> {
+  if (!ANAHTAR.test(a.ders) || !ANAHTAR.test(a.sinav) || !tamSayiAraliktaMi(a.toplam, 0, 100) ||
+      !tamSayiAraliktaMi(a.dogru, 0, a.toplam)) return null;
+  const sinif = sinifSinirla(a.sinif);
+  const g = `grade${sinif}`;
+  const ilkAdim = a.adim === "step1";
+  const puan = a.dogru * XP.YAZILI_DOGRU;
+  const sureSn = Math.max(0, Math.round(a.sureSn));
+
+  const y: Record<string, unknown> = {};
+  // Y2 — adım sonucu + istemcinin adım işareti
+  const kok = `progress_yazili/${g}/${a.ders}/${a.sinav}`;
+  y[`${kok}/correct`] = a.dogru;
+  y[`${kok}/total`] = a.toplam;
+  y[`${kok}/score`] = puan;
+  y[`${kok}/completedAt`] = serverTimestamp();
+  y[`${kok}/adimlar/${a.adim}`] = true;
+  // Y4 — hazırlanan sınav (yalnız step1)
+  if (ilkAdim) {
+    for (const k of [`stats/${g}/overall/yazili`, `stats/${g}/overall`, `stats/${g}/subjects/${a.ders}/yazili`, `stats/${g}/subjects/${a.ders}`]) {
+      y[`${k}/preparedExams`] = increment(1);
+    }
+  }
+  // Y5 — kova sayaçları (solvedCount yalnız step1)
+  if (a.toplam > 0) {
+    for (const k of [`stats/${g}/overall/yazili`, `stats/${g}/subjects/${a.ders}/yazili`]) {
+      kovaArtir(y, k, a.dogru, a.toplam, sureSn, puan, ilkAdim ? 1 : 0);
+    }
+  }
+  // Y6 — son sonuç
+  sonSonuc(y, g, { tip: "yazili", ders: a.ders, konu: "", sinav: a.sinav, dogru: a.dogru, toplam: a.toplam, sureSn, puan });
+  // Y7 — başarımlar
+  y["achievements/yaziliadet/current"] = increment(1);
+  if (a.toplam > 0 && a.dogru === a.toplam) y["achievements/yazilidogru/current"] = increment(1);
+
+  let tahminiXp = 0;
+  if (puan > 0) {
+    const isaret = await oku(kullaniciDb, `users/${a.uid}/xp_once/yazili/${g}/${a.ders}/${a.sinav}/${a.adim}`);
+    const bekliyor = bekleyenler(a.uid).some((b) =>
+      b.olay.tur === "yazili" && b.olay.ders === a.ders && b.olay.sinav === a.sinav && b.olay.adim === a.adim && b.xp > 0);
+    if (isaret !== undefined && isaret !== true && !bekliyor) tahminiXp = puan;
+  }
+  return olayYaz(a.uid, "yazili", sinif,
+    { ders: a.ders, sinav: a.sinav, adim: a.adim, dogru: a.dogru, toplam: a.toplam }, y, tahminiXp);
+}
+
+/* ------------------------------------------------------------------- oyun */
+
+/**
+ * Oyuna giriş — Android OlayKutusu.oyunOlayi (şartname §7.7, O1): yalnız game_play görevi, o da 1 girişle
+ * biter → günde TEK olay. Aynı gün sonraki girişler hiçbir şey yazmaz (fonksiyon boşuna tetiklenmesin).
+ */
+export function oyunOlayiniYaz(uid: string, sinif: number): void {
+  const gun = istanbulGunu(Date.now());
+  const k = `bk-olay-oyun:${uid}`;
+  try {
+    if (window.localStorage.getItem(k) === gun) return;
+    window.localStorage.setItem(k, gun);
+  } catch { /* depolama yoksa yine yazılır — kural/görev mantığı tekrarı zararsız kılar */ }
+  olayYaz(uid, "oyun", sinifSinirla(sinif), {}, {});
 }

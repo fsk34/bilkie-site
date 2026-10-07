@@ -12,14 +12,23 @@
 // öğrenciye takvimi göstermek, bölümün var olduğunu da anlatıyor.
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useRef, useState } from "react";
 import Kabuk from "../Kabuk";
 import Bekleme from "../Bekleme";
 import { acilisMetni, yaziliTakvimi, type TakvimSonuc } from "../../lib/yaziliTakvim";
 
 export default function YaziliSayfasi() {
+  // ?ders= (ders sayfasından) useSearchParams → Suspense
+  return <Suspense><SinavListesi /></Suspense>;
+}
+
+function SinavListesi() {
   const router = useRouter();
+  // Ders sayfasından gelindiyse sınav seçilince ders ekranı atlanır, doğrudan o dersin çalışması
+  // açılır (Android 08bff20 yazili?ders=)
+  const ders = useSearchParams().get("ders");
+  const dersEki = ders && /^[a-z0-9_]{1,48}$/.test(ders) ? `/${ders}` : "";
   const [sonuc, setSonuc] = useState<TakvimSonuc | null>(null);
   // Hangi kilitli sınavın baloncuğu açık. Aynı anda tek tane.
   const [baloncuk, setBaloncuk] = useState<string | null>(null);
@@ -99,7 +108,7 @@ export default function YaziliSayfasi() {
         <div className="bk-sinav-liste">
           {sonuc.sinavlar.map((s) =>
             s.acik ? (
-              <Link key={s.anahtar} href={`/yazili/${s.anahtar}`} className="bk-sinav-dugme">
+              <Link key={s.anahtar} href={`/yazili/${s.anahtar}${dersEki}`} className="bk-sinav-dugme">
                 {s.ad.toLocaleUpperCase("tr")}
               </Link>
             ) : (

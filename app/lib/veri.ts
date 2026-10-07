@@ -326,13 +326,23 @@ export function defterIlerlemesiCoz(
 export const yaziliIlerlemeYolu = (uid: string, sinif: number) =>
   `users/${uid}/progress_yazili/grade${sinifSinirla(sinif)}`;
 
+/**
+ * Sınavın tamamlanan adımı: max(completedSteps, istemcinin adım işareti adimlar/stepN) — Android
+ * yaziliAdimCoz (08bff20). Olay modunda completedSteps'i sunucu yazar; işaret istemcinin aynı yazmasında.
+ */
+export function yaziliAdimCoz(sinav: unknown): number {
+  const v = (sinav ?? {}) as { completedSteps?: unknown; adimlar?: Record<string, unknown> };
+  const isaret = v.adimlar?.step2 === true ? 2 : v.adimlar?.step1 === true ? 1 : 0;
+  return Math.max(0, Math.min(YAZILI_ADIM_SAYISI, Math.max(sayi(v.completedSteps), isaret)));
+}
+
 /** ders → sınav → tamamlanan adım (saf). */
 export function yaziliIlerlemesiCoz(ham: unknown): Record<string, Record<string, number>> {
   const out: Record<string, Record<string, number>> = {};
   for (const [ders, sinavlar] of Object.entries((ham ?? {}) as Record<string, any>)) {
     const d: Record<string, number> = {};
     for (const [sinav, v] of Object.entries((sinavlar ?? {}) as Record<string, any>)) {
-      d[sinav] = Math.max(0, Math.min(YAZILI_ADIM_SAYISI, sayi(v?.completedSteps)));
+      d[sinav] = yaziliAdimCoz(v);
     }
     out[ders] = d;
   }
@@ -846,6 +856,9 @@ export type LigSatiri = {
   sensin: boolean;
   /** Liste ligin ilk LIG_LISTE_LIMITI kişisi; "Sen" onların dışındaysa gerçek sıra bilinmez → "50+" */
   disarida?: boolean;
+  /** Olay modu: kendi satırında kutuda bekleyen (sunucunun henüz işlemediği) kesin XP — yalnız gösterim
+   *  ve sıralama; `puan` sunucudaki değer kalır (yazıcıya öğretilen o, Android d33defe) */
+  bekleyen?: number;
 };
 
 /** Lig listesi: ligin puan aralığında en yüksek N kişi (sunucuda süzülür — Android LIG_LISTE_LIMITI) */
@@ -1061,13 +1074,16 @@ export async function yaziliDersCoz(
 export async function yaziliIlerlemesi(
   uid: string, sinif: number, dersler: string[], sinavKey: string
 ): Promise<Record<string, number>> {
+  // Önbellek → hatırlanan son değer, üstüne kutudaki istemci yazmaları (internetsiz biten adım
+  // sekme yeniden açılınca da sayılsın). Okunamazsa fırlatır — tamamlanmış adım yeniden açılmasın.
   const out: Record<string, number> = {};
+  const yazmalar = bekleyenYazmalar(uid);
   await Promise.all(
     dersler.map(async (d) => {
-      const snap = await get(
-        dbRef(kullaniciDb, `${yaziliIlerlemeYolu(uid, sinif)}/${d}/${sinavKey}/completedSteps`)
-      );
-      out[d] = Math.max(0, Math.min(YAZILI_ADIM_SAYISI, sayi(snap.val())));
+      const yol = `${yaziliIlerlemeYolu(uid, sinif)}/${d}/${sinavKey}`;
+      const ham = await oku(kullaniciDb, yol);
+      if (ham === undefined) throw new Error("yazılı ilerlemesi okunamadı");
+      out[d] = yaziliAdimCoz(istemciBindir(yazmalar, yol, ham));
     })
   );
   return out;
@@ -1224,13 +1240,34 @@ export function acikCevapDogruMu(
 }
 
 /** Soru görselinin indirme adresi (Storage yolu → URL). */
-export async function yaziliGorselAdresi(yol: string): Promise<string | null> {
-  try {
-    const { getDownloadURL, ref: sRef } = await import("firebase/storage");
-    const { storage } = await import("./firebase");
-    return await getDownloadURL(sRef(storage, yol));
-  } catch {
-    return null;
+const gorselAdresleri = new Map<string, Promise<string | null>>();
+
+/**
+ * Soru görselinin indirme adresi — sekme boyunca bellekte (adım açılışında önceden istenir, Android
+ * 0fc1360: zincir başladıktan sonra internet gidince görsel gelmiyordu). Başarısız sonuç tutulmaz.
+ */
+export function yaziliGorselAdresi(yol: string): Promise<string | null> {
+  const var_ = gorselAdresleri.get(yol);
+  if (var_) return var_;
+  const soz = (async () => {
+    try {
+      const { getDownloadURL, ref: sRef } = await import("firebase/storage");
+      const { storage } = await import("./firebase");
+      return await getDownloadURL(sRef(storage, yol));
+    } catch {
+      return null;
+    }
+  })();
+  gorselAdresleri.set(yol, soz);
+  soz.then((u) => { if (!u) gorselAdresleri.delete(yol); });
+  return soz;
+}
+
+/** Adımın bütün soru görselleri: adres + görüntü önceden indirilir (tarayıcı önbelleğine girer). */
+export function yaziliGorselleriniOnYukle(yollar: (string | null | undefined)[]): void {
+  if (typeof window === "undefined") return;
+  for (const yol of new Set(yollar.filter((y): y is string => !!y))) {
+    void yaziliGorselAdresi(yol).then((u) => { if (u) { const i = new Image(); i.src = u; } });
   }
 }
 

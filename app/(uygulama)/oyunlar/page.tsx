@@ -13,6 +13,8 @@ import { OYUNLAR } from "./oyunlar";
 import { gorevOlayiUygula } from "../../lib/gorevYaz";
 import { sessizHata } from "../../lib/hata";
 import { useOturum } from "../../lib/oturum";
+import { olayModuAcikMi } from "../../lib/olay/mod";
+import { oyunOlayiniYaz } from "../../lib/olay/bitisler";
 
 export default function OyunlarSayfasi() {
   const { kullanici, sinif } = useOturum();
@@ -21,6 +23,10 @@ export default function OyunlarSayfasi() {
   // Özet ekranı yok, sessizce ilerler; Görevler sayfası kendi okur. (Android MainActivity oyunaGirildi)
   const oyunaGirildi = () => {
     if (!kullanici) return;
+    // Olay modu: görev sunucuda (günde tek olay); kapalıysa ya da yazılamazsa eski yol
+    if (olayModuAcikMi(kullanici.uid)) {
+      try { oyunOlayiniYaz(kullanici.uid, sinif); return; } catch (e) { sessizHata("oyunOlayi", e); }
+    }
     gorevOlayiUygula(kullanici.uid, { tip: "oyun_girildi", sinif }).catch((e) => sessizHata("oyun", e));
   };
 

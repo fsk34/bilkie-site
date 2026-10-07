@@ -294,7 +294,7 @@ function Icerik() {
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img className="bk-lig-avatar" src={`/uygulama/avatar/${s.avatar}.png`} alt="" />
             <span className="bk-lig-ad" style={{ fontWeight: s.sensin ? 900 : 600 }}>{s.ad}</span>
-            <span className="bk-lig-puan">{s.puan}</span>
+            <span className="bk-lig-puan">{s.puan + (s.bekleyen ?? 0)}</span>
           </div>
         ))}
         </div>

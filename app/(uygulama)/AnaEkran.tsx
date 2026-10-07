@@ -289,7 +289,7 @@ function useYaziliDurumu(): YaziliDurumu {
     yaziliTakvimi().then((r) => {
       if (iptal) return;
       if (r.durum !== "basarili") { setD({ durum: "kapali", metin: "Yazılı zamanı geldiğinde burada açılacak", koc: null }); return; }
-      const acik = r.sinavlar.find((s) => s.acik);
+      const acik = [...r.sinavlar].reverse().find((s) => s.acik);   // birden çok açıksa en son açılan
       if (acik) { setD({ durum: "acik", sinav: acik, koc: { ad: acik.ad, anahtar: acik.anahtar, gunKaldi: 0 } }); return; }
       const bugun = new Date().toISOString().slice(0, 10);
       const sonraki = r.sinavlar.filter((s) => s.baslar && s.baslar > bugun).sort((a, b) => a.baslar!.localeCompare(b.baslar!))[0];
@@ -310,7 +310,8 @@ function useYaziliDurumu(): YaziliDurumu {
    Yer kuralı aynı: açık dönemde derslerin ÜSTÜNDE, kapalıyken ALTINDA. */
 function YaziliBandi({ sinav }: { sinav: YaziliSinav }) {
   return (
-    <Link href={`/yazili/${sinav.anahtar}`} className="bk-sari-dugme bk-yazili-dugme">
+    // Önce sınav listesi: birden çok yazılı açık olabilir (Android 08bff20)
+    <Link href="/yazili" className="bk-sari-dugme bk-yazili-dugme">
       <span>📝 Yazılıya Hazırlık</span>
       <small>{sinav.ad} dönemi açık — derslere göre hazırlan</small>
     </Link>

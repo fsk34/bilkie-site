@@ -20,7 +20,6 @@ import { konuAyristir, uniteler } from "../../../lib/katalog";
 import { useDefterIlerlemesi, useQuizBitenler, useSonDokunulan, useTestIlerlemesi } from "../../../lib/canliVeri";
 import Bekleme from "../../Bekleme";
 import { ADIM_SAYISI, defterSayfalariGetir, sorulariGetir } from "../../../lib/veri";
-import { yaziliTakvimi } from "../../../lib/yaziliTakvim";
 import { dersEtiketi, dersOranlari, uniteIsOrani } from "../../../lib/anaEkran";
 
 // `ustYazi`: düğme yazısı — dolgu rengine göre kontrast ölçüldü (lacivert #0C1A3F ya da beyaz).
@@ -80,18 +79,9 @@ function Icerik() {
   // Bitmiş quizler (Android'deki quiz_done işareti) — 20 Eyl: tek okuma yerine ana ekranla paylaşılan canlı düğüm
   const bitenQuizler = tumQuiz?.[dersKey] ?? {};
 
-  // Yazılı düğmesinin hedefi: açık sınav varsa doğrudan bu dersin yazılısı, yoksa liste
-  // ("2 Kasım'da açılacak" orada yazıyor).
-  const [yaziliYolu, setYaziliYolu] = useState("/yazili");
-  useEffect(() => {
-    let iptal = false;
-    yaziliTakvimi().then((r) => {
-      if (iptal || r.durum !== "basarili") return;
-      const acik = r.sinavlar.find((s) => s.acik);
-      if (acik) setYaziliYolu(`/yazili/${acik.anahtar}/${dersKey}`);
-    });
-    return () => { iptal = true; };
-  }, [dersKey]);
+  // Yazılı düğmesi önce sınav listesine (Android 08bff20): birden çok yazılı açık olabilir (takvimde
+  // `biter` yoksa eskisi açık kalır); sınav seçilince bu dersin çalışması doğrudan açılır.
+  const yaziliYolu = `/yazili?ders=${dersKey}`;
 
   const stil = DERS_STIL[dersKey];
   const liste = uniteler(sinif, dersKey);

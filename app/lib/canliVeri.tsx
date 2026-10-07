@@ -19,7 +19,7 @@ import { tavanli } from "./hata";
 import { sonDokunulanCoz, type SonDokunulan } from "./anaEkran";
 import { quizBitenlerYolu, quizBitenleriCoz, quizHamBirlestir, quizIstemciYolu } from "./quiz";
 import { useKullanici, useKullaniciDugumleri, useKullaniciDugumu } from "./kullaniciVerisi";
-import { dugumBindir, useBekleyenOlaylar, useHamKatalog, useIstemciBindir } from "./olay/bindir";
+import { dugumBindir, useBekleyenOlaylar, useHamKatalog, useIstemciBindir, useKutuSurumu } from "./olay/bindir";
 import { bekleyenXp } from "./olay/kutu";
 import {
   aylikGorevDurumYolu,
@@ -180,9 +180,8 @@ export function useDefterKartiHam(sinif: number): [unknown, unknown, unknown] | 
 }
 
 export function useYaziliIlerlemesi(sinif: number): Record<string, Record<string, number>> | null {
-  return useKullaniciDugumu(
-    kullaniciDb, (uid) => yaziliIlerlemeYolu(uid, sinif), yaziliIlerlemesiCoz, {}
-  );
+  const r = useHamBindirilmis((uid) => yaziliIlerlemeYolu(uid, sinif));
+  return useMemo(() => (r === null ? null : yaziliIlerlemesiCoz(r.h)), [r]);
 }
 
 /* ---------------------------------------------------- başarımlar/rozetler */
@@ -268,6 +267,7 @@ export const useGunlukGorevler = () => useGorevler("gunluk");
  */
 export function useLigTablosu(sinif: number): LigSatiri[] | null {
   const { hazir, uid } = useKullanici();
+  const kutuSurumu = useKutuSurumu();
   const ust = useUstBilgi(sinif);
   const profil = useProfil();
   const lig = ust ? ligBul(ust.xp) : null;
@@ -278,6 +278,16 @@ export function useLigTablosu(sinif: number): LigSatiri[] | null {
     if (!uid) return [];
     if (!lig || !yuklendi) return null;
     const benim = { ad: profil?.kullaniciAdi?.trim() || "Sen", avatar: profil?.avatar || "profil0", puan: ust?.xp ?? 0 };
-    return ligSatirlariCoz(veri, uid, lig, benim);
-  }, [hazir, uid, veri, yuklendi, lig, profil, ust]);
+    const satirlar = ligSatirlariCoz(veri, uid, lig, benim);
+    // Kendi satırında bekleyen kesin XP (Android d33defe): görünen puan ve sıra onunla
+    const bek = bekleyenXp(uid, sinifSinirla(sinif));
+    if (bek <= 0) return satirlar;
+    const yeni = satirlar.map((s) => (s.sensin && !s.disarida ? { ...s, bekleyen: bek } : s));
+    const gorunen = (s: LigSatiri) => s.puan + (s.bekleyen ?? 0);
+    yeni.sort((a, b) =>
+      Number(!!a.disarida) - Number(!!b.disarida) ||
+      (gorunen(a) !== gorunen(b) ? gorunen(b) - gorunen(a) : a.ad < b.ad ? -1 : a.ad > b.ad ? 1 : 0));
+    return yeni.map((s, i) => ({ ...s, sira: i + 1 }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hazir, uid, veri, yuklendi, lig, profil, ust, sinif, kutuSurumu]);
 }

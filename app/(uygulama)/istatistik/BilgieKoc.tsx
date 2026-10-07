@@ -49,7 +49,7 @@ export default function BilgieKocBolumu({ uid, sinif, dersKey, onDersSec }: { ui
       if (iptal) return;
       setHatalar(h); setEvde(e); setSimdi(Date.now());
       if (t.durum !== "basarili") { setYazili(null); return; }
-      const acik = t.sinavlar.find((s) => s.acik);
+      const acik = [...t.sinavlar].reverse().find((s) => s.acik);   // birden çok açıksa en son açılan (ana ekranla aynı)
       if (acik) { setYazili({ ad: acik.ad, anahtar: acik.anahtar, gunKaldi: 0 }); return; }
       const bugun = new Date().toISOString().slice(0, 10);
       const sonraki = t.sinavlar.filter((s) => s.baslar && s.baslar > bugun).sort((a, b) => a.baslar!.localeCompare(b.baslar!))[0];

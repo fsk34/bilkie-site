@@ -2,8 +2,10 @@
 
 // Yazılı çalışması — uygulamadaki zincirin tamamı:
 //   sıralama → açık uçlu → test → doğru-yanlış
-// Uygulamada olduğu gibi ilerleme ve ödüller SON halkada yazılır
-// (completedSteps + XP = doğru-yanlış doğrusu × 4 + ACT_YAZILI serisi).
+// Uygulamada olduğu gibi ilerleme ve ödüller SON halkada yazılır. Doğru/toplam = adımın TÜM
+// bölümlerinin toplamı (şartname KARAR S1, Android YaziliSessionState): XP = toplam doğru × 4,
+// istatistik ve görev de bu toplamla. Eskiden web yalnız doğru-yanlış bölümünü sayıyordu.
+// Olay modu (§7.3): tek olay yazması; completedSteps, XP, seri, görev sunucuda.
 
 import { AksiyonDugmesi, AltSonucBandi } from "../../../TestAlt";
 import CikisOnayi from "../../../CikisOnayi";
@@ -25,6 +27,7 @@ import {
   yaziliDersCoz,
   yaziliDogruYanlisSorulari,
   yaziliGorselAdresi,
+  yaziliGorselleriniOnYukle,
   yaziliIlerlemesi,
   yaziliSiradakiAdim,
   yaziliSiralamaSorulari,
@@ -38,6 +41,9 @@ import {
   type YaziliTestSorusu,
 } from "../../../../lib/veri";
 import { enUzunSeriGuncelle, yaziliBittiIsle } from "../../../../lib/ilerleme";
+import { olayModuAcikMi } from "../../../../lib/olay/mod";
+import { yaziliOlayiniYaz } from "../../../../lib/olay/bitisler";
+import { bitisOzeti } from "../../../../lib/olay/tahmin";
 
 const DERS_ADI: Record<string, string> = {
   turkce: "Türkçe", matematik: "Matematik", fen: "Fen Bilimleri",
@@ -113,8 +119,10 @@ export default function YaziliCalismaSayfasi() {
         if (kullanici) {
           canDegistir(kullanici.uid, 0);   // gün değiştiyse canlar 3'e (tek transaction, beklenmez)
           // ⚠️ ilerleme SADE ders anahtarıyla tutulur
-          const ilerleme = await yaziliIlerlemesi(kullanici.uid, sinif, [dersKey], sinavKey);
+          const ilerleme = await tavanli(yaziliIlerlemesi(kullanici.uid, sinif, [dersKey], sinavKey), 6000);
           if (iptal) return;
+          // Okunamazsa açılmaz: tamamlanmış adım yeniden çözdürülmesin
+          if (!ilerleme) { setDurum("hata"); return; }
           siradaki = yaziliSiradakiAdim(ilerleme[dersKey] ?? 0);
         }
         setAdim(siradaki);
@@ -128,6 +136,8 @@ export default function YaziliCalismaSayfasi() {
         if (iptal) return;
 
         setSiralama(s); setAcik(a); setTest(t); setDy(d);
+        // Bütün bölümler zaten burada okundu; görseller de şimdi iner (internet giderse adım sürsün)
+        yaziliGorselleriniOnYukle([...t.map((x) => x.gorselYolu), ...a.map((x) => x.gorselYolu)]);
         // Boş bölümler atlanır (uygulamada da o ekran hata verirdi)
         const sira: Bolum[] = [];
         if (s.length) sira.push("siralama");
@@ -171,20 +181,41 @@ export default function YaziliCalismaSayfasi() {
   // Adımın başlangıcı — istatistikteki ortalama süre için (Android: durationSec)
   const baslangicRef = useRef(Date.now());
 
-  const bitir = useCallback(async (dyDogru: number) => {
+  const bitir = useCallback(async (dogru: number, toplam: number) => {
     if (bitirildi.current) return;
     bitirildi.current = true;
     setDurum("bitti");
     if (!kullanici) return;
     const uid = kullanici.uid;
+    const sureSn = Math.max(1, Math.round((Date.now() - baslangicRef.current) / 1000));
+    // Olay modu: karar BİR KEZ burada — aynı bitiş asla iki yoldan yazılmaz
+    if (olayModuAcikMi(uid)) {
+      try {
+        const o = await yaziliOlayiniYaz({ uid, sinif, ders: dersKey, sinav: sinavKey, adim, dogru, toplam, sureSn });
+        if (o) {
+          const oz = await bitisOzeti(uid, o);
+          const puan = dogru * XP_DOGRU_YAZILI;
+          // İlk kez kararı: sunucu sonucu gelirse o, yoksa yerel motor (xp_once işareti + kutu)
+          const ilkKez = oz.ilkKez ?? true;
+          setKazanilanXp(ilkKez ? puan : 0);
+          setTekrarCozum(puan > 0 && !ilkKez);
+          if (oz.seri) setSeriSayisi(oz.seri.sayi);
+          setSeriAkisi(oz.seri?.ilkBugun ? { sayi: oz.seri.sayi, maske: oz.seri.maske, tetik: ACT_YAZILI } : null);
+          if (oz.gorevler.length > 0) setGorevDegisimleri(oz.gorevler);
+          return;
+        }
+      } catch (e) {
+        sessizHata("olayYaz", e);   // eski yola düşer
+      }
+    }
     // Başarımlar + görevler + istatistik — Android onYaziliCompleted zinciri; ilerleme/XP/seri
     // yazmasından BAĞIMSIZ başlar (çevrimdışıyken biri dönmese de diğeri yürür).
-    // Doğru/toplam yalnız SON halkadan (doğru-yanlış) geliyor; XP de öyle veriliyor.
+    // Doğru/toplam adımın TÜM bölümlerinden (S1); XP de öyle veriliyor.
     const gorevIs = yaziliBittiIsle({
       uid, sinif, dersKey, sinavKey,
-      dogru: dyDogru, toplam: dy.length,
-      sureSn: Math.max(1, Math.round((Date.now() - baslangicRef.current) / 1000)),
-      puan: Math.max(0, dyDogru) * XP_DOGRU_YAZILI,
+      dogru, toplam,
+      sureSn,
+      puan: Math.max(0, dogru) * XP_DOGRU_YAZILI,
       // Android: incrementCounter = stepKey == "step1" — hazırlanan yazılı sayacı adım 2'de artmaz
       sayaciArtir: adim === "step1",
     }).catch(() => [] as GorevDegisimi[]);
@@ -195,7 +226,7 @@ export default function YaziliCalismaSayfasi() {
     let seri: SeriArgs | null = null;
     // Çevrimdışıyken yazma sözleri dönmez → en çok 6 sn beklenir (Android), iş arkada sürer
     const sonuc = await tavanli(yaziliTamamla({
-      uid, sinif, dersKey, sinavKey, adim, dogru: dyDogru, toplam: dy.length,
+      uid, sinif, dersKey, sinavKey, adim, dogru, toplam,
     }), 6000);
     if (sonuc) {
       setKazanilanXp(sonuc.xp);
@@ -212,7 +243,7 @@ export default function YaziliCalismaSayfasi() {
     const gorevler = await tavanli(gorevIs, 3000);
     setSeriAkisi(seri);
     if (gorevler && gorevler.length > 0) setGorevDegisimleri(gorevler);
-  }, [kullanici, sinif, dersKey, sinavKey, adim, dy.length]);
+  }, [kullanici, sinif, dersKey, sinavKey, adim]);
 
   function canAzalt() {
     // Gün kontrolü + 1 azaltma tek transaction'da (mutlak değer yazılmaz); ekran dinleyiciden
@@ -259,9 +290,10 @@ export default function YaziliCalismaSayfasi() {
       if (sonrakiBolum === "siralama") setHavuz(karistir(siralama[0].parcalar));
       sifirla();
     } else {
-      // XP uygulamadaki gibi YALNIZCA doğru-yanlış bölümünün doğrusundan hesaplanır.
-      // Son sorunun doğrusu kontrolEt'te zaten sayıldığı için sayaç güncel.
-      bitir(dogrular.dogruyanlis);
+      // S1: adımın TÜM bölümlerinin doğrusu/sorusu. Son sorunun doğrusu kontrolEt'te zaten sayıldı.
+      const dogru = bolumler.reduce((t, b) => t + dogrular[b], 0);
+      const toplam = siralama.length + acik.length + test.length + dy.length;
+      bitir(dogru, toplam);
     }
   }
 
