@@ -30,6 +30,7 @@ import { testOlayiniYaz } from "../../../../lib/olay/bitisler";
 import { bitisOzeti } from "../../../../lib/olay/tahmin";
 import type { Yazilan } from "../../../../lib/olay/kutu";
 import { useOturum } from "../../../../lib/oturum";
+import { useHakSistemi } from "../../../../lib/hak";
 import { useUstBilgi } from "../../../../lib/canliVeri";
 import { sessizHata, tavanli } from "../../../../lib/hata";
 import { konuAyristir, uniteler } from "../../../../lib/katalog";
@@ -73,6 +74,8 @@ export default function TestSayfasi() {
   // Can CANLI dinleyiciden (users/{uid}/lives): yazma transaction'la, yerelde anında yansır
   const ust = useUstBilgi(sinif);
   const can = kullanici ? (ust?.can ?? CAN_LIMITI) : CAN_LIMITI;
+  // Web'de hak sistemi kapalı (lib/hak.ts): hak düşmez, sayaç görünmez — altyapı yerinde
+  const hakAcik = useHakSistemi();
   const [yenidenDene, setYenidenDene] = useState(0);
   const [kombo, setKombo] = useState(false);
   const [akis, setAkis] = useState<{
@@ -209,7 +212,7 @@ export default function TestSayfasi() {
       sesCal("yanlis");
       ustUsteDogru.current = 0;
       // Gün kontrolü + 1 azaltma tek transaction'da (mutlak değer yazılmaz); ekran dinleyiciden
-      if (kullanici) canDegistir(kullanici.uid, -1);
+      if (kullanici && hakAcik) canDegistir(kullanici.uid, -1);
     }
   }
 
@@ -281,7 +284,7 @@ export default function TestSayfasi() {
           <div className="bk-cubuk" style={{ flex: 1 }}><i style={{ width: `${oran}%` }} /></div>
           {/* Can ikonu uygulamanınki (Android TestScreens.kt: R.drawable.hakicon); önce ❤️ emojisiydi. */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <div className="bk-test-can"><img src="/uygulama/hakicon.svg" alt="" />{can}</div>
+          {hakAcik && <div className="bk-test-can"><img src="/uygulama/hakicon.svg" alt="" />{can}</div>}
         </div>
 
         <p className="bk-soluk" style={{ fontSize: 13, marginBottom: 6 }}>

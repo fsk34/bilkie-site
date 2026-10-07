@@ -1,5 +1,6 @@
 "use client";
 
+import { useHakSistemi } from "../lib/hak";
 import UcNokta from "./UcNokta";
 import AyRozetiKutusu from "./AyRozeti";
 import { ayVurgu } from "../lib/ayGorsel";
@@ -121,6 +122,7 @@ export default function Kabuk({ children }: { children: React.ReactNode }) {
 /* ---------------------------------------------------------------- sayaçlar */
 
 function Sayaclar({ ust, kisa = false }: { ust: UstBilgi | null; kisa?: boolean }) {
+  const hakAcik = useHakSistemi();
   const deger = (v?: number) => (ust ? String(v ?? 0) : "–");
   const sonuk = !ust;
 
@@ -142,11 +144,14 @@ function Sayaclar({ ust, kisa = false }: { ust: UstBilgi | null; kisa?: boolean 
         <img src="/uygulama/puanicon.svg" alt="" />
         <b>{deger(ust?.xp)}</b>
       </Link>
-      <span className={`bk-sayac can ${sonuk ? "sonuk" : ""}`} title="Can">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/uygulama/hakicon.svg" alt="" />
-        <b>{deger(ust?.can)}</b>
-      </span>
+      {/* Web'de hak sistemi kapalı (lib/hak.ts) — sayaç ancak açılınca */}
+      {hakAcik && (
+        <span className={`bk-sayac can ${sonuk ? "sonuk" : ""}`} title="Can">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/uygulama/hakicon.svg" alt="" />
+          <b>{deger(ust?.can)}</b>
+        </span>
+      )}
     </>
   );
 

@@ -16,6 +16,7 @@ import type { GorevDegisimi } from "../../../../lib/gorevYaz";
 import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useOturum } from "../../../../lib/oturum";
+import { useHakSistemi } from "../../../../lib/hak";
 import { useUstBilgi } from "../../../../lib/canliVeri";
 import { sessizHata, tavanli } from "../../../../lib/hata";
 import {
@@ -77,6 +78,8 @@ export default function YaziliCalismaSayfasi() {
   // Can CANLI dinleyiciden; yazma transaction'la (canDegistir), yerelde anında yansır
   const ust = useUstBilgi(sinif);
   const can = kullanici ? (ust?.can ?? CAN_LIMITI) : CAN_LIMITI;
+  // Web'de hak sistemi kapalı (lib/hak.ts): hak düşmez, sayaç görünmez — altyapı yerinde
+  const hakAcik = useHakSistemi();
   // Son soruda "Devam Et" çift dokunuşu: ikinci basış bitişi (XP/görev/istatistik) iki kez yazmasın
   const bitirildi = useRef(false);
 
@@ -220,7 +223,7 @@ export default function YaziliCalismaSayfasi() {
 
   function canAzalt() {
     // Gün kontrolü + 1 azaltma tek transaction'da (mutlak değer yazılmaz); ekran dinleyiciden
-    if (kullanici) canDegistir(kullanici.uid, -1);
+    if (kullanici && hakAcik) canDegistir(kullanici.uid, -1);
   }
 
   function kontrolEt() {
@@ -321,7 +324,7 @@ export default function YaziliCalismaSayfasi() {
           <button className="bk-cikis" aria-label="Çık" onClick={() => setCikisSor(true)}><img src="/uygulama/cikis.png" alt="" /></button>
           {cikisSor && <CikisOnayi onVazgec={() => setCikisSor(false)} onCik={() => router.push(`/yazili/${sinavKey}`)} />}
           <div className="bk-cubuk" style={{ flex: 1 }}><i style={{ width: `${oran}%` }} /></div>
-          <div style={{ fontFamily: "bk-baslik, system-ui" }}>❤️ {can}</div>
+          {hakAcik && <div style={{ fontFamily: "bk-baslik, system-ui" }}>❤️ {can}</div>}
         </div>
 
         <p className="bk-soluk" style={{ fontSize: 13, marginBottom: 6 }}>
