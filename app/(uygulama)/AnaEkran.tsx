@@ -140,7 +140,8 @@ function Icerik() {
         })}
       </div>
 
-      {yazili.durum === "kapali" && <YaziliSatiri metin={yazili.metin} />}
+      {/* Takvim beklenirken de yeri ayrılı (boş alt satırla): sonradan eklenip alttakileri kaydırmasın */}
+      {(yazili.durum === "kapali" || yazili.durum === "bekliyor") && <YaziliSatiri metin={yazili.durum === "kapali" ? yazili.metin : ""} />}
 
       <div className="bk-veri">
         <BilkieAIKutusu sinif={sinif} uid={kullanici?.uid ?? null} veri={veri} devam={devam} yazili={yazili.koc} seri={seri} />
@@ -312,7 +313,11 @@ function useYaziliDurumu(): YaziliDurumu {
     let iptal = false;
     yaziliTakvimi().then((r) => {
       if (iptal) return;
-      if (r.durum !== "basarili") { setD({ durum: "kapali", metin: "Yazılı zamanı geldiğinde burada açılacak", koc: null }); return; }
+      if (r.durum !== "basarili") {
+        // Okunamadıysa (çevrimdışı) saklı durum kalır — üstüne genel metin yazılmaz (Android 119c75e)
+        if (!yaziliSonOku()) setD({ durum: "kapali", metin: "Yazılı zamanı geldiğinde burada açılacak", koc: null });
+        return;
+      }
       const acik = [...r.sinavlar].reverse().find((s) => s.acik);   // birden çok açıksa en son açılan
       if (acik) { setD({ durum: "acik", sinav: acik, koc: { ad: acik.ad, anahtar: acik.anahtar, gunKaldi: 0 } }); return; }
       const bugun = new Date().toISOString().slice(0, 10);
@@ -347,7 +352,7 @@ function YaziliSatiri({ metin }: { metin: string }) {
   return (
     <Link href="/yazili" className="bk-sari-dugme bk-yazili-dugme">
       <span>📝 Yazılıya Hazırlık</span>
-      <small>{metin}</small>
+      <small>{metin || "\u00a0"}</small>
     </Link>
   );
 }
