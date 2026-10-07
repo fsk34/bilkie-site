@@ -3290,25 +3290,7 @@ html[data-bk-oturum="1"] .bk-oturum-sayfa[data-durum="bilinmiyor"] .bk-oturum-be
 .bk-not-soru .bk-not-dugme:first-child { background: #ffc107; }
 
 /* ------------------------------------------------- bölümlü oyunlar (Ok Bulmaca · Resim Yapboz) */
-/* 15 Eyl 2026: yaz kampından Oyunlar'a taşındı. Seçim ekranı: bölüm kartı + bitmiş bölümler ızgarası. */
-.bk-bolum-kart {
-  width: 100%; max-width: 520px; padding: 18px; border-radius: 20px; box-sizing: border-box;
-  background: var(--oyun-kart); border: 1px solid var(--oyun-cizgi); display: grid; gap: 12px; justify-items: stretch;
-}
-.bk-bolum-kart .ust { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
-.bk-bolum-kart .ust span { font-family: "bk-baslik", system-ui, sans-serif; font-size: 20px; font-weight: 700; }
-.bk-bolum-kart .ust small { font-size: 12px; color: var(--oyun-soluk); }
-.bk-bolum-kart .cubuk { height: 8px; border-radius: 4px; background: rgba(255,255,255,.12); overflow: hidden; }
-.bk-bolum-kart .cubuk i { display: block; height: 100%; background: #edc22e; border-radius: 4px; }
-.bk-bolum-baslik { width: 100%; max-width: 520px; font-size: 15px; margin: 18px 0 8px; color: var(--oyun-soluk); }
-.bk-bolum-izgara { width: 100%; max-width: 520px; display: grid; grid-template-columns: repeat(auto-fill, minmax(48px, 1fr)); gap: 8px; }
-.bk-bolum-goz {
-  height: 44px; border: 0; border-radius: 12px; cursor: pointer; font-family: "bk-baslik", system-ui, sans-serif; font-size: 14px; font-weight: 700;
-  background: var(--oyun-kart); color: #fff;
-}
-.bk-bolum-goz[data-durum="bitti"] { background: #2e6da4; }
-.bk-bolum-goz[data-durum="sirada"] { background: #edc22e; color: #000; }
-.bk-bolum-goz[data-durum="kilitli"] { opacity: .35; cursor: default; }
+/* 15 Eyl 2026: yaz kampından Oyunlar'a taşındı. Bölüm seçim ekranı 6 Eki'de kalktı (doğrudan kaldığı bölüm). */
 
 /* Ok Bulmaca: açık zemin + noktalı ızgara + lacivert oklar (Android ArrowBolum renkleri) */
 /* Android ArrowBolum görünümü: açık zemin, beyaz tahta, ince lacivert oklar */
@@ -3316,16 +3298,9 @@ html[data-bk-oturum="1"] .bk-oturum-sayfa[data-durum="bilinmiyor"] .bk-oturum-be
 .bk-ok-sahne .bk-oyun-ad { color: #2b3350; }
 .bk-ok-sahne .bk-oyun-geri { background: #2b3350; }
 .bk-ok-sahne .bk-oyun-ipucu { color: #4a5478; }
-.bk-ok-sahne .bk-bolum-kart { background: #fff; border-color: #e1e5f0; color: #2b3350; box-shadow: 0 6px 20px rgba(43,51,80,.08); }
-.bk-ok-sahne .bk-bolum-kart .ust small, .bk-ok-sahne .bk-bolum-baslik { color: #6a7aaa; }
-.bk-ok-sahne .bk-bolum-kart .cubuk { background: #e6e9f2; }
-.bk-ok-sahne .bk-bolum-goz { background: #e6e9f2; color: #2b3350; }
-.bk-ok-sahne .bk-bolum-goz[data-durum="bitti"] { background: #2b3350; color: #fff; }
-.bk-ok-sahne .bk-bolum-goz[data-durum="sirada"] { background: #edc22e; color: #000; }
 /* Android: hakicon 22 · 4 boşluk · MainFont kalın 18 */
 .bk-ok-hak { display: flex; align-items: center; gap: 4px; font-family: "bk-main", system-ui, sans-serif; font-size: 18px; font-weight: 700; color: #2b3350; }
 .bk-ok-hak b { font-weight: 700; }
-.bk-bolum-ipucu { margin: 0 0 18px; padding: 0 24px; font-family: "bk-main", system-ui, sans-serif; }
 .bk-ok-hak img { width: 22px; height: 22px; }
 /* Android: tahta = (genişlik − 48) × 0.90; köşe = hücre × 0.16 (SVG rect), gölge yok; üstte 18 boşluk */
 .bk-ok-tahta {
@@ -3595,14 +3570,6 @@ button.bk-cikis { background: none; border: 0; padding: 0; cursor: pointer; line
 .bk-bolum-ust .ad { flex: 1; margin-left: 8px; font-family: "bk-main", system-ui, sans-serif; font-size: 20px; font-weight: 400; color: #2b3350; }
 .bk-bolum-ust[data-tema="koyu"] .ad { color: #fff; }
 .bk-bolum-ust .sag { padding-right: 12px; display: flex; align-items: center; }
-
-/* Seçim kartı + ızgara — MainFont (eskiden bk-baslik), Oyna dikey 14 tam genişlik, gölge yok */
-.bk-bolum-kart .ust { align-items: flex-end; }
-.bk-bolum-kart .ust span { font-family: "bk-main", system-ui, sans-serif; }
-.bk-bolum-kart .bk-oyun-dugme { width: 100%; padding: 14px 0; color: #000; }
-.bk-bolum-goz { font-family: "bk-main", system-ui, sans-serif; }
-.bk-bolum-baslik { font-family: "bk-main", system-ui, sans-serif; font-weight: 400; }
-.bk-ok-sahne .bk-bolum-kart { box-shadow: none; }
 
 .bk-bolum-onay-dugme {
   flex: 1; border: 0; border-radius: 14px; cursor: pointer; padding: 13px 0;
