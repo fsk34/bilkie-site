@@ -25,6 +25,10 @@ import SonucAkisi, { type SeriArgs, type SonucArgs } from "../../../sonuc/SonucA
 import type { GorevDegisimi } from "../../../../lib/gorevYaz";
 import { enUzunSeriGuncelle, testBittiIsle } from "../../../../lib/ilerleme";
 import { hataDegisimleriYaz, type SoruSonucu } from "../../../../lib/hatalar";
+import { olayModuAcikMi } from "../../../../lib/olay/mod";
+import { testOlayiniYaz } from "../../../../lib/olay/bitisler";
+import { bitisOzeti } from "../../../../lib/olay/tahmin";
+import type { Yazilan } from "../../../../lib/olay/kutu";
 import { useOturum } from "../../../../lib/oturum";
 import { useUstBilgi } from "../../../../lib/canliVeri";
 import { sessizHata, tavanli } from "../../../../lib/hata";
@@ -134,9 +138,29 @@ export default function TestSayfasi() {
 
       // Bitiş işleri BİRBİRİNDEN BAĞIMSIZ (Android testBitisiniYaz, 24 Eyl 2026): her biri kendi
       // hatasını yutar; çevrimdışıyken biri dönmese de diğerleri başlar. Sonuç akışı en çok 3 sn bekler.
+      // Olay modu (şartname §8): karar BİR KEZ burada — aynı bitiş asla iki yoldan yazılmaz.
+      // Tek çok-yollu yazma, okuma/transaction yok → internetsiz de anında kutuda. Görev/seri özeti
+      // yerel tahminden (sunucu sonucu gelirse o).
+      let olay: Yazilan | null = null;
+      if (kullanici && olayModuAcikMi(kullanici.uid)) {
+        try {
+          olay = testOlayiniYaz({
+            uid: kullanici.uid, sinif, dersKey, konuKey, adim, dogru: sonDogru, toplam, sureSn,
+            sonuclar: soruSonuclari.current,
+          });
+        } catch (e) {
+          sessizHata("olayYaz", e);   // eski yola düşer
+        }
+      }
+
       const seriSozu: Promise<SeriArgs | null> = (async () => {
         if (!kullanici) { gorevCoz([]); return null; }
         const uid = kullanici.uid;
+        if (olay) {
+          const oz = await bitisOzeti(uid, olay);
+          gorevCoz(oz.gorevler);
+          return oz.seri?.ilkBugun ? { sayi: oz.seri.sayi, maske: oz.seri.maske, tetik: ACT_TEST } : null;
+        }
         // 1) completedSteps önce + adım sonucu (adimSonucuYaz üçünü aynı anda başlatır)
         adimSonucuYaz({ uid, sinif, dersKey, konuKey, adim, dogru: sonDogru, toplam, oncekiTamamlanan })
           .catch((e) => sessizHata("adimSonucu", e));

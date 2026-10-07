@@ -65,16 +65,24 @@ export function olgunHatalar(hatalar: Hata[], simdi: number): Hata[] {
 /** Test bitişinde biriktirilen sonuçlar: soru → doğru mu. Tek update ile yazılır. */
 export type SoruSonucu = { konu: string; adim: number; soruKey: string; dogru: boolean };
 
-export async function hataDegisimleriYaz(uid: string, sinif: number, ders: string, sonuclar: SoruSonucu[]): Promise<void> {
-  if (sonuclar.length === 0) return;
-  const simdi = Date.now();
+/**
+ * Sonuçların yazma haritası (saf) — `users/{uid}` altına göreli yollar. Eski yol (hataDegisimleriYaz)
+ * ve olay yazması (olay/bitisler.ts, tek çok-yollu yazmanın parçası) aynı haritayı kullanır.
+ */
+export function hataDegisimleri(sinif: number, ders: string, sonuclar: SoruSonucu[], simdi = Date.now()): Record<string, unknown> {
+  const kok = `hatalar/grade${sinifSinirla(sinif)}`;
   const degisim: Record<string, unknown> = {};
   for (const s of sonuclar) {
-    const yol = `${ders}/${s.konu}/${s.adim}_${s.soruKey}`;
+    const yol = `${kok}/${ders}/${s.konu}/${s.adim}_${s.soruKey}`;
     if (s.dogru) degisim[yol] = null;                         // öğrenildi → kayıt silinir (yoksa zararsız)
     else { degisim[`${yol}/zaman`] = simdi; degisim[`${yol}/sayi`] = increment(1); }
   }
-  await update(dbRef(kullaniciDb, hatalarYolu(uid, sinif)), degisim);
+  return degisim;
+}
+
+export async function hataDegisimleriYaz(uid: string, sinif: number, ders: string, sonuclar: SoruSonucu[]): Promise<void> {
+  if (sonuclar.length === 0) return;
+  await update(dbRef(kullaniciDb, `users/${uid}`), hataDegisimleri(sinif, ders, sonuclar));
 }
 
 /** Hata Turu'nun sorusu: içerik + kimlik. */

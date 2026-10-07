@@ -22,6 +22,7 @@ import { kullaniciDb, storage } from "./firebase";
 import { epostaAnahtari } from "./kayit";
 import { tumLigAnahtarlari } from "./sezon";
 import { bekleyenKullaniciyiSil } from "./veri";
+import { kutuKullaniciyiSil } from "./olay/kutu";
 
 const SINIFLAR = [3, 4, 5, 6, 7, 8];
 
@@ -46,6 +47,7 @@ export async function hesabiTamamenSil(user: User): Promise<void> {
   const kok = dbRef(kullaniciDb);
   // Bekleyen oyun yazmaları silinen verinin bir kısmını sunucuda yeniden oluşturmasın
   bekleyenKullaniciyiSil(uid);
+  kutuKullaniciyiSil(uid);   // bekleyen olaylar silinen veriyi yeniden oluşturmasın
 
   // Dizin anahtarları profilden okunur (önbellek bayat olabilir → DB'den)
   let username = "";

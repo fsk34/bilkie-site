@@ -69,6 +69,14 @@ export function hatirlananlariUnut(): void {
   }
 }
 
+/**
+ * Ekranların hatırladığı son değer (canlı dinleyici yoksa ağa gitmeden). Çevrimdışı açılışta Firebase
+ * bellek önbelleği boştur; bitiş tahmini (olay/tahmin.ts) görev/seri düğümlerini buradan alır.
+ */
+export function hatirlananDeger(db: Database, yol: string): { bulundu: boolean; veri: unknown } {
+  return hatirlananOku(`${dbAdi(db)}|${yol}`);
+}
+
 // Database örneğine sabit bir ad ver (iç alanlarına dokunmadan).
 const dbAdlari = new WeakMap<Database, string>();
 let dbSayaci = 0;

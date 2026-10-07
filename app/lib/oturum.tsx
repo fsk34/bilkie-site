@@ -17,6 +17,8 @@ import { hatirlananlariUnut } from "./canli";
 import { sessizHata } from "./hata";
 import { onbellegiBosalt } from "./onbellek";
 import { bekleyenleriIzle, profilOku, type Profil } from "./veri";
+import { kutuyuIzle } from "./olay/kutu";
+import { olayModunuIzle } from "./olay/mod";
 import { kullaniciAdiOnar } from "./profilYaz";
 
 /* Profil önbelleği (localStorage, uid başına). Kapı Auth cevabıyla açılır; profil için
@@ -73,6 +75,13 @@ export function OturumSaglayici({ children }: { children: React.ReactNode }) {
   // İnternetsiz yapılmış oyun rekoru/bölümü: girişte ve bağlantı her gelişinde sunucuya gönder
   const uid = kullanici?.uid;
   useEffect(() => (uid ? bekleyenleriIzle(uid) : undefined), [uid]);
+  // Olay kutusu (şartname §8.1): internetsiz biten test/defter/yazılı… girişte ve bağlantı gelince gider
+  useEffect(() => {
+    if (!uid) return undefined;
+    const birakMod = olayModunuIzle();
+    const birakKutu = kutuyuIzle(uid);
+    return () => { birakKutu(); birakMod(); };
+  }, [uid]);
 
   useEffect(() => {
     // Oturum değişince önceki kullanıcının gecikmiş DB cevabı uygulanmasın
