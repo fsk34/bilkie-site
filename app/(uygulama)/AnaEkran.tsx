@@ -24,13 +24,13 @@ import UcNokta from "./UcNokta";
 import { useOturum } from "../lib/oturum";
 import { uniteler } from "../lib/katalog";
 import {
-  useDefterIlerlemesi, useGorevDurumu, useGorevler, useIstatistikAgaci, useQuizBitenler, useSonDokunulan, useTestIlerlemesi, useUstBilgi,
+  useDefterIlerlemesi, useEvdeKayitlari, useGorevDurumu, useHatalar, useGorevler, useIstatistikAgaci, useQuizBitenler, useSonDokunulan, useTestIlerlemesi, useUstBilgi,
 } from "../lib/canliVeri";
 import { defterSayfalariGetir, sorulariGetir, type Gorev } from "../lib/veri";
 import { istatistikBirlestir, kocIstatistikCoz, kocPlaniHesapla, type KocIstatistik, type KocPlani } from "../lib/koc";
 import { useCevrimici } from "../lib/cevrimici";
-import { evdeKayitlariOku, evdeOzetle, type EvdeOzet } from "../lib/evde";
-import { HATA_OLGUNLASMA_GUN, hatalariOku, olgunHatalar } from "../lib/hatalar";
+import { evdeOzetle, type EvdeOzet } from "../lib/evde";
+import { HATA_OLGUNLASMA_GUN, olgunHatalar } from "../lib/hatalar";
 import { acilisMetni, yaziliTakvimi, type YaziliSinav } from "../lib/yaziliTakvim";
 import { ayVurgu } from "../lib/ayGorsel";
 import { gunAnahtari } from "../lib/tarih";
@@ -330,7 +330,6 @@ function useYaziliDurumu(): YaziliDurumu {
       });
     });
     return () => { iptal = true; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   return d.durum === "bekliyor" && son ? son : d;
 }
@@ -360,7 +359,7 @@ function YaziliSatiri({ metin }: { metin: string }) {
 /* ------------------------------------------------------------- Bilkie AI */
 /* Kural tabanlı koç (lib/koc.ts): istatistik (subjects) tek okunur; ilerleme/defter/quiz canlı.
    API/LLM yok. Veri yetersizse teşhis uydurmaz, "seni tanıyayım" der. Sonra İstatistik'te tam alan. */
-function BilkieAIKutusu({ sinif, uid, veri, devam, yazili, seri }: {
+function BilkieAIKutusu({ sinif, veri, devam, yazili, seri }: {
   sinif: number; uid: string | null;
   veri: DevamVerisi | null;
   devam: DevamKartiVerisi | null;
@@ -370,19 +369,16 @@ function BilkieAIKutusu({ sinif, uid, veri, devam, yazili, seri }: {
   // İstatistik CANLI (stats/grade{N} ağacı — İstatistik ekranıyla paylaşılan abonelik).
   // Evde çözülenler de sayılır (evde.ts): koç çocuğun kâğıttaki yarısını da görsün.
   const agac = useIstatistikAgaci(sinif);
-  const [evde, setEvde] = useState<EvdeOzet | null>(null);
+  // Hatalar ve evde kayıtları da CANLI + hatırlanan: kutu ana ekrana her girişte boştan yüklenmesin
+  const evdeKayit = useEvdeKayitlari(sinif);
+  const evde = useMemo<EvdeOzet | null>(() => (evdeKayit === null ? null : evdeKayit.length > 0 ? evdeOzetle(evdeKayit) : {}), [evdeKayit]);
   const cevrimici = useCevrimici();
-  const [hatalar, setHatalar] = useState<{ olgun: number; toplam: number } | null>(null);
-  useEffect(() => {
-    if (!uid) return;
-    let iptal = false;
-    Promise.all([hatalariOku(uid, sinif), evdeKayitlariOku(uid, sinif)]).then(([h, e]) => {
-      if (iptal) return;
-      setEvde(e.length > 0 ? evdeOzetle(e) : {});
-      setHatalar({ olgun: olgunHatalar(h, Date.now()).length, toplam: h.length });
-    });
-    return () => { iptal = true; };
-  }, [uid, sinif]);
+  const hataListesi = useHatalar(sinif);
+  const [simdi] = useState(() => Date.now());   // olgunluk için sabit "şimdi" (render'da Date.now() yok)
+  const hatalar = useMemo(
+    () => (hataListesi === null ? null : { olgun: olgunHatalar(hataListesi, simdi).length, toplam: hataListesi.length }),
+    [hataListesi, simdi]
+  );
   const istatistik: KocIstatistik | null = useMemo(() => {
     if (!agac || evde === null) return null;
     const app = kocIstatistikCoz((agac as { subjects?: unknown }).subjects);
@@ -438,13 +434,14 @@ function dersKisa(d: string): string {
 /* Hata Turu'nun kalıcı evi (Duolingo "Mistakes"): toplam yanlış, kaçı tekrar için olgun; boşsa kutlama.
    Bilgie Koç zamanı gelince dürter, burası her zaman durur. Tek okuma (kutu açılınca). */
 function YanlislarimKutusu({ uid, sinif }: { uid: string | null; sinif: number }) {
-  const [sayim, setSayim] = useState<{ olgun: number; toplam: number } | null>(null);
-  useEffect(() => {
-    if (!uid) return;
-    let iptal = false;
-    hatalariOku(uid, sinif).then((h) => { if (!iptal) setSayim({ olgun: olgunHatalar(h, Date.now()).length, toplam: h.length }); });
-    return () => { iptal = true; };
-  }, [uid, sinif]);
+  // CANLI + hatırlanan (Bilgie Koç kutusuyla aynı abonelik): her girişte boştan yüklenmez, Hata Turu'ndan
+  // dönünce sayı kendiliğinden güncellenir
+  const liste = useHatalar(sinif);
+  const [simdi] = useState(() => Date.now());
+  const sayim = useMemo(
+    () => (uid && liste ? { olgun: olgunHatalar(liste, simdi).length, toplam: liste.length } : null),
+    [uid, liste, simdi]
+  );
 
   return (
     <div className="bk-veri-kutu bk-yanlislarim">

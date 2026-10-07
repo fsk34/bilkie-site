@@ -15,11 +15,11 @@ import Link from "next/link";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import UcNokta from "../UcNokta";
 import { konuAyristir, uniteler } from "../../lib/katalog";
-import { useDefterIlerlemesi, useIstatistikAgaci, useQuizBitenler, useSonDokunulan, useTestIlerlemesi, useUstBilgi } from "../../lib/canliVeri";
+import { useDefterIlerlemesi, useEvdeKayitlari, useHatalar, useIstatistikAgaci, useQuizBitenler, useSonDokunulan, useTestIlerlemesi, useUstBilgi } from "../../lib/canliVeri";
 import { dersEtiketi, devamKartiHesapla, type DevamVerisi } from "../../lib/anaEkran";
 import { ESIK, KURAL_ETIKETI, istatistikBirlestir, kocGozlemleri, kocIstatistikCoz, type KocGozlem, type KocIstatistik } from "../../lib/koc";
-import { evdeKayitSil, evdeKayitlariOku, evdeOzetle, type EvdeKayit } from "../../lib/evde";
-import { HATA_OLGUNLASMA_GUN, hatalariOku, olgunHatalar, type Hata } from "../../lib/hatalar";
+import { evdeKayitSil, evdeOzetle, type EvdeKayit } from "../../lib/evde";
+import { HATA_OLGUNLASMA_GUN, olgunHatalar, type Hata } from "../../lib/hatalar";
 import { yaziliTakvimi } from "../../lib/yaziliTakvim";
 import { dersRengi } from "../../lib/veri";
 import { sessizHata } from "../../lib/hata";
@@ -37,17 +37,18 @@ export default function BilgieKocBolumu({ uid, sinif, dersKey, onDersSec }: { ui
   // İstatistik CANLI (stats/grade{N} ağacı, İstatistik ekranıyla aynı abonelik); evde
   // çözülenler üstüne eklenir. Hatalar/evde/takvim ise açılışta bir kez okunur.
   const agac = useIstatistikAgaci(sinif);
-  const [hatalar, setHatalar] = useState<Hata[] | null>(null);
-  const [evde, setEvde] = useState<EvdeKayit[] | null>(null);
+  // Hatalar ve evde kayıtları CANLI + hatırlanan (ana ekranla aynı abonelik)
+  const hatalar = useHatalar(sinif);
+  const evde = useEvdeKayitlari(sinif);
   const [simdi, setSimdi] = useState(0);   // veri geldiğinde sabitlenen "şimdi" (render'da Date.now() yok)
   const cevrimici = useCevrimici();
   const [yazili, setYazili] = useState<{ ad: string; anahtar: string; gunKaldi: number } | null | undefined>(undefined);
 
   useEffect(() => {
     let iptal = false;
-    Promise.all([hatalariOku(uid, sinif), yaziliTakvimi(), evdeKayitlariOku(uid, sinif)]).then(([h, t, e]) => {
+    yaziliTakvimi().then((t) => {
       if (iptal) return;
-      setHatalar(h); setEvde(e); setSimdi(Date.now());
+      setSimdi(Date.now());
       if (t.durum !== "basarili") { setYazili(null); return; }
       const acik = [...t.sinavlar].reverse().find((s) => s.acik);   // birden çok açıksa en son açılan (ana ekranla aynı)
       if (acik) { setYazili({ ad: acik.ad, anahtar: acik.anahtar, gunKaldi: 0 }); return; }
@@ -95,7 +96,7 @@ export default function BilgieKocBolumu({ uid, sinif, dersKey, onDersSec }: { ui
       <Hiz sinif={sinif} istatistik={istatistik} dersler={dersler} />
       <Yanlislar sinif={sinif} hatalar={hatalar} dersler={dersler} simdi={simdi} />
       <EvdeCozduklerim uid={uid} sinif={sinif} secili={dersKey} kayitlar={(evde ?? []).filter((k) => dersler.includes(k.ders))}
-        silindi={(id) => setEvde((l) => (l ? l.filter((k) => k.id !== id) : l))} />
+        silindi={() => { /* canlı dinleyici siler */ }} />
     </div>
   );
 }

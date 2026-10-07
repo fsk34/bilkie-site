@@ -17,6 +17,8 @@ import { kullaniciDb } from "./firebase";
 import { useCanli, useCanliSorgu } from "./canli";
 import { tavanli } from "./hata";
 import { sonDokunulanCoz, type SonDokunulan } from "./anaEkran";
+import { hatalarYolu, hatalariCoz, type Hata } from "./hatalar";
+import { evdeKayitlariCoz, evdeYolu, type EvdeKayit } from "./evde";
 import { quizBitenlerYolu, quizBitenleriCoz, quizHamBirlestir, quizIstemciYolu } from "./quiz";
 import { useKullanici, useKullaniciDugumleri, useKullaniciDugumu } from "./kullaniciVerisi";
 import { dugumBindir, useBekleyenOlaylar, useHamKatalog, useIstemciBindir, useKutuSurumu } from "./olay/bindir";
@@ -104,6 +106,22 @@ export function useSeriDugumu(): Record<string, unknown> | null {
     const h = uid && bekleyen.length ? dugumBindir(uid, `users/${uid}/streak`, r.h, bekleyen, null) : r.h;
     return (h ?? {}) as Record<string, unknown>;
   }, [r, uid, bekleyen]);
+}
+
+/**
+ * Hata Turu kayıtları CANLI + hatırlanan (ana ekran Bilgie Koç / Yanlışlarım, İstatistik → Koç).
+ * Eskiden her açılışta tek okuma: kutular her girişte boştan yükleniyordu. Kutudaki olayların hata
+ * değişimleri (doğru → silindi) de bindirilir. `null` = bilinmiyor.
+ */
+export function useHatalar(sinif: number): Hata[] | null {
+  const r = useHamBindirilmis((uid) => hatalarYolu(uid, sinif));
+  return useMemo(() => (r === null ? null : hatalariCoz(r.h)), [r]);
+}
+
+/** "Evde çözdüm" kayıtları CANLI + hatırlanan (koç hesabı). `null` = bilinmiyor. */
+export function useEvdeKayitlari(sinif: number): EvdeKayit[] | null {
+  const r = useHamBindirilmis((uid) => evdeYolu(uid, sinif));
+  return useMemo(() => (r === null ? null : evdeKayitlariCoz(r.h)), [r]);
 }
 
 export function useProfil(): Profil | null {
