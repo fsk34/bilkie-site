@@ -11,10 +11,10 @@ import { AksiyonDugmesi, AltSonucBandi } from "../../../TestAlt";
 import CikisOnayi from "../../../CikisOnayi";
 import Link from "next/link";
 import Perde from "../../../Perde";
-import SonucAkisi, { type SeriArgs } from "../../../sonuc/SonucAkisi";
+import SonucAkisi, { type SeriArgs, type SonucArgs } from "../../../sonuc/SonucAkisi";
 import type { GorevDegisimi } from "../../../../lib/gorevYaz";
 import { useParams, useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useOturum } from "../../../../lib/oturum";
 import { useUstBilgi } from "../../../../lib/canliVeri";
 import { sessizHata, tavanli } from "../../../../lib/hata";
@@ -55,7 +55,7 @@ const BOLUM_ADI: Record<Bolum, string> = {
   siralama: "Sıralama", acikuclu: "Açık Uçlu", test: "Test", dogruyanlis: "Doğru-Yanlış",
 };
 
-type Durum = "yukleniyor" | "hata" | "cozuluyor" | "bitti";
+type Durum = "yukleniyor" | "hata" | "cozuluyor" | "sonuc";
 
 export default function YaziliCalismaSayfasi() {
   const router = useRouter();
@@ -94,15 +94,7 @@ export default function YaziliCalismaSayfasi() {
   const [dogrular, setDogrular] = useState<Record<Bolum, number>>({
     siralama: 0, acikuclu: 0, test: 0, dogruyanlis: 0,
   });
-  const [kazanilanXp, setKazanilanXp] = useState(0);
-  const [tekrarCozum, setTekrarCozum] = useState(false);
-  const [seriSayisi, setSeriSayisi] = useState<number | null>(null);
-  // Seri bugün ilk kez işaretlendiyse uygulamadaki seri özeti gösterilir.
-  const [seriAkisi, setSeriAkisi] = useState<SeriArgs | null>(null);
-  const seriSozu = useMemo(() => (seriAkisi ? Promise.resolve(seriAkisi) : null), [seriAkisi]);
-  // Yazılıda da sonuç kartı yok; görev özeti varsa akış onunla açılır.
-  const [gorevDegisimleri, setGorevDegisimleri] = useState<GorevDegisimi[]>([]);
-  const gorevSozu = useMemo(() => Promise.resolve(gorevDegisimleri), [gorevDegisimleri]);
+  const [akis, setAkis] = useState<{ sonuc: SonucArgs; seriSozu: Promise<SeriArgs | null>; gorevSozu: Promise<GorevDegisimi[]> } | null>(null);
 
   const bolum = bolumler[bolumIndeks];
 
@@ -181,68 +173,49 @@ export default function YaziliCalismaSayfasi() {
   // Adımın başlangıcı — istatistikteki ortalama süre için (Android: durationSec)
   const baslangicRef = useRef(Date.now());
 
-  const bitir = useCallback(async (dogru: number, toplam: number) => {
+  // Bitiş: Android'deki gibi genel Sonuç akışı (sonuç kartı → seri özeti → görev özeti). Puan kartta
+  // doğru × 4 (Android ResultArgs.score); ödül yazımı kart ekrandayken arkada sürer.
+  const bitir = useCallback((dogru: number, toplam: number) => {
     if (bitirildi.current) return;
     bitirildi.current = true;
-    setDurum("bitti");
-    if (!kullanici) return;
-    const uid = kullanici.uid;
     const sureSn = Math.max(1, Math.round((Date.now() - baslangicRef.current) / 1000));
-    // Olay modu: karar BİR KEZ burada — aynı bitiş asla iki yoldan yazılmaz
-    if (olayModuAcikMi(uid)) {
-      try {
-        const o = await yaziliOlayiniYaz({ uid, sinif, ders: dersKey, sinav: sinavKey, adim, dogru, toplam, sureSn });
-        if (o) {
-          const oz = await bitisOzeti(uid, o);
-          const puan = dogru * XP_DOGRU_YAZILI;
-          // İlk kez kararı: sunucu sonucu gelirse o, yoksa yerel motor (xp_once işareti + kutu)
-          const ilkKez = oz.ilkKez ?? true;
-          setKazanilanXp(ilkKez ? puan : 0);
-          setTekrarCozum(puan > 0 && !ilkKez);
-          if (oz.seri) setSeriSayisi(oz.seri.sayi);
-          setSeriAkisi(oz.seri?.ilkBugun ? { sayi: oz.seri.sayi, maske: oz.seri.maske, tetik: ACT_YAZILI } : null);
-          if (oz.gorevler.length > 0) setGorevDegisimleri(oz.gorevler);
-          return;
+    const puan = Math.max(0, dogru) * XP_DOGRU_YAZILI;
+    let gorevCoz: (d: GorevDegisimi[]) => void = () => {};
+    const gorevSozu = new Promise<GorevDegisimi[]>((c) => { gorevCoz = c; });
+
+    const seriSozu: Promise<SeriArgs | null> = (async () => {
+      if (!kullanici) { gorevCoz([]); return null; }
+      const uid = kullanici.uid;
+      // Olay modu: karar BİR KEZ burada — aynı bitiş asla iki yoldan yazılmaz
+      if (olayModuAcikMi(uid)) {
+        try {
+          const o = await yaziliOlayiniYaz({ uid, sinif, ders: dersKey, sinav: sinavKey, adim, dogru, toplam, sureSn });
+          if (o) {
+            const oz = await bitisOzeti(uid, o);
+            gorevCoz(oz.gorevler);
+            return oz.seri?.ilkBugun ? { sayi: oz.seri.sayi, maske: oz.seri.maske, tetik: ACT_YAZILI } : null;
+          }
+        } catch (e) {
+          sessizHata("olayYaz", e);   // eski yola düşer
         }
-      } catch (e) {
-        sessizHata("olayYaz", e);   // eski yola düşer
       }
-    }
-    // Başarımlar + görevler + istatistik — Android onYaziliCompleted zinciri; ilerleme/XP/seri
-    // yazmasından BAĞIMSIZ başlar (çevrimdışıyken biri dönmese de diğeri yürür).
-    // Doğru/toplam adımın TÜM bölümlerinden (S1); XP de öyle veriliyor.
-    const gorevIs = yaziliBittiIsle({
-      uid, sinif, dersKey, sinavKey,
-      dogru, toplam,
-      sureSn,
-      puan: Math.max(0, dogru) * XP_DOGRU_YAZILI,
-      // Android: incrementCounter = stepKey == "step1" — hazırlanan yazılı sayacı adım 2'de artmaz
-      sayaciArtir: adim === "step1",
-    }).catch(() => [] as GorevDegisimi[]);
-    // ⚠️ Seri ve görev özeti AYNI ANDA açılmalı: seri önce açılırsa özet akışı onunla başlar,
-    // görevler birkaç saniye sonra gelince akış baştan kurulur → seri ekranı bir an görünüp
-    // görev özetine atlar, Devam Et'te seri yeniden gelir (27 Eyl). Akış ilk adımını açıldığı
-    // anda seçer; bu yüzden ikisi de hazır olana kadar hiçbiri state'e yazılmaz.
-    let seri: SeriArgs | null = null;
-    // Çevrimdışıyken yazma sözleri dönmez → en çok 6 sn beklenir (Android), iş arkada sürer
-    const sonuc = await tavanli(yaziliTamamla({
-      uid, sinif, dersKey, sinavKey, adim, dogru, toplam,
-    }), 6000);
-    if (sonuc) {
-      setKazanilanXp(sonuc.xp);
-      setTekrarCozum(!sonuc.ilkKez);
-      if (sonuc.seri?.basarili) {
-        setSeriSayisi(sonuc.seri.sayi);
-        if (sonuc.seri.ilkAktiviteBugun) {
-          seri = { sayi: sonuc.seri.sayi, maske: sonuc.seri.maske, tetik: ACT_YAZILI };
-        }
-        // En uzun seri rekoru: tek yazma, sınıfa göre kırpılmış (beklenmez)
-        if (sonuc.seri.sayi > 0) void enUzunSeriGuncelle(uid, sinif, sonuc.seri.sayi).catch((e) => sessizHata("seriRekor", e));
-      }
-    }
-    const gorevler = await tavanli(gorevIs, 3000);
-    setSeriAkisi(seri);
-    if (gorevler && gorevler.length > 0) setGorevDegisimleri(gorevler);
+      // Eski yol — başarımlar + görevler + istatistik (Android onYaziliCompleted); ilerleme/XP/seri
+      // yazmasından BAĞIMSIZ başlar (çevrimdışıyken biri dönmese de diğeri yürür). S1: tüm bölümler.
+      yaziliBittiIsle({
+        uid, sinif, dersKey, sinavKey, dogru, toplam, sureSn, puan,
+        // Android: incrementCounter = stepKey == "step1" — hazırlanan yazılı sayacı adım 2'de artmaz
+        sayaciArtir: adim === "step1",
+      }).then(gorevCoz, () => gorevCoz([]));
+      // Çevrimdışıyken yazma sözleri dönmez → en çok 6 sn beklenir (Android), iş arkada sürer
+      const sonuc = await tavanli(yaziliTamamla({ uid, sinif, dersKey, sinavKey, adim, dogru, toplam }), 6000);
+      if (!sonuc?.seri?.basarili) return null;
+      // En uzun seri rekoru: tek yazma, sınıfa göre kırpılmış (beklenmez)
+      if (sonuc.seri.sayi > 0) void enUzunSeriGuncelle(uid, sinif, sonuc.seri.sayi).catch((e) => sessizHata("seriRekor", e));
+      return sonuc.seri.ilkAktiviteBugun ? { sayi: sonuc.seri.sayi, maske: sonuc.seri.maske, tetik: ACT_YAZILI } : null;
+    })();
+
+    setDurum("sonuc");
+    setAkis({ sonuc: { dogru, toplam, sureSn, puan }, seriSozu, gorevSozu });
   }, [kullanici, sinif, dersKey, sinavKey, adim]);
 
   function canAzalt() {
@@ -319,62 +292,16 @@ export default function YaziliCalismaSayfasi() {
     );
   }
 
-  if (seriAkisi || gorevDegisimleri.length > 0) {
+  if (durum === "sonuc" && akis) {
     return (
       <SonucAkisi
-        sonuc={null}
-        seriSozu={seriSozu}
-        gorevSozu={gorevSozu}
+        sonuc={akis.sonuc}
+        seriSozu={akis.seriSozu}
+        gorevSozu={akis.gorevSozu}
         uid={kullanici?.uid ?? null}
-        onBitti={() => { setSeriAkisi(null); setGorevDegisimleri([]); }}
+        misafir={!kullanici}
+        onBitti={() => router.push(`/yazili/${sinavKey}`)}
       />
-    );
-  }
-
-  if (durum === "bitti") {
-    const toplamDogru = bolumler.reduce((t, b) => t + dogrular[b], 0);
-    const toplamSoru = siralama.length + acik.length + test.length + dy.length;
-    return (
-      <div className="bk">
-        <div className="bk-test" style={{ textAlign: "center", paddingTop: 56 }}>
-          <div style={{ fontSize: 64, marginBottom: 8 }}>✍️</div>
-          <h1 style={{ fontSize: 26 }}>Yazılı çalışması bitti!</h1>
-          <p className="bk-soluk" style={{ margin: "8px 0 22px" }}>
-            {DERS_ADI[dersKey] ?? dersKey} · {adim === "step1" ? "1." : "2."} çalışma
-          </p>
-
-          <div className="bk-rozetler" style={{ maxWidth: 460, margin: "0 auto 18px" }}>
-            <div className="bk-rozet"><span>✅</span><span>{toplamDogru}/{toplamSoru}</span></div>
-            <div className="bk-rozet"><span>⚡</span><span>+{kazanilanXp} XP</span></div>
-            {seriSayisi != null && <div className="bk-rozet"><span>🔥</span><span>{seriSayisi}</span></div>}
-          </div>
-
-          {kullanici && tekrarCozum && (
-            <p className="bk-soluk" style={{ margin: "0 auto 18px", maxWidth: 420, fontSize: 14 }}>
-              Bu çalışmayı daha önce bitirmiştin; XP yalnızca ilk seferde veriliyor.
-            </p>
-          )}
-
-          <div className="bk-kart" style={{ maxWidth: 460, margin: "0 auto 22px", textAlign: "left" }}>
-            {bolumler.map((b) => (
-              <div key={b} style={{ display: "flex", justifyContent: "space-between", padding: "6px 0" }}>
-                <span className="bk-soluk" style={{ fontSize: 14 }}>{BOLUM_ADI[b]}</span>
-                <span style={{ fontFamily: "bk-baslik, system-ui", fontSize: 14 }}>
-                  {dogrular[b]}/{b === "siralama" ? siralama.length : b === "acikuclu" ? acik.length : b === "test" ? test.length : dy.length}
-                </span>
-              </div>
-            ))}
-          </div>
-
-          {!kullanici && (
-            <p className="bk-soluk" style={{ margin: "0 auto 20px", maxWidth: 400, fontSize: 14 }}>
-              Misafir olarak çalıştın — sonuç kaydedilmedi.
-            </p>
-          )}
-
-          <Link className="bk-dugme" href={`/yazili/${sinavKey}`}>Derslere dön</Link>
-        </div>
-      </div>
     );
   }
 
