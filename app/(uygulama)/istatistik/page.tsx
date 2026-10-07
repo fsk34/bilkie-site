@@ -65,6 +65,12 @@ function Icerik() {
   // ?sekme=koc → doğrudan Bilgie Koç sekmesi (ana ekran kartındaki "HEPSİNİ GÖSTER")
   const sekmeParam = useSearchParams().get("sekme");
   const [bolum, setBolum] = useState(sekmeParam === "koc" ? 3 : 0);
+  // Sayfa açıkken de gelebilir (aynı rota, bileşen yeniden kurulmaz): her değişimde uygula (Android 25c3544)
+  const [sonSekmeParam, setSonSekmeParam] = useState(sekmeParam);
+  if (sekmeParam !== sonSekmeParam) {
+    setSonSekmeParam(sekmeParam);
+    if (sekmeParam === "koc") setBolum(3);
+  }
   const [ders, setDers] = useState<string | null>(null);
   const [secimAcik, setSecimAcik] = useState(false);
 
