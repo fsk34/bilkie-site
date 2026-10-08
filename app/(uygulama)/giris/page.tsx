@@ -6,7 +6,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   GoogleAuthProvider,
   sendPasswordResetEmail,
@@ -65,9 +65,16 @@ export default function GirisSayfasi() {
   // bilinmezken de kökteki `bk-oturum` bayrağına bakılır (bkz. app/layout.tsx +
   // uygulama.css) — bayrak varsa ilk boyamadan itibaren form yerine üç nokta görünür.
   // Yoksa "giriş ekranı gelip sonra kendiliğinden giriş yapıyor" gibi görünüyordu.
+  //
+  // Karar yalnız oturumun İLK bilinişinde (kayıt sayfasıyla aynı): sayfadaki Google/Apple düğmesiyle açılan
+  // oturumda yönlendirmeyi giriş fonksiyonu yapar (profil yoksa kuruluma). Eskiden bu kural sürekli
+  // çalışıyordu → yeni kullanıcı önce ana ekrana gidip oradan kuruluma atılıyordu: ana ekran "flash"ı (8 Eki).
+  const ilkKarar = useRef<boolean | null>(null);
+  if (!yukleniyor && ilkKarar.current === null) ilkKarar.current = !!kullanici;
+  const zatenGirili = ilkKarar.current === true;
   useEffect(() => {
-    if (!yukleniyor && kullanici) router.replace("/");
-  }, [yukleniyor, kullanici, router]);
+    if (zatenGirili) router.replace("/");
+  }, [zatenGirili, router]);
   const durum = yukleniyor ? "bilinmiyor" : kullanici ? "girili" : "misafir";
 
   async function profilKontrol(uid: string): Promise<boolean> {

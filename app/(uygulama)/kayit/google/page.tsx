@@ -72,6 +72,18 @@ export default function GoogleKurulumSayfasi() {
     return () => { iptal = true; };
   }, [yukleniyor, kullanici, router]);
 
+  // Kayıt sayfasında onay verilip gelindiyse (?onay=1) onay adımı atlanır — iki kez sorulmasın (8 Eki).
+  // Giriş sayfasından gelen yeni kullanıcı hiç onay vermedi → ona burada sorulur. Onay kaydı kurulum
+  // tamamlanırken yazılır (googleKaydiniTamamla). Profil kontrolü sürerken yükleme gösterildiği için
+  // 1. adım hiç görünmez.
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("onay") === "1") {
+      setSartlar(true);
+      setGizlilik(true);
+      setAdim((a) => (a === 1 ? 2 : a));
+    }
+  }, []);
+
   const onayVerildi = sartlar && gizlilik;
 
   async function iptalEt() {

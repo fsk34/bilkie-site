@@ -10,7 +10,6 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import {
   createUserWithEmailAndPassword,
-  getAdditionalUserInfo,
   GoogleAuthProvider,
   sendEmailVerification,
   signInWithEmailAndPassword,
@@ -98,8 +97,8 @@ export default function KayitSayfasi() {
         router.replace("/");
         return;
       }
-      const yeniMi = getAdditionalUserInfo(sonuc)?.isNewUser ?? true;
-      router.replace(`/kayit/google${yeniMi ? "" : "?devam=1"}`);
+      // Onay bu sayfada verildi (düğme ancak onayla açılıyor) → kurulum onay adımını atlar
+      router.replace("/kayit/google?onay=1");
     } catch (err) {
       setHata(kayitHataMetni(err));
       setBekliyor(false);
@@ -176,7 +175,6 @@ export default function KayitSayfasi() {
                   onClick={() => googleIleDevam()}
                   disabled={!onayVerildi || bekliyor}
                 />
-                <div style={{ height: 12 }} />
                 <AppleDugme
                   yazi="Apple ile devam et"
                   onClick={() => googleIleDevam(true)}
