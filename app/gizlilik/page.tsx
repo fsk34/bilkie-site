@@ -27,6 +27,7 @@ const sections = [
         items: [
           "Uygulama içi ilerleme (çözülen testler, okunan defterler, puan, başarımlar)",
           "Seri ve lig bilgileri",
+          "Notlara eklediğiniz metin ve görseller",
           "Bildirim tercihleri ve ses ayarları",
         ],
       },
@@ -38,7 +39,7 @@ const sections = [
         ],
       },
     ],
-    note: "Bilkie, 13 yaşından küçük kullanıcılara ait verileri bilerek toplamaz. Bir ebeveyn olarak çocuğunuzun hesap oluşturduğunu düşünüyorsanız bizimle iletişime geçiniz.",
+    note: "Bilkie ilkokul ve ortaokul öğrencilerine yönelik bir eğitim uygulamasıdır. 18 yaşından küçük kullanıcıların kayıt olabilmesi için ebeveyn veya veli onayı gerekir. Çocuklara ait veriler yalnızca hizmetin sunulması için gereken ölçüde işlenir; reklam amacıyla profil çıkarılmaz ve hiçbir veri satılmaz. Ebeveynler, çocuklarının hesabının ve verilerinin silinmesini uygulama içinden ya da info@bilkie.com adresinden talep edebilir.",
   },
   {
     title: "3. Verilerin Kullanım Amacı",
@@ -70,7 +71,7 @@ const sections = [
       },
       {
         name: "Google AdMob",
-        desc: "Yalnızca kullanıcının kendi isteğiyle izlediği ödüllü reklamlar için kullanılmaktadır. AdMob reklam tanımlayıcıları toplayabilir.",
+        desc: "Mobil uygulamada banner, geçiş ve isteğe bağlı ödüllü reklamlar gösterilir. Tüm reklam istekleri \"çocuklara yönelik\" olarak işaretlenir; reklamlar kişiselleştirilmez, içerik derecesi \"ebeveyn rehberliği\" (PG) ile sınırlıdır ve reklam kimliği toplanmaz. Web sitesinde reklam gösterilmez.",
         link: { label: "AdMob Gizlilik Politikası", url: "https://support.google.com/admob/answer/6128543" },
       },
     ],
