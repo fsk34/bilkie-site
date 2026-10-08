@@ -10,6 +10,7 @@ import { kullaniciDb } from "./firebase";
 import { profilYolu, sinifSinirla } from "./veri";
 import { gunAnahtari } from "./tarih";
 import { appleMi, gizliEpostaMi } from "./appleGiris";
+import { uygunsuzAdMi } from "./uygunsuzAd";
 
 export const URL_SARTLAR = "https://www.bilkie.com/sartlar";
 export const URL_GIZLILIK = "https://www.bilkie.com/gizlilik";
@@ -170,7 +171,8 @@ async function kullaniciAdiAtaIc(uid: string, adSoyad: string): Promise<void> {
       .filter(Boolean);
     // "Al" gibi kısa ilk ad tek başına yetmez; 3 karaktere ulaşana kadar birleştirilir
     let taban = parcalar.reduce((acc, t) => (acc.length >= 3 ? acc : acc + t), "");
-    if (taban.length < 3) taban = `bilkie${Math.floor(1000 + Math.random() * 9000)}`;
+    // Addan üretilen ad uygunsuz kelime içeriyorsa nötr ad (ligde diğer öğrencilere görünür; lib/uygunsuzAd)
+    if (taban.length < 3 || uygunsuzAdMi(taban)) taban = `bilkie${Math.floor(1000 + Math.random() * 9000)}`;
     taban = taban.slice(0, 24);
 
     for (let i = 0; i < DIZIN_DENEME_TAVANI; i++) {

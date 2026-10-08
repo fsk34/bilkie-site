@@ -17,6 +17,7 @@ import { gunAnahtari } from "./tarih";
 import { ligKimligiCoz, ligTablosuYolu, profilYolu, sinifSinirla } from "./veri";
 import { KULLANICI_ADI_DESENI, kullaniciAdiAta } from "./kayit";
 import { sessizHata } from "./hata";
+import { uygunsuzAdMi } from "./uygunsuzAd";
 
 function sayi(v: unknown): number {
   if (typeof v === "number") return Math.round(v);
@@ -126,7 +127,7 @@ export async function sinifDegistir(a: SinifDegisimArgs): Promise<void> {
 
 /* ------------------------------------------------------- kullanıcı adı / avatar */
 
-export type KullaniciAdiDurumu = "bosta" | "kontrol" | "uygun" | "alinmis" | "kisa" | "gecersiz";
+export type KullaniciAdiDurumu = "bosta" | "kontrol" | "uygun" | "alinmis" | "kisa" | "gecersiz" | "uygunsuz";
 
 /**
  * Kullanıcı adı müsait mi? (Android'deki debounce'lu kontrolün karşılığı.)
@@ -136,6 +137,8 @@ export async function kullaniciAdiDurumu(uid: string, ad: string): Promise<Kulla
   const a = ad.trim();
   if (a.length < 3) return "kisa";
   if (!KULLANICI_ADI_DESENI.test(a)) return "gecersiz";
+  // Ligde diğer öğrencilere görünüyor: uygunsuz kelime içeren ad alınamaz (lib/uygunsuzAd)
+  if (uygunsuzAdMi(a)) return "uygunsuz";
   try {
     const snap = await get(dbRef(kullaniciDb, `usernames/${a}`));
     const sahip = snap.val();

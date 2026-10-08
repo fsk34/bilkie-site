@@ -25,6 +25,7 @@ import {
   type KullaniciAdiDurumu as Durum,
 } from "../../../lib/profilYaz";
 import { sosyalMi } from "../../../lib/appleGiris";
+import { uygunsuzAdMi } from "../../../lib/uygunsuzAd";
 
 export default function HesapSayfasi() {
   return (
@@ -42,6 +43,7 @@ const DURUM_METNI: Record<Durum, { metin: string; renk: string } | null> = {
   alinmis: { metin: "✗ Bu kullanıcı adı alınmış", renk: "#FF4D4D" },
   kisa: { metin: "En az 3 karakter gerekli", renk: "rgba(255,255,255,.5)" },
   gecersiz: { metin: "Yalnızca harf, rakam ve _ kullanabilirsin", renk: "#FF4D4D" },
+  uygunsuz: { metin: "✗ Bu kullanıcı adı kullanılamaz", renk: "#FF4D4D" },
 };
 
 /** Etiketli salt okunur satır — uygulamadaki alan düğmesinin karşılığı. */
@@ -113,10 +115,12 @@ function Icerik() {
 
   const degisti = ad.trim() !== kayitliAd;
   const kaydedilebilir = duzenleniyor && degisti && durum !== "alinmis"
-    && durum !== "kisa" && durum !== "gecersiz" && !kaydediyor;
+    && durum !== "kisa" && durum !== "gecersiz" && durum !== "uygunsuz" && !kaydediyor;
 
   async function kaydet() {
     if (!kullanici || !kaydedilebilir) return;
+    // Kontrol (debounce) bitmeden basılsa da uygunsuz ad kaydedilmesin
+    if (uygunsuzAdMi(ad.trim())) { setDurum("uygunsuz"); return; }
     setKaydediyor(true);
     setHata(null);
     setBilgi(null);
