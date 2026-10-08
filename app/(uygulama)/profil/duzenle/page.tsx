@@ -24,6 +24,7 @@ import {
   kullaniciAdiDurumu,
   type KullaniciAdiDurumu as Durum,
 } from "../../../lib/profilYaz";
+import { sosyalMi } from "../../../lib/appleGiris";
 
 export default function HesapSayfasi() {
   return (
@@ -108,7 +109,7 @@ function Icerik() {
   }
 
   // Parola satırı yalnızca e-posta/parola ile girenlerde (uygulamadaki isGoogleUser)
-  const googleIle = kullanici.providerData.some((p) => p.providerId === "google.com");
+  const googleIle = sosyalMi(kullanici);   // Google ya da Apple: parola yok
 
   const degisti = ad.trim() !== kayitliAd;
   const kaydedilebilir = duzenleniyor && degisti && durum !== "alinmis"

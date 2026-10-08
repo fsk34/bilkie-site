@@ -9,6 +9,7 @@ import { deleteUser, type User } from "firebase/auth";
 import { kullaniciDb } from "./firebase";
 import { profilYolu, sinifSinirla } from "./veri";
 import { gunAnahtari } from "./tarih";
+import { appleMi, gizliEpostaMi } from "./appleGiris";
 
 export const URL_SARTLAR = "https://www.bilkie.com/sartlar";
 export const URL_GIZLILIK = "https://www.bilkie.com/gizlilik";
@@ -290,12 +291,14 @@ export async function googleKaydiniTamamla(
   const eposta = user.email ?? "";
   const ad =
     (user.displayName ?? "").trim() ||
-    eposta.split("@")[0] ||
+    // Apple "E-postamı gizle": @ öncesi rastgele harfler (…@privaterelay.appleid.com) — ad yapılmaz
+    (gizliEpostaMi(eposta) ? "" : eposta.split("@")[0]) ||
     `bilkie${Math.floor(1000 + Math.random() * 9000)}`;
 
   const yazildi = await profiliYaz(
     user.uid,
-    profilDugumu({ adSoyad: ad, eposta, sinif, avatar, onayVerildi: true }, "google_onboarding")
+    profilDugumu({ adSoyad: ad, eposta, sinif, avatar, onayVerildi: true },
+      appleMi(user) ? "apple_onboarding" : "google_onboarding")
   );
   if (!yazildi) throw new Error("Kayıt tamamlanamadı. Bağlantını kontrol edip tekrar dene.");
 
@@ -340,7 +343,7 @@ export function kayitHataMetni(err: unknown): string {
       return "Çok fazla deneme yapıldı. Biraz sonra tekrar dene.";
     case "auth/popup-closed-by-user":
     case "auth/cancelled-popup-request":
-      return "Google penceresi kapatıldı.";
+      return "Giriş penceresi kapatıldı.";
     case "auth/unauthorized-domain":
       return "Bu alan adı Firebase'de yetkili değil.";
     default:

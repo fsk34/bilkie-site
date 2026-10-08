@@ -12,13 +12,16 @@ import {
   deleteUser,
   EmailAuthProvider,
   GoogleAuthProvider,
+  OAuthProvider,
   reauthenticateWithCredential,
   reauthenticateWithPopup,
+  revokeAccessToken,
   type User,
 } from "firebase/auth";
+import { appleMi, appleSaglayici } from "./appleGiris";
 import { get, ref as dbRef, remove, update } from "firebase/database";
 import { deleteObject, listAll, ref as storageRef, type StorageReference } from "firebase/storage";
-import { kullaniciDb, storage } from "./firebase";
+import { auth, kullaniciDb, storage } from "./firebase";
 import { epostaAnahtari } from "./kayit";
 import { tumLigAnahtarlari } from "./sezon";
 import { bekleyenKullaniciyiSil } from "./veri";
@@ -37,6 +40,14 @@ export async function yenidenDogrula(user: User, parola: string | null): Promise
   if (parolaGerekli(user)) {
     if (!parola || !user.email) throw new Error("Parolanı yazmalısın.");
     await reauthenticateWithCredential(user, EmailAuthProvider.credential(user.email, parola));
+  } else if (appleMi(user)) {
+    // Apple şartı: hesap silinirken uygulamanın Apple izni de iptal edilir — veri silinmeden ÖNCE.
+    // İptal olmasa da silme sürer.
+    const sonuc = await reauthenticateWithPopup(user, appleSaglayici());
+    const jeton = OAuthProvider.credentialFromResult(sonuc)?.accessToken;
+    if (jeton) {
+      try { await revokeAccessToken(auth, jeton); } catch { /* best-effort */ }
+    }
   } else {
     await reauthenticateWithPopup(user, new GoogleAuthProvider());
   }

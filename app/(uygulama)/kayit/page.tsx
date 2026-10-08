@@ -38,6 +38,8 @@ import {
   SinifSecimi,
 } from "./parcalar";
 import GoogleDugme from "../GoogleDugme";
+import AppleDugme from "../AppleDugme";
+import { appleSaglayici } from "../../lib/appleGiris";
 import UcNokta from "../UcNokta";
 import { useOturum } from "../../lib/oturum";
 
@@ -83,11 +85,12 @@ export default function KayitSayfasi() {
     else router.push("/giris");
   }
 
-  async function googleIleDevam() {
+  /** Google ve Apple ortak (Apple ile Giriş, 8 Eki): aynı kurulum sayfası. */
+  async function googleIleDevam(apple = false) {
     setHata(null);
     setBekliyor(true);
     try {
-      const sonuc = await signInWithPopup(auth, new GoogleAuthProvider());
+      const sonuc = await signInWithPopup(auth, apple ? appleSaglayici() : new GoogleAuthProvider());
       // Profili olan hesap zaten kayıtlıdır; olmayan (yeni ya da yarım bırakılmış)
       // hesap sınıf/avatar seçimine gider — Android'deki GoogleOnboardingFlow.
       const profil = await profilOku(sonuc.user.uid);
@@ -167,11 +170,19 @@ export default function KayitSayfasi() {
             dugmeAktif={epostaGecerli(eposta) && onayVerildi && !bekliyor}
             dugmeyeBas={() => setAdim(2)}
             altinda={
-              <GoogleDugme
-                yazi="Google ile devam et"
-                onClick={googleIleDevam}
-                disabled={!onayVerildi || bekliyor}
-              />
+              <>
+                <GoogleDugme
+                  yazi="Google ile devam et"
+                  onClick={() => googleIleDevam()}
+                  disabled={!onayVerildi || bekliyor}
+                />
+                <div style={{ height: 12 }} />
+                <AppleDugme
+                  yazi="Apple ile devam et"
+                  onClick={() => googleIleDevam(true)}
+                  disabled={!onayVerildi || bekliyor}
+                />
+              </>
             }
           >
             <Link href="/" className="bk-logo bk-kayit-logo">

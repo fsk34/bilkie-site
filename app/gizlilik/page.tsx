@@ -64,6 +64,11 @@ const sections = [
         desc: "İsteğe bağlı Google hesabıyla giriş için kullanılmaktadır.",
       },
       {
+        name: "Apple ile Giriş",
+        desc: "İsteğe bağlı Apple hesabıyla giriş için kullanılmaktadır. Apple yalnızca adınızı ve e-posta adresinizi paylaşır; e-postanızı gizlemeyi seçerseniz Apple'ın oluşturduğu yönlendirme adresi kullanılır. Hesabınızı sildiğinizde Bilkie'nin Apple hesabınıza erişim izni de iptal edilir.",
+        link: { label: "Apple Gizlilik Politikası", url: "https://www.apple.com/tr/legal/privacy/tr/" },
+      },
+      {
         name: "Google AdMob",
         desc: "Yalnızca kullanıcının kendi isteğiyle izlediği ödüllü reklamlar için kullanılmaktadır. AdMob reklam tanımlayıcıları toplayabilir.",
         link: { label: "AdMob Gizlilik Politikası", url: "https://support.google.com/admob/answer/6128543" },
@@ -138,7 +143,7 @@ export default function GizlilikPage() {
             Gizlilik Politikası
           </h1>
           <p style={{ color: "#8FB3D9", fontSize: "14px" }}>
-            Son güncelleme: Nisan 2025
+            Son güncelleme: Ekim 2026
           </p>
         </div>
 

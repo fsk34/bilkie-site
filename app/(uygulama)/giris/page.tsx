@@ -18,6 +18,8 @@ import { auth } from "../../lib/firebase";
 import { useOturum } from "../../lib/oturum";
 import { profilOku } from "../../lib/veri";
 import GoogleDugme from "../GoogleDugme";
+import AppleDugme from "../AppleDugme";
+import { appleSaglayici } from "../../lib/appleGiris";
 import UcNokta from "../UcNokta";
 
 export default function GirisSayfasi() {
@@ -97,11 +99,12 @@ export default function GirisSayfasi() {
     }
   }
 
-  async function googleIleGir() {
+  /** Google ve Apple ortak: profili tamam olan ana ekrana, olmayan kuruluma (/kayit/google). */
+  async function googleIleGir(apple = false) {
     setHata(null);
     setBekliyor(true);
     try {
-      const sonuc = await signInWithPopup(auth, new GoogleAuthProvider());
+      const sonuc = await signInWithPopup(auth, apple ? appleSaglayici() : new GoogleAuthProvider());
       // Profili varsa kayıtlı kullanıcıdır; yoksa kurulumu tamamlaması gerekiyor.
       // (Uygulamada da kayıt sınıf+avatar seçilince tamamlanmış sayılıyor.)
       if ((await profilOku(sonuc.user.uid))?.kayitTamam) router.replace("/");
@@ -174,7 +177,9 @@ export default function GirisSayfasi() {
           <i style={{ flex: 1, height: 1, background: "rgba(255,255,255,.15)" }} />
         </div>
 
-        <GoogleDugme yazi="Google ile giriş yap" onClick={googleIleGir} disabled={bekliyor} />
+        <GoogleDugme yazi="Google ile giriş yap" onClick={() => googleIleGir()} disabled={bekliyor} />
+        <div style={{ height: 12 }} />
+        <AppleDugme yazi="Apple ile giriş yap" onClick={() => googleIleGir(true)} disabled={bekliyor} />
 
         {hata && (
           <p style={{ color: "#FF8A80", fontSize: 14, marginTop: 16, textAlign: "center" }}>
@@ -249,7 +254,7 @@ function hataMetni(err: unknown): string {
       return "Çok fazla deneme yapıldı. Biraz sonra tekrar dene.";
     case "auth/popup-closed-by-user":
     case "auth/cancelled-popup-request":
-      return "Google penceresi kapatıldı.";
+      return "Giriş penceresi kapatıldı.";
     case "auth/network-request-failed":
       return "Bağlantı kurulamadı. İnternetini kontrol et.";
     default:
