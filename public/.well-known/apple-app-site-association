@@ -9,6 +9,7 @@
           { "/": "/yardim*", "exclude": true },
           { "/": "/hesap-silme*", "exclude": true, "comment": "Hesap silme sayfasi tarayicida erisilebilir olmak ZORUNDA" },
           { "/": "/tesekkurler*", "exclude": true },
+          { "/": "/auth*", "exclude": true, "comment": "Firebase e-posta eylem baglantisi (dogrulama/sifirlama) buraya iner; uygulama acarsa kod hic islenmez" },
           { "/": "/dogrula*", "exclude": true, "comment": "E-posta dogrulama ve parola sifirlama akislari" },
           { "/": "/sifre-sifirla*", "exclude": true },
           { "/": "/admin*", "exclude": true },
