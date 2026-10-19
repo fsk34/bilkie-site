@@ -10,6 +10,7 @@ const sections = [
     title: "1. Giriş",
     content:
       "Bilkie olarak kişisel verilerinizin korunmasını ciddiye alıyoruz. Bu politika, 6698 sayılı Kişisel Verilerin Korunması Kanunu (KVKK) kapsamında hangi verileri topladığımızı, nasıl kullandığımızı ve nasıl koruduğumuzu açıklamaktadır.",
+    note: "Veri sorumlusu: Fatih Süleyman Kurul (gerçek kişi) — info@bilkie.com",
   },
   {
     title: "2. Toplanan Veriler",
@@ -18,8 +19,10 @@ const sections = [
         subtitle: "a) Hesap Bilgileri",
         items: [
           "E-posta adresi (kayıt ve giriş için)",
-          "Kullanıcı adı ve görünen ad",
-          "Profil fotoğrafı / avatar seçimi",
+          "Ad-soyad ve görünen ad",
+          "Sınıf seviyesi",
+          "Avatar seçimi",
+          "Kayıt sırasında verilen onayların tarihi",
         ],
       },
       {
@@ -35,7 +38,9 @@ const sections = [
         subtitle: "c) Teknik Veriler",
         items: [
           "Cihaz türü ve işletim sistemi sürümü",
-          "Uygulama kullanım süreleri (anonim)",
+          "Uygulama içi olay kayıtları (ör. test tamamlandı, seri güncellendi) — Firebase Analytics; reklam kimliği toplanmaz",
+          "Çökme ve hata raporları (cihaz modeli, işletim sistemi, hata kaydı) — Firebase Crashlytics",
+          "Uygulama bütünlüğü doğrulaması (uygulamanın değiştirilmemiş bir cihazda çalıştığının kontrolü) — Firebase App Check",
         ],
       },
     ],
@@ -49,16 +54,32 @@ const sections = [
       "Eğitim içeriğini kişiselleştirme ve ilerleme takibi",
       "Lig sıralamalarını oluşturma",
       "Bildirim gönderme (tercihe bağlı)",
-      "Uygulama performansını iyileştirme",
+      "Uygulama performansını iyileştirme, hataları bulma ve giderme",
+      "Hesap ve sistem güvenliğini sağlama",
     ],
   },
   {
-    title: "4. Üçüncü Taraf Hizmetleri",
+    title: "4. Toplama Yöntemi ve Hukuki Sebep",
+    content:
+      "Verileriniz uygulama ve web sitesi üzerinden, kayıt sırasında ve kullanım boyunca elektronik ortamda kısmen otomatik yollarla toplanır. Hesap, ilerleme ve lig verileri hizmetin sunulması için zorunlu olduğundan KVKK m.5/2-c (sözleşmenin kurulması ve ifası); hata raporları, güvenlik ve performans verileri KVKK m.5/2-f (meşru menfaat) kapsamında işlenir. Yurt dışı aktarım için kayıt sırasında açık rızanız alınır.",
+  },
+  {
+    title: "5. Diğer Kullanıcılara Görünen Bilgiler",
+    content:
+      "Lig sıralamalarında görünen adınız, avatarınız ve puanınız aynı ligdeki diğer kullanıcılara gösterilir. E-posta adresiniz, notlarınız ve diğer verileriniz başka kullanıcılarla paylaşılmaz.",
+  },
+  {
+    title: "6. Üçüncü Taraf Hizmetleri",
     thirdParties: [
       {
         name: "Google Firebase",
         desc: "Kimlik doğrulama, veri depolama ve bulut altyapısı için kullanılmaktadır. Veriler Google sunucularında işlenebilir.",
         link: { label: "Google Gizlilik Politikası", url: "https://policies.google.com/privacy" },
+      },
+      {
+        name: "Firebase Analytics ve Crashlytics",
+        desc: "Mobil uygulamada hangi özelliklerin kullanıldığını ve uygulamanın nerede çöktüğünü anlamak için kullanılır. Reklam kimliği toplanmaz ve bu veriler reklam kişiselleştirmesi için kullanılmaz.",
+        link: { label: "Firebase gizlilik bilgisi", url: "https://firebase.google.com/support/privacy" },
       },
       {
         name: "Google Sign-In",
@@ -71,33 +92,43 @@ const sections = [
       },
       {
         name: "Google AdMob",
-        desc: "Mobil uygulamada banner, geçiş ve isteğe bağlı ödüllü reklamlar gösterilir. Tüm reklam istekleri \"çocuklara yönelik\" olarak işaretlenir; reklamlar kişiselleştirilmez, içerik derecesi \"ebeveyn rehberliği\" (PG) ile sınırlıdır ve reklam kimliği toplanmaz. Web sitesinde reklam gösterilmez.",
+        desc: "Mobil uygulamada banner, geçiş ve isteğe bağlı ödüllü reklamlar gösterilir. Tüm reklam istekleri \"çocuklara yönelik\" olarak işaretlenir; reklamlar kişiselleştirilmez, içerik derecesi \"ebeveyn rehberliği\" (PG) ile sınırlıdır ve reklam kimliği toplanmaz.",
         link: { label: "AdMob Gizlilik Politikası", url: "https://support.google.com/admob/answer/6128543" },
+      },
+      {
+        name: "Google AdSense",
+        desc: "Web sitesinde Google AdSense betiği yüklenir. Reklam gösterildiğinde istekler \"çocuklara yönelik\" olarak işaretlenir ve reklamlar kişiselleştirilmez. Google bu betik aracılığıyla kendi çerezlerini kullanabilir.",
+        link: { label: "Google reklam politikaları", url: "https://policies.google.com/technologies/ads" },
       },
     ],
   },
   {
-    title: "5. Yurt Dışı Veri Aktarımı",
+    title: "7. Çerezler ve Yerel Depolama",
+    content:
+      "Web sitesi, oturumunuzu açık tutmak, tercihlerinizi hatırlamak ve çevrimdışıyken ilerlemenizi kaybetmemek için tarayıcınızın yerel depolamasını kullanır. Bunlar hizmetin çalışması için gereklidir ve reklam amacıyla kullanılmaz. Google AdSense betiği Google'a ait çerezler kullanabilir; tarayıcı ayarlarınızdan çerezleri silebilir veya engelleyebilirsiniz.",
+  },
+  {
+    title: "8. Yurt Dışı Veri Aktarımı",
     content:
       "Google Firebase altyapısı nedeniyle verileriniz yurt dışındaki sunucularda işlenebilir. KVKK Madde 9 kapsamında bu aktarım için kayıt sırasında açık rızanız alınmaktadır. Açık rızanızı geri almak istediğinizde info@bilkie.com adresi üzerinden hesabınızın silinmesini talep edebilirsiniz.",
   },
   {
-    title: "6. Veri Güvenliği",
+    title: "9. Veri Güvenliği",
     content:
       "Verileriniz Google Firebase altyapısında şifreli olarak saklanmaktadır. Yetkisiz erişimi önlemek için Firebase güvenlik kuralları uygulanmaktadır. Veri ihlali tespit edilmesi halinde KVK Kurulu'na 72 saat içinde bildirim yapılır ve etkilenen kullanıcılar bilgilendirilir.",
   },
   {
-    title: "7. Veri Paylaşımı",
+    title: "10. Veri Paylaşımı",
     content:
       "Kişisel verileriniz hiçbir koşulda üçüncü taraflara satılmaz. Veriler yalnızca yukarıda belirtilen hizmet sağlayıcılarla ve yasal zorunluluklar gerektirdiğinde yetkili makamlarla paylaşılır.",
   },
   {
-    title: "8. Veri Saklama Süresi",
+    title: "11. Veri Saklama Süresi",
     content:
       "Verileriniz hesabınız aktif olduğu sürece saklanır. Hesabınızı silmeniz durumunda kişisel verileriniz 30 gün içinde sistemlerimizden kalıcı olarak silinir.",
   },
   {
-    title: "9. Haklarınız (KVKK Madde 11)",
+    title: "12. Haklarınız (KVKK Madde 11)",
     content: "KVKK kapsamında aşağıdaki haklara sahipsiniz:",
     items: [
       "Kişisel verilerinizin işlenip işlenmediğini öğrenme",
@@ -110,12 +141,12 @@ const sections = [
     note: "Bu haklarınızı kullanmak için info@bilkie.com adresine yazabilir ya da kvkk.gov.tr üzerinden KVK Kurumu'na başvurabilirsiniz.",
   },
   {
-    title: "10. Politika Değişiklikleri",
+    title: "13. Politika Değişiklikleri",
     content:
       "Bu politika güncellendiğinde yeni versiyon uygulama içinde ve web sitemizde yayımlanır. Önemli değişiklikler e-posta yoluyla da bildirilecektir.",
   },
   {
-    title: "11. İletişim",
+    title: "14. İletişim",
     content: "Bilkie — info@bilkie.com",
   },
 ];

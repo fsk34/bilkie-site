@@ -9,7 +9,7 @@ const sections = [
   {
     title: "1. Kabul",
     content:
-      "Bilkie uygulamasını (“Uygulama”) kullanarak aşağıdaki şartları kabul etmiş sayılırsınız. 13 yaşından küçük kullanıcıların Uygulamayı yalnızca ebeveyn veya veli gözetiminde kullanması gerekmektedir.",
+      "Bilkie uygulamasını (“Uygulama”) kullanarak aşağıdaki şartları kabul etmiş sayılırsınız. 18 yaşından küçük kullanıcıların kayıt olabilmesi için ebeveyn veya veli onayı gerekir; 13 yaşından küçük kullanıcılar Uygulamayı ebeveyn veya veli gözetiminde kullanmalıdır.",
   },
   {
     title: "2. Hizmetin Kapsamı",
@@ -19,10 +19,11 @@ const sections = [
   {
     title: "3. Hesap",
     items: [
-      "Uygulamayı kullanabilmek için geçerli bir e-posta adresiyle veya Google hesabıyla kayıt olmanız gerekmektedir.",
+      "Uygulamayı kullanabilmek için geçerli bir e-posta adresiyle, Google hesabıyla veya Apple hesabıyla kayıt olmanız gerekmektedir.",
       "Hesap bilgilerinizin güvenliğini korumak sizin sorumluluğunuzdadır.",
       "Gerçeğe aykırı bilgi girerek hesap oluşturmak yasaktır.",
       "Hesabınızı başkasına devredemezsiniz.",
+      "Hesabınızı dilediğiniz zaman uygulama içinden veya info@bilkie.com adresine yazarak silebilirsiniz.",
     ],
   },
   {
@@ -41,27 +42,37 @@ const sections = [
       "Uygulamada yer alan tüm içerik (görseller, metinler, ses dosyaları, tasarım) Bilkie'ye aittir ve Türk Fikir ve Sanat Eserleri Kanunu kapsamında korunmaktadır. İzinsiz kullanım yasaktır.",
   },
   {
-    title: "6. Reklamlar",
+    title: "6. Kullanıcı İçeriği",
     content:
-      "Uygulama, Google AdMob aracılığıyla isteğe bağlı ödüllü reklamlar içerebilir. Reklamlar zorunlu değildir ve yalnızca kullanıcının kendi isteğiyle gösterilir.",
+      "Notlar bölümüne eklediğiniz metin, çizim ve görseller size aittir. Bilkie bu içerikleri yalnızca size hizmet sunmak için saklar ve görüntüler; başka kullanıcılarla paylaşmaz. Hesabınızı sildiğinizde içerikleriniz de silinir. Başkalarının haklarını ihlal eden içerik eklememek sizin sorumluluğunuzdadır.",
   },
   {
-    title: "7. Hizmetin Askıya Alınması",
+    title: "7. Reklamlar",
+    content:
+      "Mobil uygulamada Google AdMob aracılığıyla banner, geçiş ve isteğe bağlı ödüllü reklamlar gösterilir. Tüm reklamlar çocuklara yönelik olarak işaretlenir ve kişiselleştirilmez. Ayrıntılar Gizlilik Politikası'nda yer alır.",
+  },
+  {
+    title: "8. Hizmetin Askıya Alınması",
     content:
       "Kullanım şartlarını ihlal etmeniz durumunda hesabınız önceden bildirim yapılmaksızın askıya alınabilir veya silinebilir.",
   },
   {
-    title: "8. Sorumluluk Sınırı",
+    title: "9. Sorumluluk Sınırı",
     content:
       "Bilkie, Uygulamanın kesintisiz veya hatasız çalışacağını garanti etmez. Teknik arızalardan, veri kayıplarından veya üçüncü taraf hizmetlerinden kaynaklanabilecek zararlardan Bilkie sorumlu tutulamaz.",
   },
   {
-    title: "9. Değişiklikler",
+    title: "10. Uygulanacak Hukuk",
+    content:
+      "Bu şartlar Türkiye Cumhuriyeti hukukuna tabidir. Tüketici uyuşmazlıklarında Tüketici Hakem Heyetleri ve Tüketici Mahkemeleri yetkilidir.",
+  },
+  {
+    title: "11. Değişiklikler",
     content:
       "Bu şartlar önceden bildirim yapılmaksızın güncellenebilir. Güncel şartlar her zaman uygulama içinde ve web sitemizde yayımlanır. Uygulamayı kullanmaya devam etmeniz güncel şartları kabul ettiğiniz anlamına gelir.",
   },
   {
-    title: "10. İletişim",
+    title: "12. İletişim",
     content: "Sorularınız için info@bilkie.com adresine yazabilirsiniz.",
   },
 ];
@@ -90,7 +101,7 @@ export default function SartlarPage() {
             Kullanım Şartları
           </h1>
           <p style={{ color: "#8FB3D9", fontSize: "14px" }}>
-            Son güncelleme: Nisan 2025
+            Son güncelleme: Ekim 2026
           </p>
         </div>
 
