@@ -95,22 +95,7 @@ const nextConfig: NextConfig = {
       "yazili",
     ].join("|");
 
-    // hesap.bilkie.com: Firebase e-posta bağlantılarının (doğrulama / parola sıfırlama)
-    // indiği adres (14 Eki 2026). iOS uygulaması yalnız bilkie.com + www'yi sahiplendiği
-    // için bu adres HİÇBİR iPhone'da uygulamayı açamaz. bilkie.com/auth'u AASA'dan hariç
-    // tutmak yetmedi: telefonlar eski listeyi önbellekte tutuyor, silip yüklemek de
-    // düzeltmedi. Bu host'ta yalnız o akışlar sunulur, gerisi www'ye gider.
-    const hesap = [{ type: "host" as const, value: "hesap.bilkie.com" }];
-
     return [
-      { source: "/", has: hesap, destination: "https://www.bilkie.com/", permanent: false },
-      {
-        source: "/:yol((?!auth|dogrula|sifre-sifirla|_next/|favicon).*)",
-        has: hesap,
-        destination: "https://www.bilkie.com/:yol",
-        permanent: false,
-      },
-
       // Apeks kuralları ÖNCE: köken düzeltmesi tek sıçramada bitsin.
       { source: "/", has: apeks, destination: "https://www.bilkie.com/", permanent: true },
       {
