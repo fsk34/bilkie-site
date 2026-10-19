@@ -127,8 +127,12 @@ function Gokkusagi() {
   const renkler = ["#E74C3C", "#FF8C00", "#FFD700", "#538D4E", "#3B8FD4", "#9B59B6"];
   return (
     <h1 className="bk-wl-baslik">
-      {"WORDLE".split("").map((h, i) => (
-        <span key={i} style={{ color: renkler[i] }}>{h}</span>
+      {["GİZLİ", "KELİME"].map((satir) => (
+        <span key={satir}>
+          {satir.split("").map((h, i) => (
+            <span key={i} style={{ color: renkler[i % renkler.length] }}>{h}</span>
+          ))}
+        </span>
       ))}
     </h1>
   );
@@ -298,7 +302,7 @@ function Oyun({
         <div className="bk-wl-ust">
           <button className="bk-wl-geri duz" aria-label="Geri" onClick={() => setCikisSor(true)}>←</button>   {/* Android: her zaman onay */}
           <div className="orta">
-            <b>Wordle</b>
+            <b>Gizli Kelime</b>
             {!yukleniyor && <span>Bölüm {bolumNo}&nbsp;&nbsp;•&nbsp;&nbsp;{harfSayisi} harf</span>}
           </div>
           <button className="bk-wl-tekrar" onClick={kelimeYukle}>Tekrar</button>

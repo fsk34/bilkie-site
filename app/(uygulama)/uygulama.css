@@ -846,7 +846,8 @@
   padding: 16px; background: var(--zemin); color: #fff;
 }
 .bk-wl-sahne.oyun { justify-content: flex-start; padding: 12px 8px 8px; }
-.bk-wl-baslik { display: flex; gap: 2px; font-size: 54px; font-weight: 800; }
+.bk-wl-baslik { display: flex; flex-direction: column; align-items: center; line-height: 1.05; font-size: 54px; font-weight: 800; }
+.bk-wl-baslik > span { display: flex; gap: 2px; }
 .bk-wl-cubuk {
   width: min(72%, 420px); height: 14px; border-radius: 7px;
   background: #1a2a50; overflow: hidden;
