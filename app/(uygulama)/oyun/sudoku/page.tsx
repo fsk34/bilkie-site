@@ -60,6 +60,9 @@ export default function Sudoku() {
   const [zorluk, setZorluk] = useState<SudokuZorluk>("easy");
   const [bulmaca, setBulmaca] = useState<SudokuBulmaca | null>(null);
   const [bolum, setBolum] = useState(1);
+  // Her yüklemede artar → Oyun sıfırdan kurulur; key yalnız zorluk-bölüm olunca "Tekrar Dene" aynı
+  // bölümde eski (bitmiş) durumu koruyabiliyordu (Android 19 Eki)
+  const [oyunNo, setOyunNo] = useState(0);
   const [ilerleme, setIlerleme] = useState<Record<SudokuZorluk, number>>({ easy: 1, medium: 1, hard: 1 });
   // İlerleme okunana (ya da zaman aşımına) kadar kartlar kilitli; sıfırlama yalnız sunucudan
   // gerçekten okunmuş "hepsi bitti" üstüne (Android 24 Eyl)
@@ -90,7 +93,7 @@ export default function Sudoku() {
     setZorluk(z); setBolum(idx); setAsama("yukleniyor"); setYuklenemedi(false);
     sudokuBulmaca(z, idx)
       .then((b) => {
-        setBulmaca(b); setAsama(b ? "oyun" : "secim"); setYuklenemedi(!b);
+        setBulmaca(b); setOyunNo((n) => n + 1); setAsama(b ? "oyun" : "secim"); setYuklenemedi(!b);
         if (b && idx < SUDOKU_BOLUM_SAYISI) void sudokuBulmaca(z, idx + 1);   // sonraki bölüm hazır beklesin
       })
       .catch(() => { setAsama("secim"); setYuklenemedi(true); });
@@ -145,7 +148,7 @@ export default function Sudoku() {
   if (asama === "oyun" && bulmaca) {
     return (
       <Oyun
-        key={`${zorluk}-${bolum}`}
+        key={`${zorluk}-${bolum}-${oyunNo}`}
         bulmaca={bulmaca}
         zorluk={zorluk}
         bolum={bolum}
