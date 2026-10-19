@@ -29,24 +29,73 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
   const b = uniteBul(sinif, ders, unite);
   if (!b) return {};
   const baslik = `${b.unite.baslik} — ${b.sinif.sinif}. Sınıf ${b.ders.ad} Konu Anlatımı`;
+  const no = b.ders.uniteler.findIndex((u) => u.slug === b.unite.slug) + 1;
+  const aciklama = metaAciklama(b.sinif.sinif, b.ders.ad, no, b.unite.baslik, b.sayfalar);
   return {
     title: `${baslik} | Bilkie`,
-    description: ozet(b.sayfalar) || `${b.sinif.sinif}. sınıf ${b.ders.ad} "${b.unite.baslik}" ünitesinin konu anlatımı.`,
+    description: aciklama,
     alternates: { canonical: `/konu-anlatimi/${b.sinif.slug}/${b.ders.slug}/${b.unite.slug}` },
-    openGraph: { title: baslik, type: "article" },
+    openGraph: { title: baslik, description: aciklama, type: "article" },
   };
 }
 
-/** Meta açıklama: ilk paragraf, 155 karaktere kırpılmış. */
-function ozet(sayfalar: { bloklar: DefterBlok[] }[]): string {
+/**
+ * Meta açıklama: şablon + ünitenin kendi bölüm başlıkları.
+ *
+ * Eskiden ilk paragraftı; 19 Eki ölçümünde %20'si "…aşağıdaki tabloda sunulmuştur:"
+ * gibi arama sonucunda anlamsız cümlelerdi (İngilizcede %29). Bölüm başlıkları her
+ * sayfayı ayırt ettiği için açıklamalar birbirinin kopyası olmaz.
+ */
+const META_SINIR = 158;
+
+function metaAciklama(
+  sinif: number,
+  ders: string,
+  no: number,
+  unite: string,
+  sayfalar: { bloklar: DefterBlok[] }[]
+): string {
+  const bas = `${sinif}. sınıf ${ders}${no > 0 ? ` ${no}. ünite` : ""} "${unite}" konu anlatımı`;
+  const son = " Örneklerle ücretsiz oku.";
+  const konular: string[] = [];
+  let uzunluk = bas.length + 3 + son.length; // ": " + konulardan sonraki "."
+  for (const k of bolumBasliklari(sayfalar, unite)) {
+    const ek = (konular.length ? 2 : 0) + k.length;
+    if (uzunluk + ek > META_SINIR) break;
+    konular.push(k);
+    uzunluk += ek;
+  }
+  return konular.length ? `${bas}: ${konular.join(", ")}.${son}` : `${bas}.${son}`;
+}
+
+/**
+ * İçerik üretiminden kalan, okura bir şey söylemeyen başlıklar ("Yönetici Özeti",
+ * "Sınav Analizi ve MEB Kazanımları"…) — 19 Eki'de 199 ünitede tek tek bakılarak.
+ */
+const BOS_BASLIK = /yönetici özeti|^özet$|^giriş$|^sonuç$|^önemli not|^notlar?$|sınav analizi/i;
+
+/** Görünen sayfalardaki başlıklar; numarasız, tekrarsız, ünite adının kendisi hariç. */
+function bolumBasliklari(sayfalar: { bloklar: DefterBlok[] }[], unite: string): string[] {
+  const out: string[] = [];
+  const uniteKucuk = unite.toLocaleLowerCase("tr");
+  const gorulen = new Set([uniteKucuk]);
   for (const s of sayfalar) {
     for (const b of s.bloklar) {
-      if (b.tip === "paragraf" && b.metin && b.metin.length > 40) {
-        return b.metin.length > 155 ? `${b.metin.slice(0, 152).trimEnd()}…` : b.metin;
-      }
+      if (b.tip !== "baslik" && b.tip !== "altbaslik") continue;
+      const ham = (b.tip === "baslik" ? b.baslik : b.metin) ?? "";
+      const temiz = ham
+        .replace(/^\s*(ünite\s*\d+\s*[:.\-–—]?\s*|\d+(\.\d+)*[.)]?\s+|[IVX]+\.\s+)/i, "")
+        .replace(/\s+/g, " ")
+        .replace(/\s*:$/, "")
+        .trim();
+      const anahtar = temiz.toLocaleLowerCase("tr");
+      if (temiz.length < 3 || temiz.length > 60 || gorulen.has(anahtar)) continue;
+      if (BOS_BASLIK.test(temiz) || anahtar.includes(uniteKucuk) || /^sınıf\b/i.test(temiz)) continue;
+      gorulen.add(anahtar);
+      out.push(temiz);
     }
   }
-  return "";
+  return out;
 }
 
 export default async function UniteSayfasi({ params }: { params: Params }) {
