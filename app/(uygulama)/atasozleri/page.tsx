@@ -40,13 +40,15 @@ function Icerik() {
   const [onizleme, setOnizleme] = useState<{ ata: AdyOge | null; dey: AdyOge | null } | null>(null);
   const [secici, setSecici] = useState(false);
   const [tumu, setTumu] = useState<AdyTur | null>(null);
+  // Okunamadı (çevrimdışı): "içerik yok" yerine bağlantı uyarısı + tekrar dene (Android AdyTekrarKart, 21 Eki)
+  const [hata, setHata] = useState(false);
 
   useEffect(() => {
     if (sayilar) return;
     let iptal = false;
     adySayilariniGetir()
       .then((v) => { if (!iptal) setSayilar(v); })
-      .catch(() => { if (!iptal) setSayilar({}); });
+      .catch(() => { if (!iptal) { setHata(true); setSayilar({}); } });
     return () => { iptal = true; };
   }, [sayilar]);
 
@@ -54,7 +56,10 @@ function Icerik() {
     if (!sayilar) return;
     let iptal = false;
     setOnizleme(null);
-    adyOnizlemeGetir(harf, sayilar).then((v) => { if (!iptal) setOnizleme(v); });
+    adyOnizlemeGetir(harf, sayilar)
+      .then((v) => { if (!iptal) setOnizleme(v); })
+      // catch yoktu: sayılar önbellekten gelip önizleme okunamayınca sonsuza dek "Yükleniyor…" kalıyordu
+      .catch(() => { if (!iptal) { setHata(true); setOnizleme({ ata: null, dey: null }); } });
     return () => { iptal = true; };
   }, [harf, sayilar]);
 
@@ -102,16 +107,23 @@ function Icerik() {
         </button>
       </div>
 
+      {hata && (
+        <button className="bk-kesif-bos" style={{ width: "100%", cursor: "pointer" }} onClick={() => { setHata(false); setSayilar(null); }}>
+          Yüklenemedi. Tekrar denemek için dokun.
+        </button>
+      )}
       <OnizlemeKarti
         baslik="Atasözleri"
         oge={onizleme?.ata ?? null}
         yukleniyor={onizleme == null}
+        okunamadi={hata}
         onTumu={() => setTumu("atasozleri")}
       />
       <OnizlemeKarti
         baslik="Deyimler"
         oge={onizleme?.dey ?? null}
         yukleniyor={onizleme == null}
+        okunamadi={hata}
         onTumu={() => setTumu("deyimler")}
       />
 
@@ -130,8 +142,8 @@ function Icerik() {
 }
 
 function OnizlemeKarti({
-  baslik, oge, yukleniyor, onTumu,
-}: { baslik: string; oge: AdyOge | null; yukleniyor: boolean; onTumu: () => void }) {
+  baslik, oge, yukleniyor, okunamadi = false, onTumu,
+}: { baslik: string; oge: AdyOge | null; yukleniyor: boolean; okunamadi?: boolean; onTumu: () => void }) {
   return (
     <div className="bk-kesif-kart bk-ady-onizleme">
       <div className="ust">
@@ -144,7 +156,7 @@ function OnizlemeKarti({
           <div className="anlam">{oge.anlam}</div>
         </>
       ) : (
-        <div className="anlam">{yukleniyor ? "Yükleniyor…" : "Bu harfte içerik bulunamadı."}</div>
+        <div className="anlam">{yukleniyor ? "Yükleniyor…" : okunamadi ? "Bağlantı yok, şu an gösterilemiyor." : "Bu harfte içerik bulunamadı."}</div>
       )}
     </div>
   );

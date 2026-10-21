@@ -33,11 +33,14 @@ function Icerik({ tur }: { tur: SozlukTuru }) {
   const [sonuclar, setSonuclar] = useState<SozlukKelime[] | null>(null);
   // Seçili harfin tüm kelimeleri — günün kelimesinin altında, kaydırılarak (Tümünü Gör yok)
   const [harfListesi, setHarfListesi] = useState<SozlukKelime[] | null>(null);
+  // Okunamadı (çevrimdışı): "kelime yok" yerine bağlantı uyarısı + tekrar dene (Android okumaHatasi, 21 Eki)
+  const [hata, setHata] = useState(false);
+  const tekrarDene = () => { setHata(false); setSayilar(null); };
 
   useEffect(() => {
     if (sayilar) return;
     let iptal = false;
-    sozlukSayilariniGetir(tur).then((v) => { if (!iptal) setSayilar(v); }).catch(() => { if (!iptal) setSayilar({}); });
+    sozlukSayilariniGetir(tur).then((v) => { if (!iptal) setSayilar(v); }).catch(() => { if (!iptal) { setHata(true); setSayilar({}); } });
     return () => { iptal = true; };
   }, [sayilar, tur]);
 
@@ -47,7 +50,7 @@ function Icerik({ tur }: { tur: SozlukTuru }) {
     setKelime(undefined); setHarfListesi(null);
     if ((sayilar[harf] ?? 0) === 0) { setKelime(null); setHarfListesi([]); return; }
     gununKelimesi(tur, harf).then((v) => { if (!iptal) setKelime(v); }).catch(() => { if (!iptal) setKelime(null); });
-    sozlukHarfGetir(tur, harf).then((v) => { if (!iptal) setHarfListesi(v); }).catch(() => { if (!iptal) setHarfListesi([]); });
+    sozlukHarfGetir(tur, harf).then((v) => { if (!iptal) setHarfListesi(v); }).catch(() => { if (!iptal) { setHata(true); setHarfListesi([]); } });
     return () => { iptal = true; };
   }, [harf, sayilar, tur]);
 
@@ -114,12 +117,13 @@ function Icerik({ tur }: { tur: SozlukTuru }) {
           <div className="bk-kesif-kart bk-ady-onizleme">
             <div className="ust"><h2>Günün Kelimesi • {harf}</h2></div>
             {kelime === undefined ? <UcNokta style={{ padding: "12px 0" }} boyut={8} aralik={6} />
-            : kelime === null ? <div className="anlam">Bu harfte kelime bulunamadı.</div>
+            : kelime === null ? <div className="anlam">{hata ? "Bağlantı yok, şu an gösterilemiyor." : "Bu harfte kelime bulunamadı."}</div>
             : <KelimeGovdesi k={kelime} />}
           </div>
 
-          <h2 className="bk-sozluk-liste-baslik">{harf} ile başlayan kelimeler{harfListesi ? ` • ${harfListesi.length}` : ""}</h2>
+          <h2 className="bk-sozluk-liste-baslik">{harf} ile başlayan kelimeler{harfListesi && !(hata && harfListesi.length === 0) ? ` • ${harfListesi.length}` : ""}</h2>
           {harfListesi == null ? <UcNokta style={{ padding: 18 }} />
+          : harfListesi.length === 0 && hata ? <button className="bk-kesif-bos" style={{ width: "100%", cursor: "pointer" }} onClick={tekrarDene}>Yüklenemedi. Tekrar denemek için dokun.</button>
           : harfListesi.length === 0 ? <div className="bk-kesif-bos">Bu harfte kelime bulunamadı.</div>
           : <div className="bk-ady-liste">{harfListesi.map((k) => <KelimeKarti key={k.id + k.text} k={k} />)}</div>}
 
