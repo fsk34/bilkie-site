@@ -13,7 +13,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { sendPasswordResetEmail } from "firebase/auth";
+import { EmailAuthProvider, reauthenticateWithCredential, sendPasswordResetEmail, updatePassword } from "firebase/auth";
 import Kabuk from "../../Kabuk";
 import { auth } from "../../../lib/firebase";
 import { useOturum } from "../../../lib/oturum";
@@ -71,7 +71,14 @@ function Icerik() {
 
   const avatar = profil?.avatar || "profil0";
   const [avatarAcik, setAvatarAcik] = useState(false);
-  const [parolaGonderiliyor, setParolaGonderiliyor] = useState(false);
+  // Parola formu — Android/iOS PasswordEdit ile aynı: mevcut + yeni + tekrar (21 Eki; eskiden
+  // e-postaya sıfırlama bağlantısı gidiyordu: çocuk velinin e-postasına erişemeyebiliyordu)
+  const [parolaAcik, setParolaAcik] = useState(false);
+  const [mevcutParola, setMevcutParola] = useState("");
+  const [yeniParola, setYeniParola] = useState("");
+  const [yeniParola2, setYeniParola2] = useState("");
+  const [parolaKaydediyor, setParolaKaydediyor] = useState(false);
+  const [parolaHata, setParolaHata] = useState<string | null>(null);
 
   // Profil sonradan gelirse alanları bir kez doldur
   const doldurulduRef = useRef(false);
@@ -141,21 +148,54 @@ function Icerik() {
     }
   }
 
-  // Uygulamada parola ekranda değiştiriliyor; web'de Firebase yeniden kimlik doğrulama
-  // istediği için sıfırlama bağlantısı gönderiliyor (bağlantı /sifre-sifirla'ya düşüyor).
-  async function parolaSifirlamaGonder() {
-    const eposta = profil?.eposta || kullanici?.email || "";
-    if (!eposta || parolaGonderiliyor) return;
-    setParolaGonderiliyor(true);
-    setHata(null);
-    setBilgi(null);
+  function parolaFormunuKapat() {
+    setParolaAcik(false); setMevcutParola(""); setYeniParola(""); setYeniParola2(""); setParolaHata(null);
+  }
+
+  // Mevcut parolayı unutan için eski yol: e-postaya sıfırlama bağlantısı (artık yalnız bilerek seçilince)
+  async function sifirlamaGonder() {
+    const eposta = auth.currentUser?.email || profil?.eposta || "";
+    if (!eposta || parolaKaydediyor) return;
+    setParolaKaydediyor(true); setParolaHata(null);
     try {
       await sendPasswordResetEmail(auth, eposta);
-      setBilgi(`${eposta} adresine parola değiştirme bağlantısı gönderildi.`);
+      parolaFormunuKapat();
+      setBilgi(`${eposta} adresine parola sıfırlama bağlantısı gönderildi.`);
     } catch {
-      setHata("Bağlantı gönderilemedi. Biraz sonra tekrar dene.");
+      setParolaHata("Bağlantı gönderilemedi. Biraz sonra tekrar dene.");
     } finally {
-      setParolaGonderiliyor(false);
+      setParolaKaydediyor(false);
+    }
+  }
+
+  // Android ProfileScreen parola kaydet ile aynı doğrulama ve metinler
+  async function parolaKaydet() {
+    if (parolaKaydediyor) return;
+    setParolaHata(null); setHata(null); setBilgi(null);
+    if (!mevcutParola) { setParolaHata("Mevcut parolayı gir"); return; }
+    if (yeniParola.length < 6) { setParolaHata("Yeni parola en az 6 karakter olmalı"); return; }
+    if (yeniParola !== yeniParola2) { setParolaHata("Yeni parolalar eşleşmiyor"); return; }
+    const u = auth.currentUser;
+    const eposta = u?.email || profil?.eposta || "";
+    if (!u || !eposta) { setParolaHata("Oturum bulunamadı, yeniden giriş yap"); return; }
+    setParolaKaydediyor(true);
+    try {
+      await reauthenticateWithCredential(u, EmailAuthProvider.credential(eposta, mevcutParola));
+      await updatePassword(u, yeniParola);
+      parolaFormunuKapat();
+      setBilgi("Parolan güncellendi.");
+    } catch (e) {
+      const kod = (e as { code?: string })?.code ?? "";
+      setParolaHata(
+        kod === "auth/wrong-password" || kod === "auth/invalid-credential" || kod === "auth/invalid-login-credentials"
+          ? "Mevcut parola yanlış"
+          : kod === "auth/weak-password" ? "Yeni parola çok zayıf, en az 6 karakter olmalı"
+          : kod === "auth/too-many-requests" ? "Çok fazla deneme yapıldı, biraz sonra tekrar dene"
+          : kod === "auth/network-request-failed" ? "Bağlantı yok, sonra tekrar dene"
+          : "Bir hata oluştu, tekrar dene",
+      );
+    } finally {
+      setParolaKaydediyor(false);
     }
   }
 
@@ -222,15 +262,42 @@ function Icerik() {
       {!googleIle && (
         <div className="bk-hesap-alan">
           <span className="etiket">Parola</span>
-          <button
-            type="button"
-            className="kutu tiklanabilir"
-            onClick={parolaSifirlamaGonder}
-            disabled={parolaGonderiliyor}
-          >
-            <span className="deger">{parolaGonderiliyor ? "Gönderiliyor…" : "••••••••"}</span>
-            <span className="kalem" aria-hidden>✎</span>
-          </button>
+          {parolaAcik ? (
+            <form
+              style={{ display: "flex", flexDirection: "column", gap: 10 }}
+              onSubmit={(e) => { e.preventDefault(); parolaKaydet(); }}
+            >
+              <input className="bk-alan" type="password" placeholder="Mevcut Parola" autoComplete="current-password"
+                value={mevcutParola} onChange={(e) => setMevcutParola(e.target.value)} autoFocus />
+              <input className="bk-alan" type="password" placeholder="Yeni Parola" autoComplete="new-password"
+                value={yeniParola} onChange={(e) => setYeniParola(e.target.value)} />
+              <input className="bk-alan" type="password" placeholder="Yeni Parola (tekrar)" autoComplete="new-password"
+                value={yeniParola2} onChange={(e) => setYeniParola2(e.target.value)} />
+              {parolaHata && <p className="bk-hata" style={{ margin: 0 }}>{parolaHata}</p>}
+              <div style={{ display: "flex", gap: 10 }}>
+                <button type="submit" className="bk-dugme" style={{ flex: 1 }} disabled={parolaKaydediyor}>
+                  {parolaKaydediyor ? "Kaydediliyor…" : "Parolayı Değiştir"}
+                </button>
+                <button type="button" className="bk-dugme acik" style={{ flex: 1 }} disabled={parolaKaydediyor}
+                  onClick={parolaFormunuKapat}>
+                  Vazgeç
+                </button>
+              </div>
+              <button type="button" onClick={sifirlamaGonder} disabled={parolaKaydediyor}
+                style={{ background: "none", border: 0, padding: 0, color: "#55C7FF", fontSize: 13, textAlign: "left", cursor: "pointer" }}>
+                Mevcut parolanı mı unuttun? E-postana sıfırlama bağlantısı gönder
+              </button>
+            </form>
+          ) : (
+            <button
+              type="button"
+              className="kutu tiklanabilir"
+              onClick={() => { setParolaAcik(true); setHata(null); setBilgi(null); }}
+            >
+              <span className="deger">••••••••</span>
+              <span className="kalem" aria-hidden>✎</span>
+            </button>
+          )}
         </div>
       )}
 
