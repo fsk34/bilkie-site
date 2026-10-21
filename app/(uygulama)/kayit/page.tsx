@@ -153,7 +153,9 @@ export default function KayitSayfasi() {
           onbellegiBosalt();
           router.replace("/");
         }}
-        geri={() => setDogrulama(null)}
+        // Hesap açıldı: kayıt adımlarına dönmek "e-posta kullanımda" hatasına götürüyordu → girişe
+        // (giriş doğrulanmamış hesabı tanıyıp doğrulama ekranını yeniden açar)
+        geri={() => router.push("/giris")}
       />
     );
   }
