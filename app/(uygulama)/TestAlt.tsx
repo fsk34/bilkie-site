@@ -62,7 +62,7 @@ export function TestNotDugmesi({ bantAcik, onClick }: { bantAcik: boolean; onCli
     d.style.bottom = bant && bant.offsetHeight > 0 ? `${bant.offsetHeight + 10}px` : "";
   }, [bantAcik]);
   return (
-    <button ref={ref} className="bk-not-dugme" onClick={onClick} aria-label="Notlarım">
+    <button ref={ref} className="bk-not-yuzen" onClick={onClick} aria-label="Notlarım">
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src="/uygulama/notlar.png" alt="" width={26} height={26} />
     </button>

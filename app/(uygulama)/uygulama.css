@@ -3617,14 +3617,14 @@ button.bk-cikis { background: none; border: 0; padding: 0; cursor: pointer; line
 
 /* Test / Hata Turu not düğmesi + okuma paneli (Android NotDugmesiKatmani / NotlarOkumaPaneli, 5 Eki 2026).
    Düğme şıklar ile Kontrol Et arasında sağa yaslı (sütun 720px + 16 iç boşluk); bant gelince JS bandın üstüne taşır. */
-.bk-not-dugme {
+.bk-not-yuzen {
   position: fixed; z-index: 12; right: max(16px, calc((100vw - 720px) / 2 + 16px));
   bottom: calc(88px + env(safe-area-inset-bottom));
   width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; cursor: pointer;
   background: #2c335e; border: 1px solid rgba(255,255,255,.16);
   transition: bottom .22s cubic-bezier(.4, 0, .2, 1);
 }
-.bk-not-dugme:active { transform: scale(.95); }
+.bk-not-yuzen:active { transform: scale(.95); }
 .bk-not-panel-zemin { position: fixed; inset: 0; z-index: 40; background: rgba(0,0,0,.55); display: flex; align-items: flex-end; justify-content: center; }
 .bk-not-panel {
   width: 100%; max-width: 720px; height: 66vh; display: flex; flex-direction: column; gap: 12px;
