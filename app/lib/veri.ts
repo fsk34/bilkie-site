@@ -96,7 +96,11 @@ export async function profilOku(uid: string): Promise<Profil | null> {
 
 /* --------------------------------------------------------------- üst bilgi */
 
-export type UstBilgi = { xp: number; seri: number; bugunAktif: boolean; can: number };
+export type UstBilgi = {
+  xp: number; seri: number; bugunAktif: boolean; can: number;
+  /** bugün yapılan bölümler (ACT_TEST/DEFTER/YAZILI) → üst çubuktaki seri kitap yığını */
+  bugunMaske?: number;
+};
 
 /** Üst bilginin okunduğu 4 düğüm — tek seferlik okuma da canlı dinleme de bunları kullanır. */
 export function ustBilgiYollari(uid: string, sinif: number): string[] {
@@ -125,7 +129,12 @@ export function ustBilgiCoz(xpHam: unknown, statsHam: unknown, seriHam: unknown,
       ? Math.max(0, Math.min(CAN_LIMITI, sayi(canNode.remaining)))
       : CAN_LIMITI;
 
-  return { xp, seri, bugunAktif: sonGun === gunAnahtari(), can };
+  // Bugünün maskesi: Seri ekranıyla aynı kaynak (days/<yyyy-MM>/<gün>)
+  const bugun = gunAnahtari();
+  const gunler = ((seriNode.days ?? {}) as Record<string, Record<string, unknown>>)[bugun.slice(0, 7)] ?? {};
+  const bugunMaske = sayi(gunler[String(Number(bugun.slice(8, 10)))]);
+
+  return { xp, seri, bugunAktif: sonGun === bugun, can, bugunMaske };
 }
 
 export async function ustBilgiOku(uid: string, sinif: number): Promise<UstBilgi> {
@@ -668,6 +677,28 @@ export async function seriAyiOku(uid: string, ayAnahtari: string): Promise<SeriA
  * iOS: StreakSummaryScreen.loadWeekDays — gelecek günler atlanır, hiç işaret
  * yoksa bugün dolu sayılır (özet ekranı hep en az bir halka gösterir).
  */
+/** Bu haftanın günleri → o günün aktivite maskesi (Pt = 0). Bugün en az `bugunMaske` ile dolu döner. */
+export async function haftaninGunMaskeleri(uid: string, bugunMaske: number): Promise<Record<number, number>> {
+  const bugunIndeks = haftaGunIndeksi();
+  const out: Record<number, number> = {};
+  if (uid) {
+    try {
+      const seri = (await seriOku(uid)) as { days?: unknown } | null | undefined;
+      const days = seri !== undefined ? seri?.days : (await get(dbRef(kullaniciDb, `users/${uid}/streak/days`))).val();
+      const gd = (days ?? {}) as Record<string, Record<string, unknown>>;
+      const simdi = Date.now();
+      for (let i = 0; i <= bugunIndeks; i++) {
+        const t = new Date(simdi - (bugunIndeks - i) * 86400000);
+        const m = sayi(gd?.[ayAnahtari(t)]?.[String(gunNo(t))]);
+        if (m !== 0) out[i] = m;
+      }
+    } catch { /* yalnız bugün */ }
+  }
+  // Bu ekran yalnız bugün etkinlik varken açılır: az önce biten bölüm HER ZAMAN içinde (olay modunda gecikebilir)
+  out[bugunIndeks] = (out[bugunIndeks] ?? 0) | bugunMaske;
+  return out;
+}
+
 export async function haftaninAktifGunleri(uid: string): Promise<number[]> {
   const bugunIndeks = haftaGunIndeksi();
   if (!uid) return [bugunIndeks];
@@ -1045,7 +1076,7 @@ export async function ligKendiniYayinla(uid: string, sinif: number): Promise<voi
 export const XP_DOGRU_YAZILI = 4;      // iOS/Android: XpRules.yaziliCorrectXp
 export const YAZILI_ADIM_SAYISI = 2;   // her ders için step1 + step2
 
-export type YaziliTip = "siralama" | "acikuclu" | "test" | "dogruyanlis";
+export type YaziliTip = "siralama" | "boslukdoldurma" | "acikuclu" | "test" | "dogruyanlis";
 
 export type SiralamaSorusu = { id: string; yonerge: string; hedef: string; parcalar: string[] };
 
@@ -1092,10 +1123,24 @@ export async function yaziliIlerlemesi(
   return out;
 }
 
-/** Sıradaki adım: 1 tamamlandıysa step2, aksi halde step1 (uygulamadaki kural). */
-export function yaziliSiradakiAdim(tamamlanan: number): "step1" | "step2" {
-  return tamamlanan >= 1 ? "step2" : "step1";
+/** Sıradaki adım: 1 tamamlandıysa step2, aksi halde step1 (uygulamadaki kural). İki adım da bitmişse tekrar
+    1. adımdan başlar; tekrarda 1. adımı bitirdiyse 2. adıma geçer (Android/iOS 22 Eki, YaziliSonAdimDepo). */
+export function yaziliSiradakiAdim(tamamlanan: number, sonAdim?: string | null): "step1" | "step2" {
+  if (tamamlanan <= 0) return "step1";
+  if (tamamlanan === 1) return "step2";
+  return sonAdim === "step1" ? "step2" : "step1";
 }
+
+/** Her (hesap, sınıf, ders, sınav) için EN SON bitirilen adım (bu tarayıcıda). Depolama kapalıysa null:
+    tekrar hep 1. adımdan başlar, sayfa yine çalışır. */
+export const yaziliSonAdim = {
+  oku(uid: string, sinif: number, ders: string, sinav: string): string | null {
+    try { return localStorage.getItem(`yazili_son_adim|${uid}|${sinifSinirla(sinif)}|${ders}|${sinav}`); } catch { return null; }
+  },
+  yaz(uid: string, sinif: number, ders: string, sinav: string, adim: string) {
+    try { localStorage.setItem(`yazili_son_adim|${uid}|${sinifSinirla(sinif)}|${ders}|${sinav}`, adim); } catch { /* yok say */ }
+  },
+};
 
 /** writtenQuestions/grade{N}/{ders}/{sınav}/steps/{adım}/siralama */
 export async function yaziliSiralamaSorulari(
@@ -1139,7 +1184,13 @@ export function siralamaKarsilastir(cevap: string, hedef: string): boolean {
 export type AcikSorusu = {
   id: string; pasaj: string; soru: string; cevaplar: string[];
   buyukKucukOnemli: boolean; gorselYolu?: string;
+  /** 22 Eki yeni yapı: tur "ornek" → doğru/yanlış yok, "Kontrol Et" örnek cevabı + notu gösterir */
+  ornekCevap?: string; not?: string;
 };
+
+/** Boşluk doldurma (22 Eki, sıralamanın yerine): havuz (5 doğru + 2 çeldirici) + boşluklu cümleler. */
+export type BoslukCumlesi = { id: string; once: string; ek: string; sonra: string; cevap: string };
+export type BoslukDoldurma = { yonerge: string; havuz: string[]; cumleler: BoslukCumlesi[] };
 export type YaziliTestSorusu = {
   id: string; soru: string; secenekler: { anahtar: string; metin: string }[];
   dogru: string; gorselYolu?: string;
@@ -1175,9 +1226,38 @@ export async function yaziliAcikSorulari(
         cevaplar: dizi(c.answers),
         buyukKucukOnemli: c.caseSensitive === true,
         gorselYolu: typeof c.imageRef === "string" ? c.imageRef : undefined,
+        ornekCevap: c.tur === "ornek" && typeof c.ornekCevap === "string" && c.ornekCevap.trim() ? c.ornekCevap : undefined,
+        not: typeof c.not === "string" ? c.not : undefined,
       });
     }
     return out;
+  });
+}
+
+/** steps/{adım}/boslukdoldurma = { yonerge, havuz: [..], cumleler: { qN: { id, metin("___"), cevap } } }.
+    Adımda yoksa null → bölüm atlanır, adım açık uçluyla başlar. */
+export async function yaziliBoslukDoldurma(
+  sinif: number, ders: string, sinav: string, adim: string
+): Promise<BoslukDoldurma | null> {
+  return onbellekli(`yaziliBosluk:${sinifSinirla(sinif)}:${ders}:${sinav}:${adim}`, async () => {
+    const snap = await get(dbRef(yazililarDb, yaziliYol(sinif, ders, sinav, adim, "boslukdoldurma")));
+    if (!snap.exists()) return null;
+    const ham = snap.val() ?? {};
+    const cHam = (ham.cumleler ?? {}) as Record<string, Record<string, unknown>>;
+    const cumleler: BoslukCumlesi[] = [];
+    for (const k of siraliAnahtarlar(cHam)) {
+      const c = cHam[k] ?? {};
+      const metin = typeof c.metin === "string" ? c.metin : "";
+      const cevap = typeof c.cevap === "string" ? c.cevap.trim() : "";
+      const i = metin.indexOf("___");
+      if (i < 0 || !cevap) continue;
+      const kalan = metin.slice(i + 3);
+      const ek = kalan.match(/^\S*/)?.[0] ?? "";   // boşluğa yapışık ek/noktalama ("'dir", ",")
+      cumleler.push({ id: String(c.id ?? k), once: metin.slice(0, i).trimEnd(), ek, sonra: kalan.slice(ek.length).trim(), cevap });
+    }
+    const havuz = dizi(ham.havuz).map((x) => x.trim()).filter(Boolean);
+    if (!cumleler.length || !havuz.length) return null;
+    return { yonerge: typeof ham.yonerge === "string" ? ham.yonerge : "", havuz, cumleler };
   });
 }
 

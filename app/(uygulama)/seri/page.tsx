@@ -2,27 +2,22 @@
 
 // Seri ekranı — mobil uygulamadaki StreakScreen'in web karşılığı.
 // Aynı veri: users/{uid}/streak (count, lastDay, days/{yyyy-MM}/{gün} = aktivite maskesi).
-// Aynı görsel dil: halkalı gün hücreleri, ardışık günlerin arkasında turuncu seri şeridi.
+// Aynı görsel dil: kitap yığınlı gün hücreleri, ardışık günlerin arkasında turuncu seri şeridi.
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Kabuk from "../Kabuk";
 import { useOturum } from "../../lib/oturum";
 import { ACT_DEFTER, ACT_TEST, ACT_YAZILI } from "../../lib/veri";
 import { gunAnahtari, seriyiCoz } from "../../lib/tarih";
 import { useSeriDugumu } from "../../lib/canliVeri";
+import Rive, { SeriGosterilen, seriGirdileri, seriGunResim } from "../Rive";
 
 const AYLAR = ["Ocak","Şubat","Mart","Nisan","Mayıs","Haziran",
                "Temmuz","Ağustos","Eylül","Ekim","Kasım","Aralık"];
 const HAFTA = ["Pt","Sa","Ça","Pe","Cu","Ct","Pa"];
 
-// Uygulamadaki renkler
-const RENK_TEST   = "#DECF95";
-const RENK_DEFTER = "#DEA495";
-const RENK_YAZILI = "#9C95DE";
-const RENK_BOS_GUN  = "rgba(255,255,255,0.333)";   // Android ColorInactiveRing 0x55
-const RENK_BOS_BANT = "rgba(255,255,255,0.25)";    // Android büyük halka boşken
 const RENK_SERI   = "#CB8000";
 
 /** Bir ayın gün → maske tablosu (gün anahtarı sıfırsız "6"). */
@@ -71,6 +66,29 @@ function SeriIcerik() {
   const bugunAktif = bugunMaskesi !== 0;
   const satirlar = useMemo(() => aylikIzgara(yil, ay), [yil, ay]);
 
+  // Başlık kitapları (Android 23 Eki): ekran açılırken bugün gösterilmiş bölümler sabit kalır, yeni = maske − bu.
+  // Veri gelince bugünün maskesi "gösterildi" diye yazılır.
+  // Oturum ilk karede henüz yüklenmemiş olabilir: kayıt hesap belli olunca BİR KEZ okunur (Android remember(uid)).
+  // Okunmadan maske de 0 verilir — yoksa kitaplar "yeni değil" diye yerinde belirir, sonra düşme kaçar.
+  const uid = kullanici?.uid ?? "";
+  const [gosterilenKayit, setGosterilenKayit] = useState<{ uid: string; maske: number } | null>(null);
+  const gosterilen = gosterilenKayit && gosterilenKayit.uid === uid ? gosterilenKayit.maske : null;
+  useEffect(() => {
+    if (uid && gosterilenKayit?.uid !== uid) setGosterilenKayit({ uid, maske: SeriGosterilen.oku(uid, bugun) });
+  }, [uid, bugun, gosterilenKayit]);
+  useEffect(() => {
+    if (uid && seri && gosterilen !== null) SeriGosterilen.yaz(uid, bugun, bugunMaskesi);
+  }, [uid, seri, bugun, bugunMaskesi, gosterilen]);
+  // Bugün yeni bir kitap bu ekranda ilk kez gösteriliyorsa → kitap oturduktan sonra tam ekran konfeti (bir kez, ~5 sn)
+  const konfetiHak = !!seri && gosterilen !== null && (bugunMaskesi & (ACT_TEST | ACT_DEFTER | ACT_YAZILI) & ~gosterilen) !== 0;
+  const [konfeti, setKonfeti] = useState(false);
+  useEffect(() => {
+    if (!konfetiHak) return;
+    const t1 = setTimeout(() => setKonfeti(true), 900);
+    const t2 = setTimeout(() => setKonfeti(false), 900 + 5200);
+    return () => { clearTimeout(t1); clearTimeout(t2); };
+  }, [konfetiHak]);
+
   if (!kullanici) {
     return (
       <>
@@ -89,13 +107,18 @@ function SeriIcerik() {
     <>
       {/* Android üst bandı: geri + "Seri" üstte, halka + sayı dikey ortada */}
       <div className="bk-seri-bant" style={{ background: bugunAktif ? RENK_SERI : "#2C335E" }}>
-        <button className="geri" onClick={() => router.back()} aria-label="Geri">
+        {/* Doğrudan / yeni sekmede açıldıysa geri gidecek sayfa yok → ana ekrana */}
+        <button className="geri" aria-label="Geri"
+                onClick={() => (window.history.length > 1 ? router.back() : router.push("/"))}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/uygulama/cikis.png" alt="" />
         </button>
         <span className="baslik">Seri</span>
-        <Halka maske={bugunMaskesi} boyut={110} kalinlik={16} bos={RENK_BOS_BANT} yuvarlak />
-        <div>
+        {/* Seri kitap yığını: bugünün kitapları yerinde; bu ekranda henüz gösterilmemiş bölümler düşüp oturur */}
+        <Rive dosya="seri_kitap_baslik" durumMakinesi="Seri"
+              girdiler={gosterilen === null || !seri ? seriGirdileri(0, 0) : seriGirdileri(bugunMaskesi, bugunMaskesi & ~gosterilen)}
+              className="kitaplar" style={{ width: 150, height: 138 }} />
+        <div className="sayi-grup">
           <div className="sayi">{sayi == null ? "—" : sayi}</div>
           <div className="etiket">günlük seri!</div>
         </div>
@@ -138,7 +161,9 @@ function SeriIcerik() {
                   ) : (
                     <div className="bk-gun" key={k}>
                       <span className="no">{gun}</span>
-                      <Halka maske={gunler[gun] ?? 0} boyut={22} kalinlik={5} bos={RENK_BOS_GUN} />
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img className="kitap" src={seriGunResim(gunler[gun] ?? 0)} alt=""
+                           style={{ opacity: (gunler[gun] ?? 0) === 0 ? 0.45 : 1 }} />
                     </div>
                   )
                 )}
@@ -154,74 +179,31 @@ function SeriIcerik() {
           yaptığında seri artar.
         </p>
         <div className="bk-etiketler">
-          <Etiket ad="Konu Defteri" renk={RENK_DEFTER} />
-          <Etiket ad="Konu Testi" renk={RENK_TEST} />
-          <Etiket ad="Yazılı Çözümü" renk={RENK_YAZILI} />
+          <Etiket ad="Konu Defteri" kitap="defter" />
+          <Etiket ad="Konu Testi" kitap="test" />
+          <Etiket ad="Yazılı Çözümü" kitap="yazili" />
         </div>
       </div>
+
+      {konfeti && (
+        <div className="bk-konfeti-katman" aria-hidden>
+          <Rive dosya="seri_konfeti" durumMakinesi="Konfeti" sigdir="cover" style={{ width: "100%", height: "100%" }} />
+        </div>
+      )}
     </>
   );
 }
 
 /* --------------------------------------------------------------- yardımcı */
 
-/** Android StreakLegendItem: yazı üstte, altında 20'lik halka (4 kalın). */
-function Etiket({ ad, renk }: { ad: string; renk: string }) {
+/** Android StreakLegendItem: yazı üstte, altında seri kitap yığınındaki kitabın tek başına hâli (23 Eki). */
+function Etiket({ ad, kitap }: { ad: string; kitap: string }) {
   return (
     <span className="bk-etiket">
       {ad}
-      <svg width={24} height={24} viewBox="0 0 24 24" style={{ margin: -2 }}>
-        <circle cx={12} cy={12} r={10} fill="none" stroke={renk} strokeWidth={4} />
-      </svg>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={`/uygulama/seri/seri_kitap_${kitap}.png`} alt="" style={{ height: 22 }} />
     </span>
-  );
-}
-
-/**
- * Maskedeki her aktivite için halkada eşit dilim (Android Canvas çizimi).
- * Sıra Android'deki gibi test → defter → yazılı (eskiden defter önceydi).
- * Android drawArc kutunun KENARINA çizer: çizgi merkezi `boyut`luk çember, kalınlığın yarısı
- * dışarı taşar. Yerleşim yine `boyut` (negatif kenar boşluğu).
- */
-function Halka({ maske, boyut, kalinlik, bos, yuvarlak }: {
-  maske: number; boyut: number; kalinlik: number; bos: string; yuvarlak?: boolean;
-}) {
-  const renkler: string[] = [];
-  if (maske & ACT_TEST)   renkler.push(RENK_TEST);
-  if (maske & ACT_DEFTER) renkler.push(RENK_DEFTER);
-  if (maske & ACT_YAZILI) renkler.push(RENK_YAZILI);
-
-  const tam = boyut + kalinlik;
-  const m = tam / 2;
-  const r = boyut / 2;
-  const cevre = 2 * Math.PI * r;
-  const uc = yuvarlak ? "round" : "butt";
-
-  return (
-    <svg className="halka" width={tam} height={tam} viewBox={`0 0 ${tam} ${tam}`} style={{ margin: -kalinlik / 2 }}>
-      {renkler.length === 0 ? (
-        <circle cx={m} cy={m} r={r} fill="none" stroke={bos} strokeWidth={kalinlik} />
-      ) : (
-        renkler.map((renk, i) => {
-          const dilim = cevre / renkler.length;
-          return (
-            <circle
-              key={i}
-              cx={m}
-              cy={m}
-              r={r}
-              fill="none"
-              stroke={renk}
-              strokeWidth={kalinlik}
-              strokeLinecap={uc}
-              strokeDasharray={`${dilim} ${cevre - dilim}`}
-              strokeDashoffset={-dilim * i}
-              transform={`rotate(-90 ${m} ${m})`}
-            />
-          );
-        })
-      )}
-    </svg>
   );
 }
 

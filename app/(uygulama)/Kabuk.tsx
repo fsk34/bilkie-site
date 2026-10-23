@@ -10,6 +10,7 @@ import { ayVurgu } from "../lib/ayGorsel";
 // Giriş ZORUNLU: /uygulama altına misafir giremiyor, kapı `Kapi.tsx`te.
 
 import Link from "next/link";
+import { seriGunResim } from "./Rive";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { useOturum } from "../lib/oturum";
@@ -135,8 +136,10 @@ function Sayaclar({ ust, kisa = false }: { ust: UstBilgi | null; kisa?: boolean 
         data-aktif={ust ? String(ust.bugunAktif) : "true"}
         title="Seri"
       >
+        {/* Seri kitap yığını (Android 23 Eki): bugün yapılan bölümlerin kitapları dolu, diğerleri gri */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/uygulama/seriicon.svg" alt="" />
+        <img className="kitap" src={seriGunResim(ust?.bugunMaske ?? 0)} alt=""
+             data-bos={!ust?.bugunAktif && !(ust?.bugunMaske ?? 0) ? "true" : undefined} />
         <b>{deger(ust?.seri)}</b>
       </Link>
       <Link href="/ligler" className={`bk-sayac puan ${sonuk ? "sonuk" : ""}`} title="Toplam XP">

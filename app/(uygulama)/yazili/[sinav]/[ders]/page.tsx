@@ -1,7 +1,8 @@
 "use client";
 
 // Yazılı çalışması — uygulamadaki zincirin tamamı:
-//   sıralama → açık uçlu → test → doğru-yanlış
+//   boşluk doldurma → açık uçlu → test / doğru-yanlış (22 Eki: sıralama kaldırıldı, boşluk doldurma geldi;
+//   açık uçluda "örnek cevap" soruları hüküm vermez)
 // Uygulamada olduğu gibi ilerleme ve ödüller SON halkada yazılır. Doğru/toplam = adımın TÜM
 // bölümlerinin toplamı (şartname KARAR S1, Android YaziliSessionState): XP = toplam doğru × 4,
 // istatistik ve görev de bu toplamla. Eskiden web yalnız doğru-yanlış bölümünü sayıyordu.
@@ -11,6 +12,8 @@ import { AksiyonDugmesi, AltSonucBandi } from "../../../TestAlt";
 import CikisOnayi from "../../../CikisOnayi";
 import Link from "next/link";
 import Perde from "../../../Perde";
+import SoruCubugu from "../../../SoruCubugu";
+import { sesCal } from "../../../ses";
 import SonucAkisi, { type SeriArgs, type SonucArgs } from "../../../sonuc/SonucAkisi";
 import type { GorevDegisimi } from "../../../../lib/gorevYaz";
 import { useParams, useRouter } from "next/navigation";
@@ -23,22 +26,22 @@ import {
   CAN_LIMITI,
   acikCevapDogruMu,
   canDegistir,
-  siralamaKarsilastir,
   yaziliAcikSorulari,
+  yaziliBoslukDoldurma,
+  yaziliSonAdim,
   yaziliDersCoz,
   yaziliDogruYanlisSorulari,
   yaziliGorselAdresi,
   yaziliGorselleriniOnYukle,
   yaziliIlerlemesi,
   yaziliSiradakiAdim,
-  yaziliSiralamaSorulari,
   ACT_YAZILI,
   XP_DOGRU_YAZILI,
   yaziliTamamla,
   yaziliTestSorulari,
   type AcikSorusu,
+  type BoslukDoldurma,
   type DogruYanlisSorusu,
-  type SiralamaSorusu,
   type YaziliTestSorusu,
 } from "../../../../lib/veri";
 import { enUzunSeriGuncelle, yaziliBittiIsle } from "../../../../lib/ilerleme";
@@ -51,9 +54,12 @@ const DERS_ADI: Record<string, string> = {
   ingilizce: "İngilizce", sosyal: "Sosyal Bilgiler",
 };
 
-type Bolum = "siralama" | "acikuclu" | "test" | "dogruyanlis";
+/** Yazılı ekranlarının çubuk zemini (Android Color(0x33252733)) */
+const YAZILI_IZ = "rgba(37, 39, 51, 0.2)";
+
+type Bolum = "bosluk" | "acikuclu" | "test" | "dogruyanlis";
 const BOLUM_ADI: Record<Bolum, string> = {
-  siralama: "Sıralama", acikuclu: "Açık Uçlu", test: "Test", dogruyanlis: "Doğru-Yanlış",
+  bosluk: "Boşluk Doldurma", acikuclu: "Açık Uçlu", test: "Test", dogruyanlis: "Doğru-Yanlış",
 };
 
 type Durum = "yukleniyor" | "hata" | "cozuluyor" | "sonuc";
@@ -68,7 +74,7 @@ export default function YaziliCalismaSayfasi() {
 
   const [durum, setDurum] = useState<Durum>("yukleniyor");
   const [adim, setAdim] = useState<"step1" | "step2">("step1");
-  const [siralama, setSiralama] = useState<SiralamaSorusu[]>([]);
+  const [bosluk, setBosluk] = useState<BoslukDoldurma | null>(null);
   const [acik, setAcik] = useState<AcikSorusu[]>([]);
   const [test, setTest] = useState<YaziliTestSorusu[]>([]);
   const [dy, setDy] = useState<DogruYanlisSorusu[]>([]);
@@ -84,8 +90,11 @@ export default function YaziliCalismaSayfasi() {
   const bitirildi = useRef(false);
 
   // cevap durumları
+  // boşluk doldurma: karışık havuz; yerlesim[i] = i. boşluktaki havuz kelimesi (-1 boş)
   const [havuz, setHavuz] = useState<string[]>([]);
-  const [secilen, setSecilen] = useState<number[]>([]);
+  const [yerlesim, setYerlesim] = useState<number[]>([]);
+  const [seciliBosluk, setSeciliBosluk] = useState(-1);
+  const [boslukSonuc, setBoslukSonuc] = useState<boolean[]>([]);
   const [yazilan, setYazilan] = useState("");
   const [sik, setSik] = useState<string | null>(null);
   const [dySecim, setDySecim] = useState<"D" | "Y" | null>(null);
@@ -95,7 +104,7 @@ export default function YaziliCalismaSayfasi() {
 
   // sonuçlar
   const [dogrular, setDogrular] = useState<Record<Bolum, number>>({
-    siralama: 0, acikuclu: 0, test: 0, dogruyanlis: 0,
+    bosluk: 0, acikuclu: 0, test: 0, dogruyanlis: 0,
   });
   const [akis, setAkis] = useState<{ sonuc: SonucArgs; seriSozu: Promise<SeriArgs | null>; gorevSozu: Promise<GorevDegisimi[]> } | null>(null);
 
@@ -118,31 +127,31 @@ export default function YaziliCalismaSayfasi() {
           if (iptal) return;
           // Okunamazsa açılmaz: tamamlanmış adım yeniden çözdürülmesin
           if (!ilerleme) { setDurum("hata"); return; }
-          siradaki = yaziliSiradakiAdim(ilerleme[dersKey] ?? 0);
+          siradaki = yaziliSiradakiAdim(ilerleme[dersKey] ?? 0, yaziliSonAdim.oku(kullanici.uid, sinif, dersKey, sinavKey));
         }
         setAdim(siradaki);
 
         const [s, a, t, d] = await Promise.all([
-          yaziliSiralamaSorulari(sinif, icerikDers, sinavKey, siradaki),
+          yaziliBoslukDoldurma(sinif, icerikDers, sinavKey, siradaki),
           yaziliAcikSorulari(sinif, icerikDers, sinavKey, siradaki),
           yaziliTestSorulari(sinif, icerikDers, sinavKey, siradaki),
           yaziliDogruYanlisSorulari(sinif, icerikDers, sinavKey, siradaki),
         ]);
         if (iptal) return;
 
-        setSiralama(s); setAcik(a); setTest(t); setDy(d);
+        setBosluk(s); setAcik(a); setTest(t); setDy(d);
         // Bütün bölümler zaten burada okundu; görseller de şimdi iner (internet giderse adım sürsün)
         yaziliGorselleriniOnYukle([...t.map((x) => x.gorselYolu), ...a.map((x) => x.gorselYolu)]);
         // Boş bölümler atlanır (uygulamada da o ekran hata verirdi)
         const sira: Bolum[] = [];
-        if (s.length) sira.push("siralama");
+        if (s) sira.push("bosluk");   // boşluk doldurma yoksa adım açık uçluyla başlar
         if (a.length) sira.push("acikuclu");
         if (t.length) sira.push("test");
         if (d.length) sira.push("dogruyanlis");
         setBolumler(sira);
 
         if (sira.length === 0) { setDurum("hata"); return; }
-        if (sira[0] === "siralama") setHavuz(karistir(s[0].parcalar));
+        if (s) { setHavuz(karistir(s.havuz)); setYerlesim(s.cumleler.map(() => -1)); }
         setDurum("cozuluyor");
       } catch {
         if (!iptal) setDurum("hata");
@@ -168,7 +177,7 @@ export default function YaziliCalismaSayfasi() {
   /* -------------------------------------------------------------- akış */
 
   const soruSayisi =
-    bolum === "siralama" ? siralama.length
+    bolum === "bosluk" ? 1   // tek ekran (cümleler birlikte kontrol edilir)
     : bolum === "acikuclu" ? acik.length
     : bolum === "test" ? test.length
     : dy.length;
@@ -183,6 +192,8 @@ export default function YaziliCalismaSayfasi() {
     bitirildi.current = true;
     const sureSn = Math.max(1, Math.round((Date.now() - baslangicRef.current) / 1000));
     const puan = Math.max(0, dogru) * XP_DOGRU_YAZILI;
+    // Tekrar sırası için en son bitirilen adım (yaziliSiradakiAdim okur)
+    if (kullanici) yaziliSonAdim.yaz(kullanici.uid, sinif, dersKey, sinavKey, adim);
     let gorevCoz: (d: GorevDegisimi[]) => void = () => {};
     const gorevSozu = new Promise<GorevDegisimi[]>((c) => { gorevCoz = c; });
 
@@ -218,7 +229,7 @@ export default function YaziliCalismaSayfasi() {
     })();
 
     setDurum("sonuc");
-    setAkis({ sonuc: { dogru, toplam, sureSn, puan }, seriSozu, gorevSozu });
+    setAkis({ sonuc: { dogru, toplam, sureSn, puan, yaziliAdim: adim }, seriSozu, gorevSozu });
   }, [kullanici, sinif, dersKey, sinavKey, adim]);
 
   function canAzalt() {
@@ -229,11 +240,28 @@ export default function YaziliCalismaSayfasi() {
   function kontrolEt() {
     if (kontrol) return;
     let d = false;
-    if (bolum === "siralama") {
-      if (secilen.length === 0) return;
-      d = siralamaKarsilastir(secilen.map((i) => havuz[i]).join(" "), siralama[indeks].hedef);
+    if (bolum === "bosluk") {
+      if (!bosluk || yerlesim.some((k) => k < 0)) return;
+      // Her boşluk ayrı soru sayılır; ekranda yanlış varsa 1 can
+      const sn = bosluk.cumleler.map((c, i) => havuz[yerlesim[i]] === c.cevap);
+      const n = sn.filter(Boolean).length;
+      setBoslukSonuc(sn);
+      setSeciliBosluk(-1);
+      setDogruMu(n === sn.length);
+      setKontrol(true);
+      setDogrular((x) => ({ ...x, bosluk: n }));
+      sesCal(n === sn.length ? "dogru" : "yanlis");
+      if (n < sn.length) canAzalt();
+      return;
     } else if (bolum === "acikuclu") {
       if (!yazilan.trim()) return;
+      if (acik[indeks].ornekCevap) {
+        // Örnek cevaplı soru: hüküm yok, can gitmez; cevap yazan öğrenci doğru sayılır (XP doğru × 4)
+        setDogruMu(true); setKontrol(true);
+        setDogrular((x) => ({ ...x, acikuclu: x.acikuclu + 1 }));
+        sesCal("dogru");
+        return;
+      }
       d = acikCevapDogruMu(yazilan, acik[indeks].cevaplar, acik[indeks].buyukKucukOnemli);
     } else if (bolum === "test") {
       if (!sik) return;
@@ -254,7 +282,6 @@ export default function YaziliCalismaSayfasi() {
     if (!sonSoru) {
       const sonraki = indeks + 1;
       setIndeks(sonraki);
-      if (bolum === "siralama") setHavuz(karistir(siralama[sonraki].parcalar));
       sifirla();
       return;
     }
@@ -263,18 +290,18 @@ export default function YaziliCalismaSayfasi() {
       const sonrakiBolum = bolumler[bolumIndeks + 1];
       setBolumIndeks(bolumIndeks + 1);
       setIndeks(0);
-      if (sonrakiBolum === "siralama") setHavuz(karistir(siralama[0].parcalar));
+      void sonrakiBolum;
       sifirla();
     } else {
       // S1: adımın TÜM bölümlerinin doğrusu/sorusu. Son sorunun doğrusu kontrolEt'te zaten sayıldı.
       const dogru = bolumler.reduce((t, b) => t + dogrular[b], 0);
-      const toplam = siralama.length + acik.length + test.length + dy.length;
+      const toplam = (bosluk?.cumleler.length ?? 0) + acik.length + test.length + dy.length;
       bitir(dogru, toplam);
     }
   }
 
   function sifirla() {
-    setSecilen([]); setYazilan(""); setSik(null); setDySecim(null);
+    setYazilan(""); setSik(null); setDySecim(null);
     setKontrol(false); setDogruMu(false);
   }
 
@@ -309,12 +336,23 @@ export default function YaziliCalismaSayfasi() {
   }
 
   const cevapVar =
-    bolum === "siralama" ? secilen.length > 0
+    bolum === "bosluk" ? yerlesim.length > 0 && yerlesim.every((k) => k >= 0)
     : bolum === "acikuclu" ? yazilan.trim().length > 0
     : bolum === "test" ? sik != null
     : dySecim != null;
 
   const oran = ((indeks + (kontrol ? 1 : 0)) / Math.max(1, soruSayisi)) * 100;
+  const boslukDolu = yerlesim.filter((k) => k >= 0).length;
+  const boslukSayisi = bosluk?.cumleler.length ?? 0;
+  const boslukDogru = boslukSonuc.filter(Boolean).length;
+  const ornekMi = bolum === "acikuclu" && !!acik[indeks]?.ornekCevap;
+
+  /** Kelimeyi boşluğa koy: aynı kelime başka boşluktaysa oradan alınır; hedefteki eski kelime havuza döner. */
+  function yerlestir(kelime: number, hedef: number) {
+    if (kontrol || hedef < 0 || hedef >= yerlesim.length) return;
+    setYerlesim((y) => y.map((k, i) => (i === hedef ? kelime : k === kelime ? -1 : k)));
+    setSeciliBosluk(-1);
+  }
 
   return (
     <div className="bk">
@@ -323,13 +361,14 @@ export default function YaziliCalismaSayfasi() {
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <button className="bk-cikis" aria-label="Çık" onClick={() => setCikisSor(true)}><img src="/uygulama/cikis.png" alt="" /></button>
           {cikisSor && <CikisOnayi onVazgec={() => setCikisSor(false)} onCik={() => router.push(`/yazili/${sinavKey}`)} />}
-          <div className="bk-cubuk" style={{ flex: 1 }}><i style={{ width: `${oran}%` }} /></div>
+          {bolum === "bosluk"
+            ? <SoruCubugu hedef={boslukSayisi ? boslukDolu / boslukSayisi : 0} mevcut={boslukDolu} toplam={boslukSayisi} izRengi={YAZILI_IZ} />
+            : <SoruCubugu hedef={oran / 100} mevcut={indeks + 1} toplam={soruSayisi} izRengi={YAZILI_IZ} />}
           {hakAcik && <div style={{ fontFamily: "bk-baslik, system-ui" }}>❤️ {can}</div>}
         </div>
 
         <p className="bk-soluk" style={{ fontSize: 13, marginBottom: 6 }}>
-          {DERS_ADI[dersKey] ?? dersKey} · {BOLUM_ADI[bolum]} ({bolumIndeks + 1}/{bolumler.length}) ·
-          {" "}{indeks + 1}/{soruSayisi}
+          {DERS_ADI[dersKey] ?? dersKey} · {BOLUM_ADI[bolum]} ({bolumIndeks + 1}/{bolumler.length})
         </p>
 
         {gorsel && (
@@ -341,38 +380,61 @@ export default function YaziliCalismaSayfasi() {
           />
         )}
 
-        {bolum === "siralama" && (
+        {bolum === "bosluk" && bosluk && (
           <>
-            <h2 style={{ fontSize: 20, lineHeight: 1.35, marginBottom: 18 }}>
-              {siralama[indeks].yonerge || "Kelimeleri doğru sırayla diz."}
-            </h2>
-            <div className="bk-siralama-hedef">
-              {secilen.length === 0 && (
-                <span className="bk-soluk" style={{ fontSize: 14 }}>Parçalara dokunarak cümleyi kur.</span>
-              )}
-              {secilen.map((i, sira) => (
-                <button
-                  key={`${i}-${sira}`}
-                  className="bk-parca"
-                  disabled={kontrol}
-                  onClick={() => setSecilen((s) => s.filter((_, x) => x !== sira))}
-                >
-                  {havuz[i]}
-                </button>
-              ))}
+            {bosluk.yonerge && <div className="bk-bosluk-yonerge">{bosluk.yonerge}</div>}
+            <div className="bk-bosluk-cumleler">
+              {bosluk.cumleler.map((c, i) => {
+                const k = yerlesim[i] ?? -1;
+                const durum = kontrol ? (boslukSonuc[i] ? "dogru" : "yanlis") : seciliBosluk === i ? "secili" : k >= 0 ? "dolu" : "bos";
+                return (
+                  <div key={c.id} className="bk-bosluk-cumle">
+                    <span className="no">{i + 1}.</span>
+                    {c.once && <span>{c.once}</span>}
+                    <span className="kutu-grup">
+                      <button
+                        key={`${i}-${k}-${durum}`}
+                        className="bk-bosluk-kutu"
+                        data-durum={durum}
+                        style={{ ["--sira" as string]: i }}
+                        disabled={kontrol}
+                        onClick={() => {
+                          if (k >= 0) { setYerlesim((y) => y.map((x, j) => (j === i ? -1 : x))); setSeciliBosluk(-1); }
+                          else setSeciliBosluk((x) => (x === i ? -1 : i));
+                        }}
+                        onDragOver={(e) => { if (!kontrol) e.preventDefault(); }}
+                        onDrop={(e) => { e.preventDefault(); const w = Number(e.dataTransfer.getData("text/plain")); if (w >= 0) yerlestir(w, i); }}
+                      >
+                        {k >= 0 ? havuz[k] : ""}
+                      </button>
+                      {c.ek}
+                    </span>
+                    {c.sonra && <span>{c.sonra}</span>}
+                    {kontrol && !boslukSonuc[i] && <div className="dogrusu">Doğrusu: {c.cevap}</div>}
+                  </div>
+                );
+              })}
             </div>
-            <div className="bk-parca-havuz">
-              {havuz.map((p, i) => (
-                <button
-                  key={`${p}-${i}`}
-                  className="bk-parca"
-                  data-secili={secilen.includes(i)}
-                  disabled={secilen.includes(i) || kontrol}
-                  onClick={() => setSecilen((s) => [...s, i])}
-                >
-                  {p}
-                </button>
-              ))}
+            <div className="bk-bosluk-havuz">
+              {havuz.map((w, k) => {
+                const kullanildi = yerlesim.includes(k);
+                return (
+                  <button
+                    key={`${w}-${k}`}
+                    className="bk-bosluk-kelime"
+                    data-kullanildi={kullanildi}
+                    disabled={kontrol || kullanildi}
+                    draggable={!kontrol && !kullanildi}
+                    onDragStart={(e) => e.dataTransfer.setData("text/plain", String(k))}
+                    onClick={() => {
+                      const hedef = seciliBosluk >= 0 && yerlesim[seciliBosluk] < 0 ? seciliBosluk : yerlesim.findIndex((x) => x < 0);
+                      if (hedef >= 0) yerlestir(k, hedef);
+                    }}
+                  >
+                    {w}
+                  </button>
+                );
+              })}
             </div>
           </>
         )}
@@ -385,13 +447,14 @@ export default function YaziliCalismaSayfasi() {
               </p>
             )}
             <h2 style={{ fontSize: 20, lineHeight: 1.35, marginBottom: 16 }}>{acik[indeks].soru}</h2>
-            <input
-              className="bk-alan"
-              placeholder="Cevabını yaz"
+            <textarea
+              className="bk-alan bk-alan-cok"
+              placeholder="Cevabını buraya yaz..."
+              rows={4}
               value={yazilan}
               disabled={kontrol}
               onChange={(e) => setYazilan(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter") kontrol ? devamEt() : kontrolEt(); }}
+              onKeyDown={(e) => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); if (kontrol) devamEt(); else kontrolEt(); } }}
             />
           </>
         )}
@@ -443,11 +506,23 @@ export default function YaziliCalismaSayfasi() {
         )}
       </div>
 
-      <AltSonucBandi
-        gorunur={kontrol}
-        dogru={dogruMu}
-        dogruCevap={bolum === "siralama" || bolum === "acikuclu" ? dogruCevapMetni(bolum, indeks, siralama, acik, test, dy) : null}
-      />
+      {bolum === "bosluk" ? (
+        <AltSonucBandi
+          gorunur={kontrol}
+          dogru={dogruMu}
+          baslik={dogruMu ? "Hepsi doğru!" : `${boslukSayisi} boşluktan ${boslukDogru} tanesi doğru`}
+          aciklama={dogruMu ? null : "Doğru cevaplar boşlukların altında yazıyor."}
+        />
+      ) : ornekMi ? (
+        <AltSonucBandi gorunur={kontrol} dogru ornek baslik="Örnek cevap"
+          aciklama={acik[indeks]?.ornekCevap} not={acik[indeks]?.not} />
+      ) : (
+        <AltSonucBandi
+          gorunur={kontrol}
+          dogru={dogruMu}
+          dogruCevap={bolum === "acikuclu" ? dogruCevapMetni(bolum, indeks, acik, test, dy) : null}
+        />
+      )}
       <AksiyonDugmesi
         etiket={kontrol ? "Devam Et" : "Kontrol Et"}
         etkin={kontrol || cevapVar}
@@ -460,11 +535,10 @@ export default function YaziliCalismaSayfasi() {
 
 function dogruCevapMetni(
   bolum: Bolum, i: number,
-  siralama: SiralamaSorusu[], acik: AcikSorusu[],
-  test: YaziliTestSorusu[], dy: DogruYanlisSorusu[]
+  acik: AcikSorusu[], test: YaziliTestSorusu[], dy: DogruYanlisSorusu[]
 ): string {
   switch (bolum) {
-    case "siralama":  return siralama[i]?.hedef ?? "";
+    case "bosluk":    return "";
     case "acikuclu":  return acik[i]?.cevaplar[0] ?? "";
     case "test": {
       const s = test[i];

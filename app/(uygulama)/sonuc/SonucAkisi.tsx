@@ -10,7 +10,8 @@
 import { useEffect, useRef, useState } from "react";
 import Lottie from "../Lottie";
 import { sesCal } from "../ses";
-import { ACT_DEFTER, ACT_YAZILI, haftaninAktifGunleri } from "../../lib/veri";
+import { ACT_DEFTER, ACT_TEST, ACT_YAZILI, haftaninGunMaskeleri } from "../../lib/veri";
+import Rive, { seriGirdileri, seriGunResim } from "../Rive";
 import type { GorevDegisimi } from "../../lib/gorevYaz";
 import GorevOzeti from "./GorevOzeti";
 import { tavanli } from "../../lib/hata";
@@ -20,6 +21,8 @@ export type SonucArgs = {
   toplam: number;
   sureSn: number;
   puan: number;
+  /** yazılı adımıysa: puan/yüzde yerine sade "Tamamlandı" kartı (Android 22 Eki) */
+  yaziliAdim?: "step1" | "step2";
 };
 
 export type SeriArgs = {
@@ -131,13 +134,17 @@ export default function SonucAkisi({
     <div className="bk bk-akis">
       {cikan === "sonuc" && sonuc && (
         <div className="bk-akis-adim bk-sonuc" data-yon="cikan">
-          <SonucKarti args={sonuc} onDevam={() => {}} sessiz />
+          {sonuc.yaziliAdim
+            ? <YaziliTamamlandi adim1={sonuc.yaziliAdim === "step1"} onDevam={() => {}} />
+            : <SonucKarti args={sonuc} onDevam={() => {}} sessiz />}
         </div>
       )}
 
       {adim === "sonuc" && sonuc && (
         <div className="bk-akis-adim bk-sonuc">
-          <SonucKarti args={sonuc} onDevam={sonucDevam} misafir={misafir} />
+          {sonuc.yaziliAdim
+            ? <YaziliTamamlandi adim1={sonuc.yaziliAdim === "step1"} onDevam={sonucDevam} />
+            : <SonucKarti args={sonuc} onDevam={sonucDevam} misafir={misafir} />}
         </div>
       )}
 
@@ -163,7 +170,8 @@ export default function SonucAkisi({
 }
 
 /* ------------------------------------------------------------- sonuç kartı */
-// iOS: ResultScreen — yay + yıldızlar + üç sayaç kutusu, arkada resultscreen.json.
+// Android ResultScreen (23 Eki): Rive halka + yıldızlar (3★'da yanlardan konfeti), altında üç kutu sırayla
+// (Süre → Puan → Başarı) yaylanarak gelir; her kutunun sayacı o kutu oturunca sayar. Sahne + kutular ortada.
 
 function SonucKarti({
   args,
@@ -177,77 +185,32 @@ function SonucKarti({
   misafir?: boolean;
 }) {
   const yuzde = args.toplam > 0 ? Math.round((args.dogru / args.toplam) * 100) : 0;
+  // 1★ %0-49 · 2★ %50-84 · 3★ %85-100
   const yildizSayisi = yuzde >= 85 ? 3 : yuzde >= 50 ? 2 : 1;
-  const hedefDolum = yildizSayisi >= 3 ? 1 : yildizSayisi === 2 ? 0.6 : 0.3;
-
-  const [dolum, setDolum] = useState(0);
-  const [pop, setPop] = useState([false, false, false]);
-  const sayaclar = useSayac(
-    [args.sureSn, args.puan, yuzde],
-    1400,
-    !sessiz
-  );
+  const [gelen, setGelen] = useState(sessiz ? 3 : 0);
+  const sure = useTekSayac(args.sureSn, gelen >= 1, sessiz);
+  const puan = useTekSayac(args.puan, gelen >= 2, sessiz);
+  const oran = useTekSayac(yuzde, gelen >= 3, sessiz);
 
   useEffect(() => {
     if (sessiz) return;
     sesCal("result");
-    const zamanlar: number[] = [];
-    zamanlar.push(window.setTimeout(() => setDolum(hedefDolum), 30));
-    const gecikmeler = [350, 620, 880];
-    for (let i = 0; i < yildizSayisi; i++) {
-      zamanlar.push(
-        window.setTimeout(() => setPop((p) => { const y = [...p]; y[i] = true; return y; }), gecikmeler[i])
-      );
-    }
-    return () => zamanlar.forEach((z) => window.clearTimeout(z));
-  }, [sessiz, hedefDolum, yildizSayisi]);
+    const z = [0, 1, 2].map((i) => window.setTimeout(() => setGelen(i + 1), 700 + i * 260));
+    return () => z.forEach((x) => window.clearTimeout(x));
+  }, [sessiz]);
 
   return (
     <>
       <div className="bk-sonuc-ic">
-        <div className="bk-halka-kap">
-          {/* Patlama animasyonu HALKANIN merkezine kilitli durmalı. Eskiden ekranın
-              tepesine (top:16px) sabitlenmişti; halka ise dikeyde ortalanan kutunun
-              içinde olduğu için ikisi ancak belli bir ekran yüksekliğinde çakışıyordu
-              (masaüstünde ışık halkanın epey yukarısında kalıyordu). */}
-          <div className="bk-sonuc-lottie">
-            {!sessiz && <Lottie ad="resultscreen" dongu style={{ height: 400 }} />}
-          </div>
-
-          {/* Yay: alt tarafta 70° açıklık (iOS gapDeg = 70), dolgu 0.30/0.60/1.00 */}
-          <svg className="bk-halka-svg" viewBox="0 0 350 350" aria-hidden>
-            <g transform="rotate(125 175 175)">
-              <circle
-                className="iz" cx="175" cy="175" r="168" fill="none"
-                strokeWidth="14" strokeLinecap="round"
-                pathLength={360} strokeDasharray="290 70"
-              />
-              <circle
-                className="dolgu" cx="175" cy="175" r="168" fill="none"
-                strokeWidth="14" strokeLinecap="round"
-                pathLength={360} strokeDasharray={`${(290 * dolum).toFixed(2)} 360`}
-              />
-            </g>
-          </svg>
-
-          <div className="bk-yildizlar">
-            {[0, 1, 2].map((i) => (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                key={i}
-                className="bk-yildiz"
-                data-pop={pop[i] ? "true" : "false"}
-                src={`/uygulama/sonuc/${yildizSayisi > i ? "activestar" : "inactivestar"}.png`}
-                alt=""
-              />
-            ))}
-          </div>
+        <div className="bk-sonuc-sahne">
+          {/* Sahnenin kenarları saydam pay (ışınlar orada söner): yer kare kadar, sahne %28 büyük çizilir */}
+          {!sessiz && <Rive dosya="sonuc_yildiz" durumMakinesi="Sonuc" girdiler={{ yildiz: yildizSayisi }} className="tuval" />}
         </div>
 
         <div className="bk-sonuc-kutular">
-          <Kutu renk="#1C22FF" ikon="sure"   baslik="SÜRE"          deger={sureBicimle(sayaclar[0])} />
-          <Kutu renk="#FFA200" ikon="puan"   baslik="PUAN"          deger={`${sayaclar[1]}`} />
-          <Kutu renk="#39FF14" ikon="basari" baslik="BAŞARI ORANI"  deger={`%${sayaclar[2]}`} />
+          <Kutu renk="#1C22FF" ikon="sure"   baslik="SÜRE"          deger={sureBicimle(sure)} gorunur={gelen >= 1} />
+          <Kutu renk="#FFA200" ikon="puan"   baslik="PUAN"          deger={`${puan}`} gorunur={gelen >= 2} />
+          <Kutu renk="#39FF14" ikon="basari" baslik="BAŞARI ORANI"  deger={`%${oran}`} gorunur={gelen >= 3} />
         </div>
 
         {misafir && (
@@ -263,9 +226,27 @@ function SonucKarti({
   );
 }
 
-function Kutu({ renk, ikon, baslik, deger }: { renk: string; ikon: string; baslik: string; deger: string }) {
+/** Yazılı adımı bitti: puan/yüzde yok (açık uçlu örnek cevaplı), sade kutlama (Android YaziliTamamlandiIcerik). */
+function YaziliTamamlandi({ adim1, onDevam }: { adim1: boolean; onDevam: () => void }) {
+  useEffect(() => { sesCal("result"); }, []);
   return (
-    <div className="bk-sonuc-kutu" style={{ background: renk }}>
+    <>
+      <div className="bk-sonuc-ic bk-yazili-bitti">
+        <div className="bk-sonuc-lottie"><Lottie ad="resultscreen" dongu style={{ height: 400 }} /></div>
+        <h2>Tebrikler!</h2>
+        <p className="ana">{adim1 ? "Yazılının 1. adımını tamamladın." : "Yazılıya hazırlığını tamamladın!"}</p>
+        <p className="alt">{adim1 ? "2. adımda seni yeni sorular bekliyor." : "Yazılında başarılar!"}</p>
+      </div>
+      <button className="bk-akis-dugme" onClick={onDevam}>Devam Et</button>
+    </>
+  );
+}
+
+function Kutu({ renk, ikon, baslik, deger, gorunur = true }: {
+  renk: string; ikon: string; baslik: string; deger: string; gorunur?: boolean;
+}) {
+  return (
+    <div className="bk-sonuc-kutu" data-gorunur={gorunur} style={{ background: renk }}>
       <div className="baslik">{baslik}</div>
       <div className="ic">
         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -281,26 +262,22 @@ function sureBicimle(sn: number): string {
   return `${Math.floor(sn / 60)}:${String(sn % 60).padStart(2, "0")}`;
 }
 
-/** Üç sayacı birlikte 0'dan hedefe sayar (iOS: withAnimation(.easeOut(duration: 1.4))). */
-function useSayac(hedefler: number[], sureMs: number, calissin: boolean): number[] {
-  const [deger, setDeger] = useState(() => hedefler.map(() => 0));
-  const hedefRef = useRef(hedefler);
-  hedefRef.current = hedefler;
-
+/** Kutu oturunca (0,22 sn sonra) 0'dan hedefe 0,7 sn'de sayar; sessizde doğrudan hedef. */
+function useTekSayac(hedef: number, basla: boolean, sessiz: boolean): number {
+  const [deger, setDeger] = useState(sessiz ? hedef : 0);
   useEffect(() => {
-    if (!calissin) { setDeger(hedefRef.current); return; }
+    if (sessiz) { setDeger(hedef); return; }
+    if (!basla) return;
     let kare = 0;
-    const basla = performance.now();
+    const t0 = performance.now() + 220;
     const adim = (t: number) => {
-      const o = Math.min(1, (t - basla) / sureMs);
-      const yumusak = 1 - Math.pow(1 - o, 3);              // easeOut
-      setDeger(hedefRef.current.map((h) => Math.round(h * yumusak)));
+      const o = Math.min(1, Math.max(0, (t - t0) / 700));
+      setDeger(Math.round(hedef * (1 - Math.pow(1 - o, 3))));
       if (o < 1) kare = requestAnimationFrame(adim);
     };
     kare = requestAnimationFrame(adim);
     return () => cancelAnimationFrame(kare);
-  }, [sureMs, calissin]);
-
+  }, [hedef, basla, sessiz]);
   return deger;
 }
 
@@ -310,27 +287,27 @@ function useSayac(hedefler: number[], sureMs: number, calissin: boolean): number
 const GUN_ADLARI = ["Pt", "Sa", "Ça", "Pe", "Cu", "Ct", "Pa"];
 
 function SeriOzeti({ args, uid, onDevam }: { args: SeriArgs; uid: string | null; onDevam: () => void }) {
-  const [gunler, setGunler] = useState<number[] | null>(null);
+  const tumu = ACT_TEST | ACT_DEFTER | ACT_YAZILI;
+  // Bugünün maskesi: az önce biten bölüm her zaman içinde (olay modunda sunucu bitini sonradan yazar)
+  const bugunMaske = (args.maske | args.tetik) & tumu;
+  const [gunler, setGunler] = useState<Record<number, number> | null>(null);
   const [oynat, setOynat] = useState(false);
-
-  const animAdi =
-    args.tetik === ACT_DEFTER ? "streakdefter" :
-    args.tetik === ACT_YAZILI ? "streakyazili" :
-    args.tetik !== 0 ? "streaktest" :
-    (args.maske & ACT_DEFTER) !== 0 ? "streakdefter" :
-    (args.maske & ACT_YAZILI) !== 0 ? "streakyazili" : "streaktest";
+  const [konfeti, setKonfeti] = useState(false);
 
   useEffect(() => {
     let iptal = false;
     sesCal("streak");
     (async () => {
-      const g = await haftaninAktifGunleri(uid ?? "").catch(() => null);
+      const g = await haftaninGunMaskeleri(uid ?? "", bugunMaske).catch(() => null);
       if (iptal) return;
       setGunler(g);
       window.setTimeout(() => { if (!iptal) setOynat(true); }, 120);
     })();
-    return () => { iptal = true; };
-  }, [uid]);
+    // Kitap konduktan sonra tam ekran konfeti (bir kez, ~5 sn); dokunmaları almaz
+    const t1 = window.setTimeout(() => setKonfeti(true), 900);
+    const t2 = window.setTimeout(() => setKonfeti(false), 900 + 5200);
+    return () => { iptal = true; window.clearTimeout(t1); window.clearTimeout(t2); };
+  }, [uid, bugunMaske]);
 
   const sayi = Math.max(1, args.sayi);
 
@@ -343,26 +320,20 @@ function SeriOzeti({ args, uid, onDevam }: { args: SeriArgs; uid: string | null;
           : "Bugünkü serini korudun, harika gidiyorsun!"}
       </p>
 
+      {/* Seri kitap yığını: az önce biten bölümün kitabı kanat çırparak uçup yığına konar */}
       <div className="bk-seri-lottie">
-        <Lottie ad={animAdi} style={{ height: 260 }} />
+        <Rive dosya="seri_kitap_kutlama" durumMakinesi="Kutlama"
+              girdiler={seriGirdileri(bugunMaske, args.tetik & tumu)} style={{ width: "100%", height: "100%" }} />
       </div>
 
       <div className="bk-hafta-panel">
         {GUN_ADLARI.map((ad, i) => {
-          const bitti = (gunler ?? []).includes(i);
+          const m = gunler?.[i] ?? (i === haftaGunu() ? bugunMaske : 0);
+          const bitti = m !== 0;
           return (
             <div key={ad} className="bk-hafta-gun" data-bitti={bitti} data-oynat={oynat}>
-              <div className="halka">
-                <svg viewBox="0 0 34 34" aria-hidden>
-                  <circle className="iz" cx="17" cy="17" r="13.5" fill="none" strokeWidth="7" pathLength={100} />
-                  <circle
-                    className="yay" cx="17" cy="17" r="13.5" fill="none"
-                    strokeWidth="7" strokeLinecap="round" pathLength={100}
-                    strokeDasharray="100 100"
-                    strokeDashoffset={bitti && oynat ? 0 : 100}
-                  />
-                </svg>
-              </div>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img className="halka" src={seriGunResim(m)} alt="" style={{ opacity: bitti ? 1 : 0.45 }} />
               <div className="etiket">{ad}</div>
             </div>
           );
@@ -370,6 +341,18 @@ function SeriOzeti({ args, uid, onDevam }: { args: SeriArgs; uid: string | null;
       </div>
 
       <button className="bk-akis-dugme" onClick={onDevam}>Devam Et</button>
+
+      {konfeti && (
+        <div className="bk-konfeti-katman" aria-hidden>
+          <Rive dosya="seri_konfeti" durumMakinesi="Konfeti" sigdir="cover" style={{ width: "100%", height: "100%" }} />
+        </div>
+      )}
     </>
   );
+}
+
+/** Pazartesi = 0 (İstanbul saatiyle) */
+function haftaGunu(): number {
+  const g = new Date(new Date().toLocaleString("en-US", { timeZone: "Europe/Istanbul" })).getDay();
+  return (g + 6) % 7;
 }

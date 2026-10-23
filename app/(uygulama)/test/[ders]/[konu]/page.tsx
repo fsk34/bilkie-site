@@ -20,6 +20,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { dersBul } from "../../../dersler";
 import Lottie from "../../../Lottie";
 import Perde from "../../../Perde";
+import SoruCubugu from "../../../SoruCubugu";
 import { sesCal } from "../../../ses";
 import SonucAkisi, { type SeriArgs, type SonucArgs } from "../../../sonuc/SonucAkisi";
 import type { GorevDegisimi } from "../../../../lib/gorevYaz";
@@ -281,7 +282,7 @@ export default function TestSayfasi() {
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <button className="bk-cikis" aria-label="Çık" onClick={() => setCikisSor(true)}><img src="/uygulama/cikis.png" alt="" /></button>
           {cikisSor && <CikisOnayi onVazgec={() => setCikisSor(false)} onCik={() => router.push(`/ders/${dersKey}`)} />}
-          <div className="bk-cubuk" style={{ flex: 1 }}><i style={{ width: `${oran}%` }} /></div>
+          <SoruCubugu hedef={oran / 100} mevcut={indeks + 1} toplam={sorular.length} />
           {/* Can ikonu uygulamanınki (Android TestScreens.kt: R.drawable.hakicon); önce ❤️ emojisiydi. */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           {hakAcik && <div className="bk-test-can"><img src="/uygulama/hakicon.svg" alt="" />{can}</div>}

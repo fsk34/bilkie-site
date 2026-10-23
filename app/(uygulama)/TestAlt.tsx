@@ -8,24 +8,36 @@
 
 import { useLayoutEffect, useRef } from "react";
 
-export function AltSonucBandi({ gorunur, dogru, dogruCevap }: {
+export function AltSonucBandi({ gorunur, dogru, dogruCevap, baslik, aciklama, not, ornek }: {
   gorunur: boolean; dogru: boolean; dogruCevap?: string | null;
+  /** boşluk doldurma ("5 boşluktan 3 tanesi doğru") / örnek cevap paneli için özel metin */
+  baslik?: string; aciklama?: string | null; not?: string | null;
+  /** açık uçlu örnek cevap (22 Eki): mavi panel, doğru/yanlış hükmü yok, uzun metin kaydırılır */
+  ornek?: boolean;
 }) {
   // Android AnimatedVisibility çıkarken SON içeriği gösterir (bannerWasCorrect) — sonraki sorunun
   // sonucu kayarken bandın rengine sızmasın
-  const son = useRef({ dogru, dogruCevap });
-  if (gorunur) son.current = { dogru, dogruCevap };
-  const { dogru: d, dogruCevap: c } = son.current;
+  const son = useRef({ dogru, dogruCevap, baslik, aciklama, not, ornek });
+  if (gorunur) son.current = { dogru, dogruCevap, baslik, aciklama, not, ornek };
+  const { dogru: d, dogruCevap: c, baslik: bs, aciklama: ac, not: nt, ornek: or } = son.current;
   return (
-    <div className="bk-sonuc-bandi" data-gorunur={gorunur} data-dogru={d} aria-hidden={!gorunur}>
+    <div className="bk-sonuc-bandi" data-gorunur={gorunur} data-dogru={d} data-ornek={or || undefined} aria-hidden={!gorunur}>
       <svg width="32" height="32" viewBox="0 0 24 24" fill="#fff" aria-hidden>
-        {d
+        {or || (bs && !d)
+          ? <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z" />
+          : d
           ? <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
           : <path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />}
       </svg>
       <div className="yazi">
-        <b>{d ? "Doğru" : "Yanlış"}</b>
-        {!d && c ? <span>Doğru cevap: {c}</span> : null}
+        <b>{bs ?? (d ? "Doğru" : "Yanlış")}</b>
+        {or ? (
+          <div className="ornek-metin">
+            <span className="cevap">{ac}</span>
+            {nt ? <i>{nt}</i> : null}
+          </div>
+        ) : ac ? <span>{ac}</span>
+          : !d && c ? <span>Doğru cevap: {c}</span> : null}
       </div>
     </div>
   );

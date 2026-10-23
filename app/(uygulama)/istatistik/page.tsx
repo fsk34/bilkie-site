@@ -14,14 +14,14 @@ import UcNokta from "../UcNokta";
 import BilgieKocBolumu from "./BilgieKoc";
 import { useOturum } from "../../lib/oturum";
 import { konuAyristir, uniteler, type Unite } from "../../lib/katalog";
-import { useDefterKartiHam, useIstatistikAgaci } from "../../lib/canliVeri";
+import { useDefterKartiHam, useIstatistikAgaci, useYaziliIlerlemesi } from "../../lib/canliVeri";
+import { acilisMetni, bugunAnahtari, yaziliTakvimi, type YaziliSinav } from "../../lib/yaziliTakvim";
 import {
   defterKartBilgisiCoz,
   dersRengi,
   istatistikDilimleriCoz,
   konuIstatistikleriCoz,
   testIstatistigiCoz,
-  yaziliDersCubuklariCoz,
   yaziliIstatistigiCoz,
   type DefterKarti,
   type Dilim,
@@ -91,7 +91,14 @@ function Icerik() {
   const test = useMemo(() => (agac ? testIstatistigiCoz(agac, ders) : null), [agac, ders]);
   const dilimler = useMemo(() => (agac ? istatistikDilimleriCoz(agac, ders) : []), [agac, ders]);
   const yazili = useMemo(() => (agac ? yaziliIstatistigiCoz(agac, ders) : null), [agac, ders]);
-  const cubuklar = useMemo(() => (agac ? yaziliDersCubuklariCoz(agac) : []), [agac]);
+  // Yazılı hazırlık (23 Eki): takvim + ders × sınav biten adım (canlı) — başarı oranının yerine
+  const yaziliIlerleme = useYaziliIlerlemesi(sinif);
+  const [takvim, setTakvim] = useState<YaziliSinav[] | null>(null);
+  useEffect(() => {
+    let iptal = false;
+    yaziliTakvimi().then((t) => { if (!iptal) setTakvim(t.durum === "basarili" ? t.sinavlar : []); }).catch(() => { if (!iptal) setTakvim([]); });
+    return () => { iptal = true; };
+  }, []);
   const konular = useMemo<Record<string, KonuIstatistigi>>(() => {
     if (!agac || !ders) return {};
     const subjects = (agac as { subjects?: Record<string, { topics?: unknown }> }).subjects;
@@ -164,7 +171,8 @@ function Icerik() {
                 <DefterBolumu bilgi={defter} />
               </div>
               <div hidden={bolum !== 2}>
-                <YaziliBolumu test={test} yazili={yazili} cubuklar={cubuklar} dersKey={ders} />
+                <YaziliBolumu test={test} yazili={yazili} dersKey={ders} sinif={sinif}
+                              takvim={takvim} ilerleme={yaziliIlerleme} />
               </div>
               <div hidden={bolum !== 3}>
                 {kullanici && <BilgieKocBolumu uid={kullanici.uid} sinif={sinif} dersKey={ders} onDersSec={setDers} />}
@@ -429,50 +437,122 @@ function DefterBolumu({ bilgi }: { bilgi: DefterKarti | null }) {
 
 /* ---------------------------------------------------------------- yazılı */
 
+/** Yazılı dersleri — yazılı ders listesiyle aynı anahtarlar (ilerleme sade ders anahtarıyla tutulur). */
+const YAZILI_DERSLER = [
+  { key: "turkce", ad: "Türkçe", kisa: "TR", renk: "#72CEFD" },
+  { key: "matematik", ad: "Matematik", kisa: "MAT", renk: "#F04B74" },
+  { key: "fen", ad: "Fen Bilimleri", kisa: "FEN", renk: "#40DB18" },
+  { key: "sosyal", ad: "Sosyal Bilgiler", kisa: "SOS", renk: "#FDEB4B" },
+  { key: "ingilizce", ad: "İngilizce", kisa: "İNG", renk: "#971FB5" },
+] as const;
+
+const adimDurumu = (a: number) => (a >= 2 ? "Hazır" : a === 1 ? "1. adım bitti" : "Başlanmadı");
+/** "1. Dönem 1. Yazılı" → "1D 1Y" */
+const sinavKisa = (ad: string) => { const n = ad.match(/\d+/g) ?? []; return n.length >= 2 ? `${n[0]}D ${n[1]}Y` : ad.slice(0, 6); };
+
+/**
+ * Yazılılar sekmesi (Android 23 Eki): "yazılıya ne kadar hazırım". Başarı oranı yok — açık uçluda cevap yazan
+ * doğru sayıldığı için yanıltıcıydı. Kaynak takvim + progress_yazili (sunucu değişikliği yok).
+ */
 function YaziliBolumu({
-  test, yazili, cubuklar, dersKey,
+  test, yazili, dersKey, sinif, takvim, ilerleme,
 }: {
-  test: TestIstatistigi | null; yazili: YaziliIstatistigi | null;
-  cubuklar: Dilim[]; dersKey: string | null;
+  test: TestIstatistigi | null; yazili: YaziliIstatistigi | null; dersKey: string | null; sinif: number;
+  takvim: YaziliSinav[] | null; ilerleme: Record<string, Record<string, number>> | null;
 }) {
-  const hazir = test?.hazirlananYazili ?? 0;
-  // Hiç yazılı yoksa "—" satırları ve boş çubuklar yerine yönlendiren boş durum (Android 24 Eyl)
-  if (hazir <= 0) {
-    return (
-      <div className="bk-bevel">
-        <div className="bk-bevel-ic bk-ist-bos">
-          <div className="simge" aria-hidden>📝</div>
-          <h3>{dersKey ? "Bu derste henüz yazılıya hazırlanmadın" : "Henüz yazılıya hazırlanmadın"}</h3>
-          <p>Yazılı çöz; başarı oranın ve ortalama süren burada görünsün.</p>
-        </div>
-      </div>
-    );
-  }
+  const hazirSayi = test?.hazirlananYazili ?? 0;
+  const adim = (ders: string, sinav: string) => Math.max(0, Math.min(2, ilerleme?.[ders]?.[sinav] ?? 0));
+  const bugun = bugunAnahtari();
+  const sinavlar = takvim ?? [];
+  const tamMi = (s: YaziliSinav) => YAZILI_DERSLER.every((d) => adim(d.key, s.anahtar) >= 2);
+  // Sıradaki: açık sınavlardan hazırlığı bitmemiş ilki → yoksa ilk açık → yoksa ilk kilitli (açılacak)
+  const acik = sinavlar.filter((s) => s.acik);
+  const sonraki = acik.find((s) => !tamMi(s)) ?? acik[0] ?? sinavlar.find((s) => !!s.baslar && s.baslar > bugun) ?? null;
+  // Çubuklara giren: açık ya da açılış günü geçmiş (sırası gelmemiş sınav "hazırlanmadın" diye sayılmasın)
+  const acilmis = sinavlar.filter((s) => s.acik || (!!s.baslar && s.baslar <= bugun));
+  const hicAdimYok = !sinavlar.some((s) => YAZILI_DERSLER.some((d) => adim(d.key, s.anahtar) > 0));
+  const dersler: (typeof YAZILI_DERSLER)[number][] = dersKey ? YAZILI_DERSLER.filter((d) => d.key === dersKey) : [...YAZILI_DERSLER];
+  const dersAdi = (k: string, ad: string) =>
+    k === "sosyal" && sinif === 3 ? "Hayat Bilgisi" : k === "sosyal" && sinif === 8 ? "T.C. İnkılap Tarihi" : ad;
+
+  const cubuklar = dersKey
+    ? acilmis.map((s) => ({ id: s.anahtar, etiket: sinavKisa(s.ad), oran: adim(dersKey, s.anahtar) * 50,
+                            renk: YAZILI_DERSLER.find((d) => d.key === dersKey)?.renk ?? "#fff" }))
+    : YAZILI_DERSLER.map((d) => ({
+        id: d.key, etiket: d.kisa, renk: d.renk,
+        oran: acilmis.length ? Math.round((acilmis.reduce((t, s) => t + adim(d.key, s.anahtar), 0) * 100) / (acilmis.length * 2)) : 0,
+      }));
+
   return (
     <div className="bk-bevel">
       <div className="bk-bevel-ic bk-ist-olcu">
-        <div>Hazırlanan Yazılı Sayısı: {hazir}</div>
-        <div>Başarı Oranı: %{yazili?.basariOrani ?? 0}</div>
-        <div>Ortalama Süre: {sureMetni(yazili?.ortalamaSaniye ?? 0)}</div>
-
-        {!dersKey && cubuklar.length > 0 && (
-          <>
-            <div>Derslere Göre Başarı</div>
-            <div className="bk-bevel" style={{ borderRadius: 18 }}>
-              <div className="bk-bevel-ic" style={{ padding: 14 }}>
-                <div className="bk-ist-sutunlu">
-                  {cubuklar.map((c) => (
-                    <div key={c.id}>
-                      <div className="bk-ist-dik">
-                        <i style={{ height: `${Math.max(0, Math.min(100, c.oran))}%`, background: c.renk }} />
-                      </div>
-                      <span>%{c.oran}</span>
-                      <span style={{ opacity: .9 }}>{c.etiket}</span>
-                    </div>
-                  ))}
+        {sonraki && (
+          <div className="bk-yazili-hazirlik">
+            <div className="ust">{sonraki.acik ? "Sıradaki Yazılı" : "Yaklaşan Yazılı"}</div>
+            <div className="ad">{sonraki.ad}</div>
+            {!sonraki.acik ? (
+              <div className="alt">Hazırlık {acilisMetni(sonraki.baslar).replace("Yazılı zamanı geldiğinde ", "")}.</div>
+            ) : (
+              <>
+                <div className="alt">
+                  {dersKey
+                    ? adimDurumu(adim(dersKey, sonraki.anahtar))
+                    : `${dersler.length} dersten ${dersler.filter((d) => adim(d.key, sonraki.anahtar) >= 2).length} tanesi hazır`}
                 </div>
-              </div>
-            </div>
+                <div className="cubuk">
+                  <i style={{ width: `${(dersler.reduce((t, d) => t + adim(d.key, sonraki.anahtar), 0) * 100) / (dersler.length * 2)}%` }} />
+                </div>
+                {dersler.map((d) => {
+                  const a = adim(d.key, sonraki.anahtar);
+                  return (
+                    <Link key={d.key} className="satir" href={`/yazili/${sonraki.anahtar}/${d.key}`}>
+                      <span className="nokta" style={{ background: d.renk }} />
+                      <span className="ders">{dersAdi(d.key, d.ad)}</span>
+                      <span className="durum" data-hazir={a >= 2}>{adimDurumu(a)}</span>
+                      <span className="adimlar">{[0, 1].map((i) => <i key={i} data-dolu={i < a} />)}</span>
+                      <span className="ok">›</span>
+                    </Link>
+                  );
+                })}
+              </>
+            )}
+          </div>
+        )}
+
+        {hazirSayi <= 0 && hicAdimYok ? (
+          <div className="bk-ist-bos">
+            <div className="simge" aria-hidden>📝</div>
+            <h3>{dersKey ? "Bu derste henüz yazılıya hazırlanmadın" : "Henüz yazılıya hazırlanmadın"}</h3>
+            <p>Yazılıya hazırlan; hangi derslerin hazır olduğu burada görünsün.</p>
+          </div>
+        ) : (
+          <>
+            <div>Bugüne kadar hazırlandığın yazılı: {hazirSayi}</div>
+            <div>Ortalama hazırlık süresi: {sureMetni(yazili?.ortalamaSaniye ?? 0)}</div>
+
+            {acilmis.length > 0 && (
+              <>
+                <div>
+                  {dersKey ? "Yazılılara Göre Hazırlık" : "Derslere Göre Hazırlık"}
+                  <div className="bk-yazili-hazirlik-not">Her yazılı 2 adım; biten adımların oranı</div>
+                </div>
+                <div className="bk-bevel" style={{ borderRadius: 18 }}>
+                  <div className="bk-bevel-ic" style={{ padding: 14 }}>
+                    <div className="bk-ist-sutunlu">
+                      {cubuklar.map((c) => (
+                        <div key={c.id}>
+                          <div className="bk-ist-dik">
+                            <i style={{ height: `${Math.max(0, Math.min(100, c.oran))}%`, background: c.renk }} />
+                          </div>
+                          <span>%{c.oran}</span>
+                          <span style={{ opacity: .9 }}>{c.etiket}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
           </>
         )}
       </div>

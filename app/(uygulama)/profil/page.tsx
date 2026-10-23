@@ -126,7 +126,7 @@ function Icerik() {
         <div className="bk-profil-hucreler">
           <div className="bk-profil-hucre">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <span className="simge"><img src="/uygulama/seriicon.svg" alt="" /></span>
+            <span className="simge"><img src="/uygulama/seri/seri_gun_hepsi.png" alt="" style={{ width: 34, height: 34 }} /></span>
             <div>
               <div className="deger">{ust ? ust.seri : "—"}</div>
               <div className="etiket">Günlük Seri</div>
