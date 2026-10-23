@@ -202,7 +202,7 @@ function Etiket({ ad, kitap }: { ad: string; kitap: string }) {
     <span className="bk-etiket">
       {ad}
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={`/uygulama/seri/seri_kitap_${kitap}.png`} alt="" style={{ height: 22 }} />
+      <img src={`/uygulama/seri-kitap/seri_kitap_${kitap}.png`} alt="" style={{ height: 22 }} />
     </span>
   );
 }

@@ -113,7 +113,7 @@ export function seriGunResim(maske: number): string {
     m === (ACT_TEST | ACT_YAZILI) ? "test_yazili" :
     m === (ACT_DEFTER | ACT_YAZILI) ? "defter_yazili" :
     m === (ACT_TEST | ACT_DEFTER | ACT_YAZILI) ? "hepsi" : "hicbiri";
-  return `/uygulama/seri/seri_gun_${ad}.png`;
+  return `/uygulama/seri-kitap/seri_gun_${ad}.png`;
 }
 
 /**
